@@ -2,7 +2,7 @@
 
 [Quellcode auf GitHub](https://github.com/florianwildt/fitgap)
 
-Schlanke Open-Source-iPhone-App ab iOS 17 im **Hochformat**, mit automatischem Hell-/Dunkelmodus: **Wahoo / Zwift → Original-FIT herunterladen → natives Share Sheet → HealthFit**. Ohne Backend, HealthKit, KI-Funktionen oder externe Abhängigkeiten. [MIT-Lizenz](LICENSE).
+Schlanke Open-Source-iPhone-App ab iOS 17 im **Hochformat**, mit automatischem Hell-/Dunkelmodus und deutscher/englischer Oberfläche nach iOS-Spracheinstellung: **Wahoo / Zwift → Original-FIT herunterladen → natives Share Sheet → HealthFit**. Ohne Backend, HealthKit, KI-Funktionen oder externe Abhängigkeiten. [MIT-Lizenz](LICENSE).
 
 ## Lokal starten
 
@@ -30,7 +30,9 @@ Die Aktivitätseinträge zeigen zusätzlich Strecke in km, aufsummierte Höhenme
 
 Links auf `.local/validation/` verweisen auf ausschließlich lokal aufbewahrte Nachweise. Diese Protokolle, Simulatoraufnahmen und persönlichen FIT-Dateien werden nicht ins Git-Repository aufgenommen; die datierten Ergebnisse stehen in der [Prüfhistorie](Pruefhistorie.md).
 
-Lokaler Entwicklungsstand **0.1.0 (Build 1)**: Release-Build für das iPhone-SDK erfolgreich, Hochformat im erzeugten App-Artefakt bestätigt. 30 Core-Testfunktionen einschließlich FIT-Kennzahlen und eines simulierten Archivs mit 1.000 Aktivitäten, iOS-Schlüsselbund-/Sync-Lebenszyklustests und native UI-Abläufe sind geprüft. UI-Nachweise betreffen iPhone 16e im Hellmodus und iPhone SE im Dunkelmodus mit größter Bedienungshilfen-Schrift, jeweils Hochformat. Der lokale Release-Build ist ohne Gerätesignierung; das eigene Developer-Team ist im Projekt bereits ausgewählt. Die bisherige App sowie die anschließende Kennzahlen-Cache-Anpassung wurden vom Nutzer auf dem Gerät erfolgreich getestet und bestätigt. Die neuen Sync-Anpassungen wurden zusätzlich lokal simuliert geprüft; Einzelheiten und Grenzen stehen in der Prüfhistorie.
+Lokaler Entwicklungsstand **0.1.0 (Build 1)**: Release-Build für das iPhone-SDK erfolgreich, Hochformat im erzeugten App-Artefakt bestätigt. 31 Core-Testfunktionen einschließlich FIT-Kennzahlen und eines simulierten Archivs mit 1.000 Aktivitäten, iOS-Schlüsselbund-/Sync-Lebenszyklustests und native UI-Abläufe sind geprüft. UI-Nachweise betreffen iPhone 16e im Hellmodus und iPhone SE im Dunkelmodus mit größter Bedienungshilfen-Schrift, jeweils Hochformat. Der lokale Release-Build ist ohne Gerätesignierung; das eigene Developer-Team ist im Projekt bereits ausgewählt. Die bisherige App sowie die anschließende Kennzahlen-Cache-Anpassung wurden vom Nutzer auf dem Gerät erfolgreich getestet und bestätigt. Die neuen Sync-Anpassungen wurden zusätzlich lokal simuliert geprüft; Einzelheiten und Grenzen stehen in der Prüfhistorie.
+
+Die deutsche/englische Sprachauswahl einschließlich Fallback wurde lokal im Simulator geprüft; der neue Sprachumfang ist noch nicht am physischen iPhone bestätigt ([Nachweise und Grenzen](Pruefhistorie.md)). Die Oberfläche einschließlich Konten, Dialogen, Fortschritt, Fehlern und VoiceOver-Beschriftungen folgt der bevorzugten unterstützten iOS-Sprache: Deutsch oder Englisch, mit Englisch als Fallback. Datums- und Zahlenformate folgen weiterhin der Systemregion; Aktivitätsnamen vom Anbieter bleiben unverändert. Sprachressourcen liegen in `App/{de,en}.lproj` und im Ressourcen-Bundle von `FITgapCore`.
 
 `App/` enthält die SwiftUI-Oberfläche mit nativen iOS-Controls und dem Share Sheet. Hell- und Dunkelmodus folgen von Anfang an der iOS-Systemeinstellung; Texte, Flächen und SF-Symbole verwenden adaptive Systemfarben. Dynamic Type und VoiceOver-Beschriftungen sind berücksichtigt. Das lokale Swift-Paket `Sources/FITgapCore` enthält Anbieterzugriffe, Schlüsselbund und Dateiverwaltung. Swift-Tests: `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test`; iOS-Schlüsselbund- und UI-Tests sind im Xcode-Scheme enthalten. Keine Kontodaten oder echten persönlichen FITs in Test-Fixtures oder App-Artefakten.
 

@@ -4,7 +4,7 @@ public struct WahooRateLimit: Error, LocalizedError, Sendable {
     public let until: Date
     public init(until: Date) { self.until = until }
     public var errorDescription: String? {
-        "Abruflimit erreicht. Wahoo pausiert bis \(until.formatted(date: .abbreviated, time: .shortened)). Bei geöffneter App wird danach automatisch fortgesetzt."
+        String(localized: "Abruflimit erreicht. Wahoo pausiert bis \(until.formatted(date: .abbreviated, time: .shortened)). Bei geöffneter App wird danach automatisch fortgesetzt.", bundle: .module)
     }
 
     static func deadline(_ response: HTTPURLResponse, now: Date = Date()) -> Date? {

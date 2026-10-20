@@ -12,9 +12,9 @@ struct AccountsView: View {
             Form {
                 ForEach(Source.allCases) { source in
                     Section(source.title) {
-                        Label(model.connected.contains(source) ? "Verbunden" : "Nicht verbunden",
+                        Label(model.connected.contains(source) ? String(localized: "Verbunden") : String(localized: "Nicht verbunden"),
                               systemImage: model.connected.contains(source) ? "checkmark.circle" : "person.crop.circle")
-                        Button(model.connected.contains(source) ? "Erneut verbinden" : "Verbinden") {
+                        Button(model.connected.contains(source) ? String(localized: "Erneut verbinden") : String(localized: "Verbinden")) {
                             if source == .zwift { zwiftLogin = true } else { model.connectWahoo() }
                         }
                         .accessibilityIdentifier("connect-\(source.rawValue)")
@@ -42,7 +42,7 @@ struct AccountsView: View {
             .navigationTitle("Konten")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } } }
             .sheet(isPresented: $zwiftLogin) { ZwiftLoginView(model: model) }
-            .confirmationDialog("\(disconnectCandidate?.title ?? "Konto") trennen?",
+            .confirmationDialog("\(disconnectCandidate?.title ?? String(localized: "Konto")) trennen?",
                                 isPresented: Binding(get: { disconnectCandidate != nil }, set: { if !$0 { disconnectCandidate = nil } }),
                                 titleVisibility: .visible) {
                 Button("Trennen", role: .destructive) {

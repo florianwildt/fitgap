@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "FITgap",
+    defaultLocalization: "en",
     platforms: [.macOS(.v14), .iOS(.v17)],
     products: [
         .library(name: "FITgapCore", targets: ["FITgapCore"]),
@@ -10,7 +11,7 @@ let package = Package(
         .executable(name: "fitgap-wahoo-probe", targets: ["WahooProbe"])
     ],
     targets: [
-        .target(name: "FITgapCore"),
+        .target(name: "FITgapCore", resources: [.process("Resources")]),
         .executableTarget(name: "FITgapProbe", dependencies: ["FITgapCore"]),
         .executableTarget(name: "WahooProbe", dependencies: ["FITgapCore"]),
         .testTarget(name: "FITgapCoreTests", dependencies: ["FITgapCore"])

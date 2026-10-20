@@ -103,7 +103,7 @@ private struct ActivityRow: View {
                         .accessibilityIdentifier("shared-status-\(activity.source.rawValue)-\(activity.remoteID)")
                 }
             }
-            Text(activity.name.isEmpty ? "Aktivität ohne Namen" : activity.name).font(.headline)
+            Text(activityName).font(.headline)
             if let date = activity.date { Text(date, format: .dateTime.day().month(.abbreviated).year().hour().minute()).font(.subheadline) }
             else { Text("Datum unbekannt").font(.subheadline) }
             Text("Dauer: \(duration)").font(.subheadline).foregroundStyle(.secondary)
@@ -126,7 +126,7 @@ private struct ActivityRow: View {
                         .accessibilityIdentifier("share-\(activity.source.rawValue)-\(activity.remoteID)")
                         .frame(minHeight: 44)
                 } else if connected {
-                    Button(activity.status == .deleted ? "Erneut laden" : "Laden", systemImage: "arrow.down", action: download)
+                    Button(activity.status == .deleted ? String(localized: "Erneut laden") : String(localized: "Laden"), systemImage: "arrow.down", action: download)
                         .frame(minHeight: 44).disabled(busy)
                 }
                 Spacer(minLength: 8)
@@ -137,7 +137,7 @@ private struct ActivityRow: View {
                         Label("Dateioptionen", systemImage: "ellipsis.circle").labelStyle(.iconOnly)
                             .frame(minWidth: 44, minHeight: 44)
                     }
-                    .accessibilityLabel("Dateioptionen für \(activity.name)")
+                    .accessibilityLabel("Dateioptionen für \(activityName)")
                     .accessibilityIdentifier("file-options-\(activity.source.rawValue)-\(activity.remoteID)")
                     .disabled(busy)
                 }
@@ -148,12 +148,17 @@ private struct ActivityRow: View {
         .accessibilityElement(children: .contain)
     }
 
+    private var activityName: String {
+        guard activity.name.isEmpty else { return activity.name }
+        return activity.source == .wahoo ? String(localized: "Wahoo-Aktivität") : String(localized: "Aktivität ohne Namen")
+    }
+
     private var duration: String {
-        guard let seconds = activity.duration, seconds.isFinite, seconds >= 0 else { return "unbekannt" }
+        guard let seconds = activity.duration, seconds.isFinite, seconds >= 0 else { return String(localized: "unbekannt") }
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.hour, .minute, .second]
         formatter.unitsStyle = .abbreviated
-        return formatter.string(from: seconds) ?? "unbekannt"
+        return formatter.string(from: seconds) ?? String(localized: "unbekannt")
     }
 
     private var distance: String {

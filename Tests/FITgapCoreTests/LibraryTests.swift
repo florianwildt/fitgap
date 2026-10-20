@@ -66,3 +66,10 @@ private func record(_ source: Source = .zwift) -> ActivityRecord {
     #expect(ActivityRecord(wahoo).duration == 3630.5)
     #expect(ActivityRecord(wahoo).date == ActivityRecord(zwift).date)
 }
+
+@Test func missingProviderTitleRemainsLanguageNeutralInStoredRecord() throws {
+    let unnamed = WahooWorkout(id: 1, name: nil, starts: nil, minutes: nil, workout_summary: nil)
+    #expect(ActivityRecord(unnamed).name.isEmpty)
+    let named = WahooWorkout(id: 2, name: "My ride / Meine Fahrt", starts: nil, minutes: nil, workout_summary: nil)
+    #expect(ActivityRecord(named).name == "My ride / Meine Fahrt")
+}

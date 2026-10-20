@@ -2,9 +2,9 @@ import XCTest
 
 @MainActor
 final class FITgapUITests: XCTestCase {
-    private func launch() -> XCUIApplication {
+    private func launch(language: String = "de", locale: String = "de_DE") -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE"]
+        app.launchArguments = ["-AppleLanguages", "(\(language))", "-AppleLocale", locale]
         app.launch()
         return app
     }
@@ -14,6 +14,46 @@ final class FITgapUITests: XCTestCase {
         screenshot.name = name
         screenshot.lifetime = .keepAlways
         add(screenshot)
+    }
+
+    func testGermanLocalization() { verifyLocalization(language: "de", locale: "de_DE", german: true) }
+    func testEnglishLocalization() { verifyLocalization(language: "en", locale: "en_US", german: false) }
+    func testUnsupportedLanguageFallsBackToEnglish() { verifyLocalization(language: "fr", locale: "fr_FR", german: false) }
+
+    private func verifyLocalization(language: String, locale: String, german: Bool) {
+        // Uses the same host-seeded synthetic offline library as testReadableLibrary.
+        let app = launch(language: language, locale: locale)
+        XCTAssertTrue(app.buttons["share-zwift-900000000001"].waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertEqual(app.buttons["share-zwift-900000000001"].label, german ? "Teilen" : "Share")
+        XCTAssertEqual(app.images["shared-status-zwift-900000000001"].label, german ? "Geteilt" : "Shared")
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", german ? "Dauer:" : "Duration:")).firstMatch.exists)
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", german ? "Zuletzt geteilt:" : "Last shared:")).firstMatch.exists)
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", german ? "Strecke:" : "Distance:")).firstMatch.exists)
+        capture(app, "Library-\(language)")
+        let footer = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", german ? "FITs bleiben offline verfügbar." : "FIT files remain available offline.")).firstMatch
+        for _ in 0..<8 where !footer.isHittable { app.swipeUp() }
+        XCTAssertTrue(footer.isHittable, app.debugDescription)
+        capture(app, "Library-footer-\(language)")
+        app.buttons[german ? "Konten" : "Accounts"].tap()
+        XCTAssertTrue(app.navigationBars[german ? "Konten" : "Accounts"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts[german ? "Nicht verbunden" : "Not connected"].firstMatch.exists)
+        capture(app, "Accounts-\(language)")
+        app.buttons["connect-zwift"].tap()
+        XCTAssertTrue(app.secureTextFields[german ? "Passwort" : "Password"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.textFields[german ? "E-Mail" : "Email"].exists)
+        XCTAssertFalse(app.buttons[german ? "Zwift verbinden" : "Connect Zwift"].isEnabled)
+        capture(app, "Sign-in-\(language)")
+        app.buttons[german ? "Abbrechen" : "Cancel"].tap()
+        app.buttons[german ? "Fertig" : "Done"].tap()
+        let fileOptions = app.buttons["file-options-zwift-900000000001"]
+        for _ in 0..<12 where !fileOptions.isHittable { app.swipeDown() }
+        fileOptions.tap()
+        app.buttons[german ? "Datei löschen" : "Delete file"].firstMatch.tap()
+        XCTAssertTrue(app.buttons[german ? "Datei löschen" : "Delete file"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", german ? "Die Datei wird nur auf diesem iPhone gelöscht." : "The file will only be deleted on this iPhone.")).firstMatch.exists)
+        capture(app, "Delete-confirmation-\(language)")
+        // iOS may present a popover dismissed by tapping outside, without a Cancel button.
+        app.terminate()
     }
 
     func testAccountsAndSecureZwiftForm() {

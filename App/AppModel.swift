@@ -69,7 +69,7 @@ final class AppModel: ObservableObject {
     }
 
     func connectZwift(username: String, password: String) {
-        run(label: "Zwift wird verbunden …") {
+        run(label: String(localized: "Zwift wird verbunden …")) {
             let token = try await self.zwift.connect(username: username, password: password)
             try Task.checkCancellation()
             try self.credentials.write(token, for: .zwift)
@@ -78,7 +78,7 @@ final class AppModel: ObservableObject {
     }
 
     func connectWahoo() {
-        run(label: "Wahoo-Anmeldung …") {
+        run(label: String(localized: "Wahoo-Anmeldung …")) {
             let oauth = try WahooOAuth()
             let callback = try await self.signIn.login(oauth)
             try Task.checkCancellation()
@@ -99,7 +99,7 @@ final class AppModel: ObservableObject {
 
     func refresh() {
         guard !connected.isEmpty || activities.contains(where: { $0.status == .available && $0.metrics == nil }) else { return }
-        run(label: "Aktivitäten werden abgerufen …", resume: { [weak self] in self?.refresh() }) {
+        run(label: String(localized: "Aktivitäten werden abgerufen …"), resume: { [weak self] in self?.refresh() }) {
             try await self.fillMissingMetrics()
             var failures: [String] = []
             for source in Source.allCases where self.connected.contains(source) {
@@ -137,7 +137,7 @@ final class AppModel: ObservableObject {
     }
 
     private func sync(_ source: Source) async throws {
-        progress = "\(source.title): Aktivitäten werden abgerufen …"
+        progress = String(localized: "\(source.title): Aktivitäten werden abgerufen …")
         let token = try await access(source)
         switch source {
         case .zwift:
@@ -148,7 +148,7 @@ final class AppModel: ObservableObject {
             let pending = remote.filter { keys.contains($0.key) }
             for (offset, activity) in pending.enumerated() {
                 try Task.checkCancellation()
-                progress = "Zwift: FIT \(offset + 1) von \(pending.count)"
+                progress = String(localized: "Zwift: FIT \(offset + 1) von \(pending.count)")
                 do { try await commit(await zwift.download(activity, store: library.files)) }
                 catch { try recordFailure(activity.key, error: error); throw error }
             }
@@ -161,7 +161,7 @@ final class AppModel: ObservableObject {
             let pending = activities.filter { $0.source == .wahoo && [.pending, .failed].contains($0.status) }
             for (offset, record) in pending.enumerated() {
                 try Task.checkCancellation()
-                progress = "Wahoo: FIT \(offset + 1) von \(pending.count)"
+                progress = String(localized: "Wahoo: FIT \(offset + 1) von \(pending.count)")
                 do {
                     let token = try await access(.wahoo)
                     if let remote = wahooFiles[record.key] {
@@ -183,7 +183,7 @@ final class AppModel: ObservableObject {
         // Save the cursor after the index: repeating a page is safe if either write is interrupted.
         try JSONEncoder().encode(cursor).write(to: cursorFile, options: .atomic)
         for workout in page.workouts { wahooFiles[workout.key] = workout }
-        progress = "Wahoo: Seite \(page.page), \(page.total) Aktivitäten"
+        progress = String(localized: "Wahoo: Seite \(page.page), \(page.total) Aktivitäten")
     }
 
     private var pendingKeys: Set<ActivityKey> {
@@ -196,7 +196,7 @@ final class AppModel: ObservableObject {
         let indices = Dictionary(uniqueKeysWithValues: activities.enumerated().map { ($0.element.key, $0.offset) })
         for start in stride(from: 0, to: missing.count, by: 10) {
             try Task.checkCancellation()
-            progress = "Kennzahlen: \(start) von \(missing.count)"
+            progress = String(localized: "Kennzahlen: \(start) von \(missing.count)")
             let end = min(start + 10, missing.count)
             let batch = Array(missing[start..<end])
             let worker = Task.detached(priority: .utility) { [library] in
@@ -221,7 +221,7 @@ final class AppModel: ObservableObject {
                 // Keep completed batches durable even when a later file is slow or iOS stops us.
                 try library.save(activities)
             }
-            progress = "Kennzahlen: \(end) von \(missing.count)"
+            progress = String(localized: "Kennzahlen: \(end) von \(missing.count)")
         }
     }
 
@@ -245,7 +245,7 @@ final class AppModel: ObservableObject {
     }
 
     func download(_ record: ActivityRecord) {
-        run(label: "\(record.source.title): FIT wird geladen …", resume: { [weak self] in self?.download(record) }) {
+        run(label: String(localized: "\(record.source.title): FIT wird geladen …"), resume: { [weak self] in self?.download(record) }) {
             let token = try await self.access(record.source)
             do {
                 let receipt: FITReceipt
@@ -348,9 +348,9 @@ final class AppModel: ObservableObject {
         if let error = error as? WahooRateLimit { return error.localizedDescription }
         if let error = error as? LibraryError { return error.localizedDescription }
         if let error = error as? URLError {
-            if error.code == .cancelled { return "Abruf abgebrochen. Bereits gespeicherte FITs bleiben verfügbar." }
-            return "Netzwerk nicht erreichbar oder Anfrage fehlgeschlagen. Bitte später erneut versuchen."
+            if error.code == .cancelled { return String(localized: "Abruf abgebrochen. Bereits gespeicherte FITs bleiben verfügbar.") }
+            return String(localized: "Netzwerk nicht erreichbar oder Anfrage fehlgeschlagen. Bitte später erneut versuchen.")
         }
-        return "Lokale Daten konnten nicht gelesen oder gespeichert werden. Vorhandene Dateien bleiben erhalten."
+        return String(localized: "Lokale Daten konnten nicht gelesen oder gespeichert werden. Vorhandene Dateien bleiben erhalten.")
     }
 }

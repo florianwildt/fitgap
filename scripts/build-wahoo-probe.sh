@@ -4,8 +4,10 @@ cd "$(dirname "$0")/.."
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
 swift build -c release --product fitgap-wahoo-probe --disable-sandbox --scratch-path .build
 probe_bundle="$PWD/.local/FITgapWahooProbe.app"
-mkdir -p "$probe_bundle/Contents/MacOS"
+mkdir -p "$probe_bundle/Contents/MacOS" "$probe_bundle/Contents/Resources"
 cp .build/release/fitgap-wahoo-probe "$probe_bundle/Contents/MacOS/FITgapWahooProbe"
+# Core error messages now use a Swift package resource bundle.
+cp -R .build/release/FITgap_FITgapCore.bundle "$probe_bundle/Contents/Resources/"
 cat > "$probe_bundle/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
