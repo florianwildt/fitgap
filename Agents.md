@@ -3,6 +3,7 @@
 ## Kommunikation und Auftrag
 
 - Kurz, präzise und ohne Wiederholungen kommunizieren.
+- Bei schrittweisen Anleitungen jeweils alle Angaben und Aktionen für genau eine Bildschirmseite zusammen nennen; erst danach zur nächsten Seite wechseln.
 - Reine Prüfaufträge: nur lesen, analysieren und berichten; keine Dateien ändern.
 - Beauftragte Arbeiten eigenständig bis zum überprüfbaren Ergebnis durchführen. Nur notwendige Angaben erfragen.
 - Keine Browsersteuerung. Erforderliche manuelle Einrichtungs- und Veröffentlichungsschritte samt Kopiertexten vollständig im Chat bereitstellen.

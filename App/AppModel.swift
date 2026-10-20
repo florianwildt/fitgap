@@ -11,11 +11,19 @@ final class AppModel: ObservableObject {
     @Published var progress = ""
     @Published var errorMessage: String?
     @Published var storageReady = false
-    let library: ActivityLibrary
+    @Published private(set) var isDemo = false
+    @Published private(set) var switchingMode = false
+    @Published private(set) var demoNotice: String?
+    @Published private(set) var accountsReady = false
+    var canTryDemo: Bool { accountsReady && connected.isEmpty && !isDemo }
+    private(set) var libraryGeneration = UUID()
+    private let realLibrary: ActivityLibrary
+    private let demo: DemoLibrary
+    var library: ActivityLibrary { isDemo ? demo.library : realLibrary }
     private let credentials: CredentialStore
     private let defaults: UserDefaults
-    private let wahoo = WahooProbe()
-    private let zwift = ZwiftProbe()
+    private let wahoo: WahooProbe
+    private let zwift: ZwiftProbe
     private let signIn = WahooSignIn()
     private var task: Task<Void, Never>?
     private var retryTask: Task<Void, Never>?
@@ -31,22 +39,88 @@ final class AppModel: ObservableObject {
     private let wahooClientKey = "wahooClientID"
     private var cursorFile: URL { library.directory.appendingPathComponent("wahoo-catalog.json") }
 
-    init(library: ActivityLibrary? = nil, credentials: CredentialStore = CredentialStore(), defaults: UserDefaults = .standard) {
+    init(library: ActivityLibrary? = nil, credentials: CredentialStore = CredentialStore(), defaults: UserDefaults = .standard,
+         wahoo: WahooProbe = WahooProbe(), zwift: ZwiftProbe = ZwiftProbe()) {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        self.library = library ?? ActivityLibrary(directory: support.appendingPathComponent("FITgap", isDirectory: true))
+        let real = library ?? ActivityLibrary(directory: support.appendingPathComponent("FITgap", isDirectory: true))
+        realLibrary = real
+        demo = DemoLibrary(realDirectory: real.directory)
         self.credentials = credentials; self.defaults = defaults
+        self.wahoo = wahoo; self.zwift = zwift
+        let requestedDemo = defaults.bool(forKey: "demoMode")
         do {
-            activities = try self.library.load()
-            for source in Source.allCases where try credentials.read(source) != nil {
-                // Tokens from another registered Wahoo app must not be reused after switching clients.
-                if source == .wahoo, defaults.string(forKey: wahooClientKey) != WahooOAuth.clientID {
-                    defaults.removeObject(forKey: cooldownKey)
-                    continue
-                }
-                connected.insert(source)
-            }
-            storageReady = true
+            // Determine local connection state without provider requests or token renewal.
+            try readConnections(clearMismatchedCooldown: !requestedDemo)
+            accountsReady = true
+            isDemo = requestedDemo && connected.isEmpty
+            if requestedDemo && !isDemo { defaults.set(false, forKey: "demoMode") }
         } catch { errorMessage = Self.message(error) }
+        do {
+            // Cached real FITs remain readable even when the Keychain is temporarily unavailable.
+            activities = try isDemo ? demo.load() : real.load()
+            storageReady = accountsReady
+        } catch { errorMessage = Self.message(error) }
+    }
+
+    private func readConnections(clearMismatchedCooldown: Bool = false) throws {
+        connected.removeAll()
+        for source in Source.providers where try credentials.read(source) != nil {
+            if source == .wahoo, defaults.string(forKey: wahooClientKey) != WahooOAuth.clientID {
+                if clearMismatchedCooldown { defaults.removeObject(forKey: cooldownKey) }
+                continue
+            }
+            connected.insert(source)
+        }
+    }
+
+    func setDemo(_ enabled: Bool) async {
+        guard !switchingMode, enabled != isDemo, !enabled || canTryDemo else { return }
+        switchingMode = true
+        defer { switchingMode = false }
+        // Keep the old library selected until all in-flight writes and detached metric work finish.
+        cancel()
+        let previous = task
+        await previous?.value
+        do {
+            let records = try enabled ? demo.load() : realLibrary.load()
+            // No network work resumes automatically on leaving the demo.
+            if !enabled { try readConnections(); accountsReady = true }
+            activities = records
+            libraryGeneration = UUID()
+            isDemo = enabled
+            defaults.set(enabled, forKey: "demoMode")
+            storageReady = true
+            errorMessage = nil; demoNotice = nil
+        } catch {
+            if !enabled {
+                // Exiting remains possible even if the real index or Keychain is unavailable.
+                // Leave those bytes intact and present the normal storage error outside demo mode.
+                activities = []; connected.removeAll(); storageReady = false; accountsReady = false
+                libraryGeneration = UUID()
+                isDemo = false
+                defaults.set(false, forKey: "demoMode")
+                demoNotice = nil
+            }
+            errorMessage = Self.message(error)
+        }
+    }
+
+    func resetDemo() {
+        guard isDemo, !switchingMode, !busy else { return }
+        do {
+            activities = try demo.reset()
+            libraryGeneration = UUID()
+            storageReady = true
+            errorMessage = nil
+            demoNotice = String(localized: "Demo zurückgesetzt. Nur Beispieldaten wurden erneuert.")
+        } catch { errorMessage = Self.message(error) }
+    }
+
+    func fileForSharing(_ record: ActivityRecord) throws -> URL {
+        guard !switchingMode, activities.contains(where: { $0.key == record.key && $0.status == .available }) else {
+            throw LibraryError.integrity
+        }
+        return try isDemo ? demo.export(record) : library.verifiedFile(for: record)
     }
 
     func start() {
@@ -62,6 +136,7 @@ final class AppModel: ObservableObject {
 
     func phaseChanged(_ phase: ScenePhase) {
         active = phase == .active
+        guard !isDemo, !switchingMode else { return }
         if active {
             continueInterrupted()
             if let until = defaults.object(forKey: cooldownKey) as? Date, until <= Date(), !busy { refresh() }
@@ -69,6 +144,7 @@ final class AppModel: ObservableObject {
     }
 
     func connectZwift(username: String, password: String) {
+        guard !isDemo, !switchingMode else { return }
         run(label: String(localized: "Zwift wird verbunden …")) {
             let token = try await self.zwift.connect(username: username, password: password)
             try Task.checkCancellation()
@@ -78,6 +154,7 @@ final class AppModel: ObservableObject {
     }
 
     func connectWahoo() {
+        guard !isDemo, !switchingMode else { return }
         run(label: String(localized: "Wahoo-Anmeldung …")) {
             let oauth = try WahooOAuth()
             let callback = try await self.signIn.login(oauth)
@@ -92,17 +169,26 @@ final class AppModel: ObservableObject {
     }
 
     func disconnect(_ source: Source) {
+        guard !isDemo, !switchingMode, !busy else { return }
         do { try credentials.remove(source); accessCache.removeValue(forKey: source); connected.remove(source) }
         catch { errorMessage = Self.message(error) }
         // Deliberately local: no server-side deauthorization that could delete provider data.
     }
 
     func refresh() {
+        guard !switchingMode else { return }
+        if isDemo {
+            do {
+                activities = try demo.library.load()
+                demoNotice = String(localized: "Demo lokal aktualisiert. Keine Anbieteranfrage; gelöschte Dateien bleiben gelöscht.")
+            } catch { errorMessage = Self.message(error) }
+            return
+        }
         guard !connected.isEmpty || activities.contains(where: { $0.status == .available && $0.metrics == nil }) else { return }
         run(label: String(localized: "Aktivitäten werden abgerufen …"), resume: { [weak self] in self?.refresh() }) {
             try await self.fillMissingMetrics()
             var failures: [String] = []
-            for source in Source.allCases where self.connected.contains(source) {
+            for source in Source.providers where self.connected.contains(source) {
                 do { try await self.sync(source) }
                 catch is CancellationError { throw CancellationError() }
                 catch {
@@ -117,6 +203,8 @@ final class AppModel: ObservableObject {
     }
 
     private func access(_ source: Source) async throws -> String {
+        try Task.checkCancellation()
+        guard !isDemo, !switchingMode, source != .demo else { throw CancellationError() }
         if source == .wahoo, defaults.string(forKey: wahooClientKey) != WahooOAuth.clientID { throw AccountError.reconnect }
         if source == .wahoo, let until = defaults.object(forKey: cooldownKey) as? Date {
             if until > Date() { throw WahooRateLimit(until: until) }
@@ -128,6 +216,7 @@ final class AppModel: ObservableObject {
         guard var token = stored else { throw AccountError.reconnect }
         if token.needsRefresh {
             token = try await (source == .zwift ? zwift.refresh(token) : wahoo.refresh(token))
+            try Task.checkCancellation()
             try credentials.write(token, for: source)
         }
         // Keep a running sync independent of repeated Keychain reads when the phone locks.
@@ -140,8 +229,10 @@ final class AppModel: ObservableObject {
         progress = String(localized: "\(source.title): Aktivitäten werden abgerufen …")
         let token = try await access(source)
         switch source {
+        case .demo: throw CancellationError()
         case .zwift:
             let remote = try await zwift.activities(token: token)
+            try Task.checkCancellation()
             activities = ActivityLibrary.merging(remote.map(ActivityRecord.init), into: activities)
             try library.save(activities)
             let keys = pendingKeys
@@ -178,6 +269,7 @@ final class AppModel: ObservableObject {
     }
 
     private func saveWahooPage(_ page: WahooPage, cursor: WahooCatalogCursor) throws {
+        try Task.checkCancellation()
         activities = ActivityLibrary.merging(page.workouts.map(ActivityRecord.init), into: activities)
         try library.save(activities)
         // Save the cursor after the index: repeating a page is safe if either write is interrupted.
@@ -245,6 +337,17 @@ final class AppModel: ObservableObject {
     }
 
     func download(_ record: ActivityRecord) {
+        guard !switchingMode, !busy, activities.contains(where: { $0.key == record.key }) else { return }
+        if isDemo {
+            do {
+                guard let index = activities.firstIndex(where: { $0.key == record.key }) else { return }
+                activities[index] = try demo.restoring(record)
+                try library.save(activities)
+                demoNotice = String(localized: "Demo-Datei lokal wiederhergestellt.")
+            } catch { errorMessage = Self.message(error) }
+            return
+        }
+        guard record.source != .demo else { return }
         run(label: String(localized: "\(record.source.title): FIT wird geladen …"), resume: { [weak self] in self?.download(record) }) {
             let token = try await self.access(record.source)
             do {
@@ -260,16 +363,21 @@ final class AppModel: ObservableObject {
     }
 
     func deleteFile(_ record: ActivityRecord) {
+        guard !switchingMode, !busy else { return }
         do {
             guard let index = activities.firstIndex(where: { $0.key == record.key }) else { return }
-            activities[index] = try library.deletingFile(for: record)
+            if isDemo { try demo.removeExport(record) }
+            activities[index] = try library.deletingFile(for: activities[index])
             try library.save(activities)
         } catch { errorMessage = Self.message(error) }
     }
 
-    func markShared(_ record: ActivityRecord) {
+    func markShared(_ record: ActivityRecord, generation: UUID? = nil) {
+        guard !switchingMode, generation == nil || generation == libraryGeneration else { return }
         do {
-            guard let index = activities.firstIndex(where: { $0.key == record.key }) else { return }
+            guard let index = activities.firstIndex(where: { $0.key == record.key }),
+                  activities[index].status == .available,
+                  activities[index].receipt?.sha256 == record.receipt?.sha256 else { return }
             activities[index].sharedAt = Date()
             try library.save(activities)
         } catch { errorMessage = Self.message(error) }
@@ -278,7 +386,7 @@ final class AppModel: ObservableObject {
     func cancel() { manuallyCancelled = true; interrupted = nil; retryTask?.cancel(); task?.cancel() }
 
     func run(label: String, resume: (@MainActor () -> Void)? = nil, operation: @escaping @MainActor () async throws -> Void) {
-        guard !busy, storageReady else { return }
+        guard !busy, storageReady, !switchingMode, !isDemo else { return }
         retryTask?.cancel()
         manuallyCancelled = false
         busy = true; progress = label; errorMessage = nil
@@ -322,14 +430,14 @@ final class AppModel: ObservableObject {
     }
 
     @discardableResult private func continueInterrupted() -> Bool {
-        guard active, !busy, let action = interrupted else { return false }
+        guard !isDemo, !switchingMode, active, !busy, let action = interrupted else { return false }
         interrupted = nil
         action()
         return true
     }
 
     private func scheduleRetry() {
-        guard connected.contains(.wahoo), let until = defaults.object(forKey: cooldownKey) as? Date, until > Date() else { return }
+        guard !isDemo, !switchingMode, connected.contains(.wahoo), let until = defaults.object(forKey: cooldownKey) as? Date, until > Date() else { return }
         retryTask = Task { [weak self] in
             do { try await Task.sleep(for: .seconds(until.timeIntervalSinceNow)) }
             catch { return }

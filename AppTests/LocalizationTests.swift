@@ -26,6 +26,10 @@ final class LocalizationTests: XCTestCase {
         for language in ["de", "en"] {
             let path = try XCTUnwrap(Bundle.main.path(forResource: language, ofType: "lproj"))
             let bundle = try XCTUnwrap(Bundle(path: path))
+            XCTAssertEqual(bundle.localizedString(forKey: "Datenschutzerklärung", value: nil, table: nil),
+                           language == "de" ? "Datenschutzerklärung" : "Privacy Policy")
+            XCTAssertEqual(bundle.localizedString(forKey: "Datenschutz", value: nil, table: nil),
+                           language == "de" ? "Datenschutz" : "Privacy")
             let format = bundle.localizedString(forKey: "Wahoo: FIT %lld von %lld", value: nil, table: nil)
             XCTAssertEqual(String(format: format, Int64(2), Int64(12)), language == "de"
                 ? "Wahoo: FIT 2 von 12" : "Wahoo: FIT 2 of 12")

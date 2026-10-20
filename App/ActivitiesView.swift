@@ -11,12 +11,13 @@ struct ActivitiesView: View {
     @State private var showError = false
 
     private var visible: [ActivityRecord] {
-        model.activities.filter { search.isEmpty || $0.name.localizedStandardContains(search) || $0.source.title.localizedStandardContains(search) }
+        model.activities.filter { search.isEmpty || $0.displayName.localizedStandardContains(search) || $0.source.title.localizedStandardContains(search) }
     }
 
     var body: some View {
         NavigationStack {
             List {
+                DemoSection(model: model)
                 if model.busy {
                     Section {
                         HStack { ProgressView(); Text(model.progress).fixedSize(horizontal: false, vertical: true) }
@@ -32,12 +33,14 @@ struct ActivitiesView: View {
                 }
                 Section {
                     ForEach(visible) { activity in
-                        ActivityRow(activity: activity, connected: model.connected.contains(activity.source), busy: model.busy,
+                        ActivityRow(activity: activity, connected: model.isDemo || model.connected.contains(activity.source), busy: model.busy || model.switchingMode,
                                     share: { prepareShare(activity) }, download: { model.download(activity) },
                                     delete: { deleteCandidate = activity })
                     }
                 } footer: {
-                    Text("FITs bleiben offline verfügbar. Aktualisieren startet beim App-Start oder durch Herunterziehen. Ein laufender Abruf nutzt die verfügbare iOS-Hintergrundzeit und wird nach einer Unterbrechung beim Öffnen fortgesetzt. Wähle beim Teilen HealthFit, sofern installiert. „Geteilt“ bestätigt keinen erfolgreichen Import.")
+                    if model.isDemo {
+                        Text("Demo-Dateien bleiben offline verfügbar. Aktualisieren liest nur den lokalen Demo-Bestand. Gelöschte Dateien lassen sich lokal wiederherstellen. Beim Teilen HealthFit wählen, sofern installiert. „Geteilt“ bestätigt nur die Dateiübergabe, keinen Import und keine Anbieteranbindung.")
+                    } else { Text("FITs bleiben offline verfügbar. Aktualisieren startet beim App-Start oder durch Herunterziehen. Ein laufender Abruf nutzt die verfügbare iOS-Hintergrundzeit und wird nach einer Unterbrechung beim Öffnen fortgesetzt. Wähle beim Teilen HealthFit, sofern installiert. „Geteilt“ bestätigt keinen erfolgreichen Import.") }
                 }
             }
             .refreshable { await model.refreshAndWait() }
@@ -51,13 +54,15 @@ struct ActivitiesView: View {
                     if model.busy { Button("Abbrechen", role: .cancel) { model.cancel() } }
                     else {
                         Button("Aktualisieren", systemImage: "arrow.clockwise") { model.refresh() }
-                            .disabled(model.connected.isEmpty || !model.storageReady)
+                            .disabled((!model.isDemo && model.connected.isEmpty) || !model.storageReady || model.switchingMode)
                     }
                 }
             }
+            .safeAreaInset(edge: .bottom) { DemoIndicator(enabled: model.isDemo) }
+            .onChange(of: model.libraryGeneration) { _, _ in search = ""; deleteCandidate = nil; share = nil }
             .sheet(isPresented: $accounts) { AccountsView(model: model) }
             .sheet(item: $share) { item in
-                ShareSheet(url: item.url) { completed in if completed { model.markShared(item.record) } }
+                ShareSheet(url: item.url) { completed in if completed { model.markShared(item.record, generation: item.generation) } }
             }
             .onChange(of: model.errorMessage, initial: true) { _, message in showError = message != nil && !accounts }
             .onChange(of: accounts) { _, shown in showError = !shown && model.errorMessage != nil }
@@ -72,13 +77,14 @@ struct ActivitiesView: View {
                 }
                 Button("Abbrechen", role: .cancel) { deleteCandidate = nil }
             } message: {
-                Text("Die Datei wird nur auf diesem iPhone gelöscht. Die Aktivität beim Anbieter bleibt erhalten. Du kannst die Datei später über „Erneut laden“ herunterladen.")
+                if model.isDemo { Text("Nur diese lokale Demo-Datei und ihre Teilen-Markierung werden gelöscht. Mit „Wiederherstellen“ erhältst du die Beispieldatei lokal zurück.") }
+                else { Text("Die Datei wird nur auf diesem iPhone gelöscht. Die Aktivität beim Anbieter bleibt erhalten. Du kannst die Datei später über „Erneut laden“ herunterladen.") }
             }
         }
     }
 
     private func prepareShare(_ activity: ActivityRecord) {
-        do { share = SharedFile(record: activity, url: try model.library.verifiedFile(for: activity)) }
+        do { share = SharedFile(record: activity, url: try model.fileForSharing(activity), generation: model.libraryGeneration) }
         catch { model.errorMessage = AppModel.message(error) }
     }
 }
@@ -124,9 +130,9 @@ private struct ActivityRow: View {
                 if activity.status == .available {
                     Button("Teilen", systemImage: "square.and.arrow.up", action: share)
                         .accessibilityIdentifier("share-\(activity.source.rawValue)-\(activity.remoteID)")
-                        .frame(minHeight: 44)
+                        .frame(minHeight: 44).disabled(busy)
                 } else if connected {
-                    Button(activity.status == .deleted ? String(localized: "Erneut laden") : String(localized: "Laden"), systemImage: "arrow.down", action: download)
+                    Button(activity.source == .demo ? String(localized: "Wiederherstellen") : (activity.status == .deleted ? String(localized: "Erneut laden") : String(localized: "Laden")), systemImage: "arrow.down", action: download)
                         .frame(minHeight: 44).disabled(busy)
                 }
                 Spacer(minLength: 8)
@@ -149,8 +155,7 @@ private struct ActivityRow: View {
     }
 
     private var activityName: String {
-        guard activity.name.isEmpty else { return activity.name }
-        return activity.source == .wahoo ? String(localized: "Wahoo-Aktivität") : String(localized: "Aktivität ohne Namen")
+        activity.displayName
     }
 
     private var duration: String {
@@ -179,6 +184,7 @@ private struct SharedFile: Identifiable {
     let id = UUID()
     let record: ActivityRecord
     let url: URL
+    let generation: UUID
 }
 
 private struct ShareSheet: UIViewControllerRepresentable {
