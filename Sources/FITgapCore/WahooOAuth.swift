@@ -7,12 +7,12 @@ public enum WahooError: Error, LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .random: "Sichere Anmeldung konnte nicht vorbereitet werden."
-        case .callback: "Ungültiger Anmelderücksprung. Prüfung gestoppt."
-        case .denied: "Anmeldung abgebrochen oder Zugriff nicht erteilt."
-        case .browser: "Systemanmeldung konnte nicht gestartet werden. Bitte die App erneut öffnen und noch einmal versuchen."
-        case .token(let code): "Wahoo hat die Sitzung abgelehnt (\(code)). Bitte das Konto erneut verbinden; bei erneutem Fehler die App-Konfiguration prüfen."
-        case .scope: "Wahoo hat die benötigten Leseberechtigungen nicht erteilt."
+        case .random: String(localized: "Sichere Anmeldung konnte nicht vorbereitet werden.", bundle: .module)
+        case .callback: String(localized: "Ungültiger Anmelderücksprung. Prüfung gestoppt.", bundle: .module)
+        case .denied: String(localized: "Anmeldung abgebrochen oder Zugriff nicht erteilt.", bundle: .module)
+        case .browser: String(localized: "Systemanmeldung konnte nicht gestartet werden. Bitte die App erneut öffnen und noch einmal versuchen.", bundle: .module)
+        case .token(let code): String(localized: "Wahoo hat die Sitzung abgelehnt (\(code)). Bitte das Konto erneut verbinden; bei erneutem Fehler die App-Konfiguration prüfen.", bundle: .module)
+        case .scope: String(localized: "Wahoo hat die benötigten Leseberechtigungen nicht erteilt.", bundle: .module)
         }
     }
 }

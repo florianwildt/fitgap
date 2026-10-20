@@ -7,20 +7,20 @@ public enum ProbeError: Error, LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .invalidResponse: "Der Anbieter hat unerwartete Daten geliefert. Bitte später erneut versuchen."
-        case .invalidFIT: "Keine vollständige FIT-Datei erhalten. Es wurde nichts gespeichert."
-        case .changedFile: "Für diese Aktivität sind bereits andere Bytes gespeichert. Datei bleibt erhalten."
-        case .pagination: "Die Aktivitätsliste konnte nicht vollständig geladen werden. Bitte später erneut versuchen."
-        case .noFIT: "Keine FIT-Datei verfügbar."
-        case .unsafeURL: "Unzulässige Downloadadresse. Prüfung abgebrochen."
+        case .invalidResponse: String(localized: "Der Anbieter hat unerwartete Daten geliefert. Bitte später erneut versuchen.", bundle: .module)
+        case .invalidFIT: String(localized: "Keine vollständige FIT-Datei erhalten. Es wurde nichts gespeichert.", bundle: .module)
+        case .changedFile: String(localized: "Für diese Aktivität sind bereits andere Bytes gespeichert. Datei bleibt erhalten.", bundle: .module)
+        case .pagination: String(localized: "Die Aktivitätsliste konnte nicht vollständig geladen werden. Bitte später erneut versuchen.", bundle: .module)
+        case .noFIT: String(localized: "Keine FIT-Datei verfügbar.", bundle: .module)
+        case .unsafeURL: String(localized: "Unzulässige Downloadadresse. Prüfung abgebrochen.", bundle: .module)
         case .http(let code):
             switch code {
-            case 401: "Anmeldung abgelehnt oder Sitzung abgelaufen (HTTP 401)."
-            case 403: "Zugriff verweigert (HTTP 403). Kontoberechtigung oder Schnittstellenfreigabe prüfen."
-            case 429: "Abruflimit erreicht (HTTP 429). Später erneut versuchen."
-            default: "Serverfehler (HTTP \(code))."
+            case 401: String(localized: "Anmeldung abgelehnt oder Sitzung abgelaufen (HTTP 401).", bundle: .module)
+            case 403: String(localized: "Zugriff verweigert (HTTP 403). Kontoberechtigung oder Schnittstellenfreigabe prüfen.", bundle: .module)
+            case 429: String(localized: "Abruflimit erreicht (HTTP 429). Später erneut versuchen.", bundle: .module)
+            default: String(localized: "Serverfehler (HTTP \(code)).", bundle: .module)
             }
-        case .terminal: "Ein lokales interaktives Terminal mit verdeckter Eingabe ist erforderlich."
+        case .terminal: String(localized: "Ein lokales interaktives Terminal mit verdeckter Eingabe ist erforderlich.", bundle: .module)
         }
     }
 }

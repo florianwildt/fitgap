@@ -182,7 +182,7 @@
 			};
 			buildConfigurationList = A00000000000000000000030 /* Build configuration list for PBXProject "FITgap" */;
 			compatibilityVersion = "Xcode 16.0";
-			developmentRegion = de;
+			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				de,

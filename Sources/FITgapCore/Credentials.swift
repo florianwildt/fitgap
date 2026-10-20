@@ -41,8 +41,8 @@ public enum AccountError: Error, LocalizedError {
     case keychain, reconnect
     public var errorDescription: String? {
         switch self {
-        case .keychain: "Schlüsselbund nicht verfügbar. Gerät entsperren und erneut versuchen."
-        case .reconnect: "Sitzung abgelaufen. Bitte das Konto erneut verbinden."
+        case .keychain: String(localized: "Schlüsselbund nicht verfügbar. Gerät entsperren und erneut versuchen.", bundle: .module)
+        case .reconnect: String(localized: "Sitzung abgelaufen. Bitte das Konto erneut verbinden.", bundle: .module)
         }
     }
 }

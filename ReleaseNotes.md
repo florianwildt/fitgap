@@ -4,6 +4,7 @@
 - Aktivitäten mit Quelle, Name, Datum, Dauer, Strecke, Höhenmetern und Durchschnittsgeschwindigkeit durchsuchen; Fehler und ausstehende Downloads bleiben sichtbar.
 - Gespeicherte Kennzahlen sofort aus dem Cache anzeigen; erstmalige Nachverarbeitung beschleunigt und in Zehnerblöcken fortsetzbar speichern.
 - Native Oberfläche im Hochformat mit automatischem Hell-/Dunkelmodus und Unterstützung großer Systemschrift.
+- Deutsch oder Englisch automatisch nach iOS-Spracheinstellung anzeigen, einschließlich Dialogen, Status, Fehlermeldungen und VoiceOver; Englisch als Fallback.
 - Beim App-Start, per Herunterziehen oder Button aktualisieren und neue Original-FIT-Dateien herunterladen.
 - Große Wahoo-Archive seitenweise erfassen, Fortschritt nach Unterbrechungen fortsetzen und Abruflimit-Pausen berücksichtigen.
 - Laufende Abrufe während der verfügbaren iOS-Hintergrundzeit fortsetzen; nach Ablauf beim Öffnen weiterarbeiten.

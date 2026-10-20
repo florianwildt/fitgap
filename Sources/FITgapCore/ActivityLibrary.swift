@@ -5,11 +5,11 @@ public enum DownloadStatus: String, Codable, Sendable {
     case pending, available, failed, unavailable, deleted
     public var title: String {
         switch self {
-        case .pending: "Noch nicht geladen"
-        case .available: "Offline verfügbar"
-        case .failed: "Download fehlgeschlagen"
-        case .unavailable: "Keine FIT verfügbar"
-        case .deleted: "Lokal gelöscht"
+        case .pending: String(localized: "Noch nicht geladen", bundle: .module)
+        case .available: String(localized: "Offline verfügbar", bundle: .module)
+        case .failed: String(localized: "Download fehlgeschlagen", bundle: .module)
+        case .unavailable: String(localized: "Keine FIT verfügbar", bundle: .module)
+        case .deleted: String(localized: "Lokal gelöscht", bundle: .module)
         }
     }
 }
@@ -47,7 +47,8 @@ public struct ActivityRecord: Codable, Identifiable, Sendable {
     }
 
     public init(_ workout: WahooWorkout) {
-        self.init(source: .wahoo, remoteID: String(workout.id), name: workout.name ?? "Wahoo-Aktivität",
+        // A missing provider title stays language-neutral in the stored index.
+        self.init(source: .wahoo, remoteID: String(workout.id), name: workout.name ?? "",
                   date: Self.parseDate(workout.starts),
                   duration: workout.workout_summary?.duration_total_accum.flatMap(Double.init) ?? workout.minutes.map { $0 * 60 },
                   status: workout.workout_summary == nil ? .unavailable : .pending)
@@ -58,8 +59,8 @@ public enum LibraryError: Error, LocalizedError {
     case invalidIndex, integrity
     public var errorDescription: String? {
         switch self {
-        case .invalidIndex: "Der lokale Aktivitätsbestand ist nicht lesbar oder inkompatibel. Vorhandene Dateien bleiben erhalten."
-        case .integrity: "Die lokale Datei fehlt oder ihre Prüfsumme stimmt nicht. Bitte die Datei löschen und erneut laden."
+        case .invalidIndex: String(localized: "Der lokale Aktivitätsbestand ist nicht lesbar oder inkompatibel. Vorhandene Dateien bleiben erhalten.", bundle: .module)
+        case .integrity: String(localized: "Die lokale Datei fehlt oder ihre Prüfsumme stimmt nicht. Bitte die Datei löschen und erneut laden.", bundle: .module)
         }
     }
 }
