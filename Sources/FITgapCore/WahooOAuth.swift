@@ -19,9 +19,8 @@ public enum WahooError: Error, LocalizedError {
 
 public struct WahooOAuth: Sendable {
     // Public identifier supplied by the app owner, never a client secret.
-    // Temporarily Sandbox while Production awaits approval.
-    // Registered Production client: raFFQvn1_PDQn5CZJyQBpM3RtkSFJaZERKWwiNHZPoc
-    public static let clientID = "lUJNWGsSLnlnst3wbyXg0MiCVIxAYfEm4s92wOZAyTI"
+    // Registered Production application.
+    public static let clientID = "raFFQvn1_PDQn5CZJyQBpM3RtkSFJaZERKWwiNHZPoc"
     public static let redirect = URL(string: "fitgap://oauth/wahoo")!
     public static let scopes = "user_read workouts_read"
     private let verifier: String

@@ -10,23 +10,24 @@ struct AccountsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                ForEach(Source.allCases) { source in
+                DemoSection(model: model, identifierPrefix: "accounts-")
+                ForEach(Source.providers) { source in
                     Section(source.title) {
-                        Label(model.connected.contains(source) ? String(localized: "Verbunden") : String(localized: "Nicht verbunden"),
-                              systemImage: model.connected.contains(source) ? "checkmark.circle" : "person.crop.circle")
+                        Label(model.isDemo ? String(localized: "Im Demo-Modus pausiert") : (model.connected.contains(source) ? String(localized: "Verbunden") : String(localized: "Nicht verbunden")),
+                              systemImage: model.isDemo ? "pause.circle" : (model.connected.contains(source) ? "checkmark.circle" : "person.crop.circle"))
                         Button(model.connected.contains(source) ? String(localized: "Erneut verbinden") : String(localized: "Verbinden")) {
                             if source == .zwift { zwiftLogin = true } else { model.connectWahoo() }
                         }
                         .accessibilityIdentifier("connect-\(source.rawValue)")
-                        .disabled(model.busy || !model.storageReady)
+                        .disabled(model.busy || !model.storageReady || model.isDemo || model.switchingMode)
                         if model.connected.contains(source) {
-                            Button("Trennen", role: .destructive) { disconnectCandidate = source }.disabled(model.busy)
+                            Button("Trennen", role: .destructive) { disconnectCandidate = source }.disabled(model.busy || model.isDemo || model.switchingMode)
                         }
                         if source == .zwift {
                             Text("Inoffizielle Schnittstelle. Änderungen bei Zwift können die Verbindung unterbrechen.")
                                 .font(.footnote).foregroundStyle(.secondary)
                         } else {
-                            Text("Anmeldung über Wahoo mit lesendem Zugriff. Diese Version verwendet vorübergehend die freigegebene Sandbox-App mit niedrigeren Abruflimits.")
+                            Text("Anmeldung über Wahoo mit lesendem Zugriff.")
                                 .font(.footnote).foregroundStyle(.secondary)
                         }
                     }
@@ -38,7 +39,17 @@ struct AccountsView: View {
                 Section {
                     Text("Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt nur die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden.")
                 }
+                Section("Datenschutz") {
+                    Link(destination: URL(string: "https://florianwildt.github.io/fitgap-info/")!) {
+                        Text("Datenschutzerklärung")
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                            .contentShape(Rectangle())
+                    }
+                    .tint(.blue)
+                    .accessibilityIdentifier("privacy-policy")
+                }
             }
+            .safeAreaInset(edge: .bottom) { DemoIndicator(enabled: model.isDemo) }
             .navigationTitle("Konten")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } } }
             .sheet(isPresented: $zwiftLogin) { ZwiftLoginView(model: model) }
@@ -73,7 +84,7 @@ private struct ZwiftLoginView: View {
                         model.connectZwift(username: email.trimmingCharacters(in: .whitespacesAndNewlines), password: password)
                         email = ""; password = ""; dismiss()
                     }
-                    .disabled(email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || password.isEmpty || model.busy)
+                    .disabled(email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || password.isEmpty || model.busy || model.isDemo || model.switchingMode)
                 } footer: {
                     Text("Nur das eigene Konto verwenden. Das Passwort wird ausschließlich für die Anmeldung verarbeitet und nicht gespeichert.")
                 }

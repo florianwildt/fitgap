@@ -20,6 +20,47 @@ final class FITgapUITests: XCTestCase {
     func testEnglishLocalization() { verifyLocalization(language: "en", locale: "en_US", german: false) }
     func testUnsupportedLanguageFallsBackToEnglish() { verifyLocalization(language: "fr", locale: "fr_FR", german: false) }
 
+    func testGermanPrivacyLink() throws { try verifyPrivacyLink(language: "de", locale: "de_DE", german: true) }
+    func testEnglishPrivacyLink() throws { try verifyPrivacyLink(language: "en", locale: "en_US", german: false) }
+
+    private func verifyPrivacyLink(language: String, locale: String, german: Bool) throws {
+        let app = launch(language: language, locale: locale)
+        app.buttons[german ? "Konten" : "Accounts"].tap()
+        XCTAssertTrue(app.navigationBars[german ? "Konten" : "Accounts"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts[german ? "Nicht verbunden" : "Not connected"].firstMatch.exists)
+        let link = app.descendants(matching: .any).matching(identifier: "privacy-policy").firstMatch
+        let expectedLabel = german ? "Datenschutzerklärung" : "Privacy Policy"
+        for _ in 0..<12 where !link.isHittable { app.swipeUp(velocity: .slow) }
+        XCTAssertTrue(link.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertEqual(link.label, expectedLabel)
+        XCTAssertTrue(link.isEnabled)
+        XCTAssertTrue(link.isHittable, app.debugDescription)
+        XCTAssertGreaterThanOrEqual(link.frame.height, 44)
+        XCTAssertGreaterThanOrEqual(link.frame.width, 44)
+        let footer = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", german
+            ? "Tokens bleiben im Schlüsselbund dieses iPhones." : "Tokens stay in this iPhone’s Keychain.")).firstMatch
+        XCTAssertTrue(footer.exists, app.debugDescription)
+        XCTAssertGreaterThanOrEqual(link.frame.minY, footer.frame.maxY)
+        capture(app, "Privacy-\(language)")
+        try app.performAccessibilityAudit(for: [.contrast, .hitRegion, .sufficientElementDescription, .textClipped, .trait]) { issue in
+            // Audit only findings assigned to the new link; iOS also reports unassigned findings for existing content.
+            guard let element = issue.element else { return true }
+            return element.identifier != "privacy-policy" && element.label != expectedLabel
+        }
+        // The native audit can scroll while inspecting large text. Reveal the link again before tapping.
+        for _ in 0..<12 where !link.isHittable { app.swipeUp(velocity: .slow) }
+        // Activate only the app's native link. Do not automate the browser.
+        link.tap()
+        let background = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            app.state == .runningBackground || app.state == .runningBackgroundSuspended
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [background], timeout: 10), .completed)
+        app.activate()
+        XCTAssertTrue(link.waitForExistence(timeout: 5))
+        app.buttons[german ? "Fertig" : "Done"].tap()
+        app.terminate()
+    }
+
     private func verifyLocalization(language: String, locale: String, german: Bool) {
         // Uses the same host-seeded synthetic offline library as testReadableLibrary.
         let app = launch(language: language, locale: locale)

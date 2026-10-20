@@ -2,9 +2,16 @@ import Foundation
 import Security
 
 public enum Source: String, Codable, CaseIterable, Identifiable, Sendable {
-    case zwift, wahoo
+    case zwift, wahoo, demo
+    public static let providers: [Source] = [.zwift, .wahoo]
     public var id: String { rawValue }
-    public var title: String { self == .zwift ? "Zwift" : "Wahoo" }
+    public var title: String {
+        switch self {
+        case .zwift: "Zwift"
+        case .wahoo: "Wahoo"
+        case .demo: "Demo"
+        }
+    }
 }
 
 public struct Credentials: Codable, Sendable {
