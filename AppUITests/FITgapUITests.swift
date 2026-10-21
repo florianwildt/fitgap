@@ -116,7 +116,6 @@ final class FITgapUITests: XCTestCase {
         let app = launch()
         let share = app.buttons["share-zwift-900000000001"]
         XCTAssertTrue(share.waitForExistence(timeout: 5), app.debugDescription)
-        XCTAssertFalse(app.buttons["Aktualisieren"].isEnabled)
         capture(app, "Offline-Aktivitaeten")
         share.tap()
         let close = app.buttons.matching(NSPredicate(format: "label IN %@", ["Schließen", "Close", "Abbrechen", "Cancel"])).firstMatch

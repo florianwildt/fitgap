@@ -104,7 +104,8 @@ final class DemoUITests: XCTestCase {
         let restore = app.buttons[german ? "Wiederherstellen" : "Restore"].firstMatch
         reveal(restore, in: app); restore.tap()
         XCTAssertTrue(share.waitForExistence(timeout: 5))
-        app.buttons[german ? "Aktualisieren" : "Refresh"].tap()
+        let top = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25))
+        top.press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8)))
         let notice = app.staticTexts["demo-notice"]
         reveal(notice, in: app, upward: false)
         XCTAssertTrue(notice.label.contains(german ? "Keine Anbieteranfrage" : "No provider request"))
@@ -132,7 +133,6 @@ final class DemoUITests: XCTestCase {
         XCTAssertFalse(indicator.exists)
         reveal(start, in: app, upward: false)
         XCTAssertTrue(start.exists)
-        XCTAssertFalse(app.buttons[german ? "Aktualisieren" : "Refresh"].isEnabled)
         app.terminate(); app.launch()
         XCTAssertTrue(start.waitForExistence(timeout: 5))
         XCTAssertFalse(indicator.exists)

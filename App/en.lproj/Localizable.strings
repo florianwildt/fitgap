@@ -7,7 +7,6 @@
 "Aktivität ohne Namen" = "Unnamed activity";
 "Aktivitäten suchen" = "Search activities";
 "Aktivitäten werden abgerufen …" = "Fetching activities…";
-"Aktualisieren" = "Refresh";
 "Anmeldung über Wahoo mit lesendem Zugriff." = "Sign in through Wahoo with read-only access.";
 "Datei löschen" = "Delete file";
 "Dateioptionen" = "File options";
@@ -42,7 +41,7 @@
 "Teilen" = "Share";
 "Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt nur die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden." = "Tokens stay in this iPhone’s Keychain. Disconnecting only removes the local session; access granted at the provider remains in place. Saved FIT files are kept and can be deleted individually.";
 "Trennen" = "Disconnect";
-"Verbinde unter „Konten“ Wahoo oder Zwift und wähle anschließend „Aktualisieren“." = "Connect Wahoo or Zwift in “Accounts”, then choose “Refresh”.";
+"Verbinde unter „Konten“ Wahoo oder Zwift und ziehe die Liste nach unten." = "Connect Wahoo or Zwift in “Accounts”, then pull the list down to refresh.";
 "Verbinden" = "Connect";
 "Verbunden" = "Connected";
 "Wahoo-Anmeldung …" = "Signing in to Wahoo…";
