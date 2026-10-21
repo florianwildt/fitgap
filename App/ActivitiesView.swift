@@ -17,7 +17,7 @@ struct ActivitiesView: View {
     @State private var share: SharedFile?
     @State private var showError = false
     @State private var limit = Self.pageSize
-    @State private var visibleRows: Set<Int> = []
+    @State private var showJump = false
 
     private static let pageSize = 10
 
@@ -53,10 +53,9 @@ struct ActivitiesView: View {
                         }
                         .accessibilityIdentifier("activity-\(activity.source.rawValue)-\(activity.remoteID)")
                         .onAppear {
-                            visibleRows.insert(index)
+                            if index >= Self.jumpThreshold { showJump = true } else if index == 0 { showJump = false }
                             if activity.id == visible.last?.id, visible.count < all.count { limit += Self.pageSize }
                         }
-                        .onDisappear { visibleRows.remove(index) }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             if activity.receipt != nil || activity.status == .failed {
                                 Button("Datei löschen", systemImage: "trash", role: .destructive) { deleteCandidate = activity }
@@ -72,7 +71,7 @@ struct ActivitiesView: View {
                 }
             }
             .overlay(alignment: .bottomTrailing) {
-                if (visibleRows.max() ?? 0) >= Self.jumpThreshold, let first = matches.first {
+                if showJump, let first = matches.first {
                     Button {
                         withAnimation { proxy.scrollTo(first.id, anchor: .top) }
                     } label: {
@@ -86,9 +85,9 @@ struct ActivitiesView: View {
                     .transition(.scale.combined(with: .opacity))
                 }
             }
-            .animation(.default, value: (visibleRows.max() ?? 0) >= Self.jumpThreshold)
+            .animation(.default, value: showJump)
+            .transaction(value: search) { $0.animation = nil }
             .refreshable { await model.refreshAndWait() }
-            .animation(.default, value: model.busy)
             .navigationTitle("FITgap")
             .searchable(text: $search, prompt: "Aktivitäten suchen")
             .modifier(MinimizedSearch())
@@ -116,7 +115,8 @@ struct ActivitiesView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .onChange(of: search) { _, _ in limit = Self.pageSize; visibleRows = [] }
+            .animation(.default, value: model.busy)
+            .onChange(of: search) { _, _ in limit = Self.pageSize; showJump = false }
             .onChange(of: model.libraryGeneration) { _, _ in search = ""; limit = Self.pageSize; deleteCandidate = nil; share = nil }
             .sheet(isPresented: $accounts) { AccountsView(model: model) }
             .sheet(item: $share) { item in
@@ -197,16 +197,20 @@ private struct ActivityRow: View {
         .accessibilityElement(children: .contain)
     }
 
+    private static let durationFormatter: DateComponentsFormatter = {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.hour, .minute, .second]
+        formatter.unitsStyle = .abbreviated
+        return formatter
+    }()
+
     private var activityName: String {
         activity.displayName
     }
 
     private var duration: String {
         guard let seconds = activity.duration, seconds.isFinite, seconds >= 0 else { return String(localized: "unbekannt") }
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = [.hour, .minute, .second]
-        formatter.unitsStyle = .abbreviated
-        return formatter.string(from: seconds) ?? String(localized: "unbekannt")
+        return Self.durationFormatter.string(from: seconds) ?? String(localized: "unbekannt")
     }
 
     private var distance: String { ActivityFormat.distance(activity.metrics?.distanceMeters) ?? "— km" }
