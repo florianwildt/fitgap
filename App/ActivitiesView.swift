@@ -9,6 +9,23 @@ private struct MinimizedSearch: ViewModifier {
     }
 }
 
+/// Account button and search icon; shown in the list column when compact, in the details column when side by side.
+private struct ChromeToolbar: ViewModifier {
+    let show: Bool
+    let accounts: () -> Void
+
+    @ViewBuilder func body(content: Content) -> some View {
+        if show {
+            content.toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Konten", systemImage: "person.crop.circle", action: accounts)
+                }
+                if #available(iOS 26, *) { DefaultToolbarItem(kind: .search, placement: .topBarTrailing) }
+            }
+        } else { content }
+    }
+}
+
 struct ActivitiesView: View {
     @ObservedObject var model: AppModel
     @State private var search = ""
@@ -18,8 +35,12 @@ struct ActivitiesView: View {
     @State private var showError = false
     @State private var limit = Self.pageSize
     @State private var showJump = false
+    @State private var selected: ActivityKey?
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    @State private var columns = NavigationSplitViewVisibility.all
 
     private static let pageSize = 10
+    private var wide: Bool { sizeClass == .regular }
 
     private var matches: [ActivityRecord] {
         model.activities.filter { search.isEmpty || $0.displayName.localizedStandardContains(search) || $0.source.title.localizedStandardContains(search) }
@@ -28,9 +49,10 @@ struct ActivitiesView: View {
     private static let jumpThreshold = 6
 
     var body: some View {
-        NavigationStack {
+        // Compact widths collapse to a single stack; wide screens (e.g. an unfolded foldable) show list and details side by side.
+        NavigationSplitView(columnVisibility: $columns) {
             ScrollViewReader { proxy in
-            List {
+            List(selection: $selected) {
                 DemoSection(model: model)
                 if model.activities.isEmpty {
                     Section {
@@ -45,9 +67,7 @@ struct ActivitiesView: View {
                 Section {
                     ForEach(Array(visible.enumerated()), id: \.element.id) { index, activity in
                         // Row buttons stay borderless and keep their own taps; the rest of the row opens the details.
-                        NavigationLink {
-                            ActivityDetailView(model: model, initial: activity)
-                        } label: {
+                        NavigationLink(value: activity.key) {
                             ActivityRow(activity: activity, connected: model.isDemo || model.connected.contains(activity.source), busy: model.busy || model.switchingMode,
                                         share: { prepareShare(activity) }, download: { model.download(activity) })
                         }
@@ -89,14 +109,7 @@ struct ActivitiesView: View {
             .transaction(value: search) { $0.animation = nil }
             .refreshable { await model.refreshAndWait() }
             .navigationTitle("FITgap")
-            .searchable(text: $search, prompt: "Aktivitäten suchen")
-            .modifier(MinimizedSearch())
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Konten", systemImage: "person.crop.circle") { accounts = true }
-                }
-                if #available(iOS 26, *) { DefaultToolbarItem(kind: .search, placement: .topBarTrailing) }
-            }
+            .modifier(ChromeToolbar(show: !wide) { accounts = true })
             .safeAreaInset(edge: .bottom) { DemoIndicator(enabled: model.isDemo) }
             .overlay(alignment: .bottom) {
                 if model.busy {
@@ -117,13 +130,29 @@ struct ActivitiesView: View {
             }
             .animation(.default, value: model.busy)
             .onChange(of: search) { _, _ in limit = Self.pageSize; showJump = false }
-            .onChange(of: model.libraryGeneration) { _, _ in search = ""; limit = Self.pageSize; deleteCandidate = nil; share = nil }
+            .onChange(of: model.libraryGeneration) { _, _ in search = ""; limit = Self.pageSize; deleteCandidate = nil; share = nil; selected = nil }
             .sheet(isPresented: $accounts) { AccountsView(model: model) }
             .sheet(item: $share) { item in
                 ShareSheet(url: item.url) { completed in if completed { model.markShared(item.record, generation: item.generation) } }
             }
             }
-            .onChange(of: model.errorMessage, initial: true) { _, message in showError = message != nil && !accounts }
+            .navigationSplitViewColumnWidth(min: 340, ideal: 393, max: 420)
+        } detail: {
+            Group {
+            if let selected, let activity = model.activities.first(where: { $0.key == selected }) {
+                ActivityDetailView(model: model, initial: activity)
+            } else {
+                ContentUnavailableView("Aktivität auswählen", systemImage: "figure.outdoor.cycle",
+                    description: Text("Wähle links eine Aktivität, um ihre Details zu sehen."))
+            }
+            }
+            .modifier(ChromeToolbar(show: wide) { accounts = true })
+        }
+        // Side by side, account and search sit in the details navigation area on the right.
+        .searchable(text: $search, prompt: "Aktivitäten suchen")
+        .modifier(MinimizedSearch())
+        .navigationSplitViewStyle(.balanced)
+        .onChange(of: model.errorMessage, initial: true) { _, message in showError = message != nil && !accounts }
             .onChange(of: accounts) { _, shown in showError = !shown && model.errorMessage != nil }
             .alert("FITgap", isPresented: $showError) {
                 Button("OK", role: .cancel) { model.errorMessage = nil }
@@ -139,7 +168,6 @@ struct ActivitiesView: View {
                 if model.isDemo { Text("Nur diese lokale Demo-Datei und ihre Teilen-Markierung werden gelöscht. Mit „Wiederherstellen“ erhältst du die Beispieldatei lokal zurück.") }
                 else { Text("Die Datei wird nur auf diesem iPhone gelöscht. Die Aktivität beim Anbieter bleibt erhalten. Du kannst die Datei später über „Erneut laden“ herunterladen.") }
             }
-        }
     }
 
     private func prepareShare(_ activity: ActivityRecord) {

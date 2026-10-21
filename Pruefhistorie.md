@@ -303,3 +303,17 @@ Der nachträglich mit einem anderen Werkzeug erstellte Detailumfang (Commit `2ed
 - Der Nutzer hat diesen Umfang anschließend der App-Version **0.2.0** zugeordnet und die Version in Xcode gesetzt (Buildnummer unverändert 1). Erneuter lokaler iPhone-Release-Build erfolgreich, Exitstatus 0, **Version 0.2.0, Build 1** im Artefakt bestätigt, ohne Gerätesignierung. [Buildprotokoll](.local/validation/2026-10-21-details-release-0.2.0.log). Die obigen Test- und Buildnachweise liefen noch mit 0.1.0 (1) bei identischem Code.
 
 **Grenzen:** Keine echten Wahoo-/Zwift-FITs geprüft; Felder 11, 15, 18–21, 50, 71, 127 und 128 nur mit synthetischen Testdaten belegt. Demo-FITs enthalten keine Session-Werte für Kalorien, Trittfrequenz, Leistung und Höhenbereich, daher dort ausgeblendet. Karte, Diagramme, Laps und ähnliche Aktivitäten nicht umgesetzt. Kein Gerätetest, kein Commit oder Push.
+
+## 2026-10-21 – Zweispaltige Ansicht, 0.2.0 (1)
+
+Auftrag: Optimierung für ein aufgeklapptes Faltgerät („iPhone Duo“): links Aktivitätsliste, rechts Details der Auswahl.
+
+- `ActivitiesView` nutzt `NavigationSplitView` mit Auswahl über `ActivityKey`; bei kompakter Breite weiterhin Stapelnavigation wie in 0.2.0. Rechts ohne Auswahl ein Platzhalter. Auswahl wird beim Wechsel der Bibliothek zurückgesetzt. Deutsch/Englisch ergänzt.
+- Querformat nur für Displays mit kürzerer Seite ≥ 600 pt (`OrientationDelegate`); reguläre iPhones bleiben Hochformat. Info-Plist-Orientierungen entsprechend erweitert.
+- Konten-Symbol und Suche liegen bei breiter Darstellung im rechten Navigationsbereich; Listenspalte 393 pt breit. Auf Nutzerwunsch dem Umfang von 0.2.0 zugeordnet (zwischenzeitlich 0.2.1), Version 0.2.0, Buildnummer 1.
+
+**Prüfungen:** Lokaler Release-Build (Simulator, ohne Signierung) erfolgreich, Exitstatus 0, **Version 0.2.1, Build 1** (Stand vor der Zuordnung zu 0.2.0). Erneuter Release-Build mit Version 0.2.0 siehe unten. [Buildprotokoll](.local/validation/2026-10-21-duo-release.log).
+
+Erneuter lokaler Release-Build mit **Version 0.2.0, Build 1**, Exitstatus 0. [Buildprotokoll](.local/validation/2026-10-21-duo-release-0.2.0.log).
+
+**Grenzen:** Keine UI-Tests ausgeführt; kein Test auf Faltgerät oder entsprechendem Simulator. Kein Commit oder Push.
