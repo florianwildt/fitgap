@@ -1,7 +1,7 @@
 # Release Notes Version X.X.X
 
 <!-- Platzhalter ersetzen; nur benötigte Abschnitte übernehmen.
-Verbindliche Inhaltsregeln: ../../AGENTS.md, Abschnitt „Builds und Releases“.
+Verbindliche Inhaltsregeln: ../../Agents.md, Abschnitt „Builds und Releases“.
 Buildnummern, Release- und Prüfstand stehen in ../../README.md. -->
 
 ## Neue Features und Funktionen:

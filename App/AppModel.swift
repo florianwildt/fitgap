@@ -36,6 +36,8 @@ final class AppModel: ObservableObject {
     private var wahooFiles: [ActivityKey: WahooWorkout] = [:]
     private var accessCache: [Source: Credentials] = [:]
     private let cooldownKey = "wahooRetryAfter"
+    private let fullScanKey = "wahooLastFullScan"
+    private let fullScanInterval: TimeInterval = 7 * 24 * 3600
     private let wahooClientKey = "wahooClientID"
     private var cursorFile: URL { library.directory.appendingPathComponent("wahoo-catalog.json") }
 
@@ -246,9 +248,14 @@ final class AppModel: ObservableObject {
         case .wahoo:
             wahooFiles.removeAll(keepingCapacity: true)
             let cursor = (try? JSONDecoder().decode(WahooCatalogCursor.self, from: Data(contentsOf: cursorFile))) ?? WahooCatalogCursor()
-            try await wahoo.catalog(token: token, cursor: cursor) { page, next in
+            // A full scan at least weekly also finds late uploads that sort behind the newest page.
+            let lastFull = defaults.object(forKey: fullScanKey) as? Date
+            let fullScan = lastFull.map { Date().timeIntervalSince($0) > fullScanInterval || $0 > Date() } ?? true
+            let known = fullScan ? [] : Set(activities.filter { $0.source == .wahoo }.map(\.key))
+            try await wahoo.catalog(token: token, cursor: cursor, known: known) { page, next in
                 try await self.saveWahooPage(page, cursor: next)
             }
+            if fullScan { defaults.set(Date(), forKey: fullScanKey) }
             let pending = activities.filter { $0.source == .wahoo && [.pending, .failed].contains($0.status) }
             for (offset, record) in pending.enumerated() {
                 try Task.checkCancellation()
@@ -275,7 +282,6 @@ final class AppModel: ObservableObject {
         // Save the cursor after the index: repeating a page is safe if either write is interrupted.
         try JSONEncoder().encode(cursor).write(to: cursorFile, options: .atomic)
         for workout in page.workouts { wahooFiles[workout.key] = workout }
-        progress = String(localized: "Wahoo: Seite \(page.page), \(page.total) Aktivitäten")
     }
 
     private var pendingKeys: Set<ActivityKey> {
@@ -331,7 +337,7 @@ final class AppModel: ObservableObject {
 
     private func recordFailure(_ key: ActivityKey, error: Error) throws {
         guard !Task.isCancelled, !(error is CancellationError), let index = activities.firstIndex(where: { $0.key == key }) else { return }
-        if case ProbeError.noFIT = error { activities[index].status = .unavailable }
+        if case ProbeError.noFIT = error { activities[index].status = .unavailable; activities[index].noFITConfirmed = true }
         else { activities[index].status = .failed }
         try library.save(activities)
     }

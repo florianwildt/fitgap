@@ -13,6 +13,24 @@ struct ActivityDetailView: View {
     var body: some View {
         List {
             Section {
+                row("Sportart", sport)
+                row("Start", activity.date?.formatted(.dateTime.day().month(.abbreviated).year().hour().minute()))
+                row("Quelle", activity.source.title)
+            }
+            Section {
+                if let ascent = metrics?.ascentMeters, let descent = metrics?.descentMeters {
+                    LabeledContent("Höhenmeter", value: "↑ \(ActivityFormat.meters(ascent)) / ↓ \(ActivityFormat.meters(descent))")
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("Höhenmeter: Anstieg \(ActivityFormat.meters(ascent)), Abstieg \(ActivityFormat.meters(descent))")
+                } else {
+                    row("Anstieg", metrics?.ascentMeters.map(ActivityFormat.meters))
+                    row("Abstieg", metrics?.descentMeters.map(ActivityFormat.meters))
+                }
+                if let low = metrics?.minimumAltitudeMeters, let high = metrics?.maximumAltitudeMeters {
+                    row("Höhe", "\(ActivityFormat.meters(low)) – \(ActivityFormat.meters(high))")
+                }
+            }
+            Section {
                 row("Strecke", ActivityFormat.distance(metrics?.distanceMeters))
                 row("Dauer", (metrics?.timerSeconds ?? activity.duration).map(ActivityFormat.duration))
                 if let elapsed = metrics?.elapsedSeconds, abs(elapsed - (metrics?.timerSeconds ?? elapsed)) >= 1 {
@@ -31,24 +49,6 @@ struct ActivityDetailView: View {
                 row("Max. Trittfrequenz", metrics?.maximumCadence.map(cadence))
                 row("Ø Leistung", metrics?.averagePowerWatts.map { ActivityFormat.integer($0) + " W" })
                 row("Max. Leistung", metrics?.maximumPowerWatts.map { ActivityFormat.integer($0) + " W" })
-            }
-            Section {
-                row("Sportart", sport)
-                row("Start", activity.date?.formatted(.dateTime.day().month(.abbreviated).year().hour().minute()))
-                row("Quelle", activity.source.title)
-            }
-            Section {
-                if let ascent = metrics?.ascentMeters, let descent = metrics?.descentMeters {
-                    LabeledContent("Höhenmeter", value: "↑ \(ActivityFormat.meters(ascent)) / ↓ \(ActivityFormat.meters(descent))")
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel("Höhenmeter: Anstieg \(ActivityFormat.meters(ascent)), Abstieg \(ActivityFormat.meters(descent))")
-                } else {
-                    row("Anstieg", metrics?.ascentMeters.map(ActivityFormat.meters))
-                    row("Abstieg", metrics?.descentMeters.map(ActivityFormat.meters))
-                }
-                if let low = metrics?.minimumAltitudeMeters, let high = metrics?.maximumAltitudeMeters {
-                    row("Höhe", "\(ActivityFormat.meters(low)) – \(ActivityFormat.meters(high))")
-                }
             }
             Section {
                 if activity.status != .available { row("Datei", activity.status.title) }

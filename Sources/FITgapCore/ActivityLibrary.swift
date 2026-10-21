@@ -24,6 +24,8 @@ public struct ActivityRecord: Codable, Identifiable, Sendable {
     public var receipt: FITReceipt?
     public var sharedAt: Date?
     public var metrics: ActivityMetrics?
+    /// Set once a download attempt found no FIT, so later catalog merges do not retry it.
+    public var noFITConfirmed: Bool?
     public var key: ActivityKey { ActivityKey(source: source.rawValue, id: remoteID) }
     public var id: String { key.filename }
     /// Missing or older cached metrics are read once more from the verified original FIT.
@@ -109,7 +111,7 @@ public struct ActivityLibrary: Sendable {
         for incoming in incoming {
             if var previous = records[incoming.key] {
                 previous.name = incoming.name; previous.date = incoming.date; previous.duration = incoming.duration
-                if previous.status == .unavailable { previous.status = incoming.status }
+                if previous.status == .unavailable, previous.noFITConfirmed != true { previous.status = incoming.status }
                 records[incoming.key] = previous
             } else { records[incoming.key] = incoming }
         }

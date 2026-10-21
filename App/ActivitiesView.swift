@@ -2,6 +2,13 @@ import FITgapCore
 import SwiftUI
 import UIKit
 
+/// iOS 26 shows the search field as a toolbar icon that expands on tap.
+private struct MinimizedSearch: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) { content.searchToolbarBehavior(.minimize) } else { content }
+    }
+}
+
 struct ActivitiesView: View {
     @ObservedObject var model: AppModel
     @State private var search = ""
@@ -18,15 +25,10 @@ struct ActivitiesView: View {
         NavigationStack {
             List {
                 DemoSection(model: model)
-                if model.busy {
-                    Section {
-                        HStack { ProgressView(); Text(model.progress).fixedSize(horizontal: false, vertical: true) }
-                    }
-                }
                 if model.activities.isEmpty {
                     Section {
                         ContentUnavailableView("Noch keine Aktivitäten", systemImage: "figure.outdoor.cycle",
-                            description: Text("Verbinde unter „Konten“ Wahoo oder Zwift und wähle anschließend „Aktualisieren“."))
+                            description: Text("Verbinde unter „Konten“ Wahoo oder Zwift und ziehe die Liste nach unten."))
                     }
                 } else if visible.isEmpty {
                     ContentUnavailableView.search(text: search)
@@ -38,10 +40,16 @@ struct ActivitiesView: View {
                             ActivityDetailView(model: model, initial: activity)
                         } label: {
                             ActivityRow(activity: activity, connected: model.isDemo || model.connected.contains(activity.source), busy: model.busy || model.switchingMode,
-                                        share: { prepareShare(activity) }, download: { model.download(activity) },
-                                        delete: { deleteCandidate = activity })
+                                        share: { prepareShare(activity) }, download: { model.download(activity) })
                         }
                         .accessibilityIdentifier("activity-\(activity.source.rawValue)-\(activity.remoteID)")
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            if activity.receipt != nil || activity.status == .failed {
+                                Button("Datei löschen", systemImage: "trash", role: .destructive) { deleteCandidate = activity }
+                                    .disabled(model.busy || model.switchingMode)
+                                    .accessibilityIdentifier("delete-\(activity.source.rawValue)-\(activity.remoteID)")
+                            }
+                        }
                     }
                 } footer: {
                     if model.isDemo {
@@ -50,21 +58,34 @@ struct ActivitiesView: View {
                 }
             }
             .refreshable { await model.refreshAndWait() }
+            .animation(.default, value: model.busy)
             .navigationTitle("FITgap")
             .searchable(text: $search, prompt: "Aktivitäten suchen")
+            .modifier(MinimizedSearch())
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Konten", systemImage: "person.crop.circle") { accounts = true }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    if model.busy { Button("Abbrechen", role: .cancel) { model.cancel() } }
-                    else {
-                        Button("Aktualisieren", systemImage: "arrow.clockwise") { model.refresh() }
-                            .disabled((!model.isDemo && model.connected.isEmpty) || !model.storageReady || model.switchingMode)
-                    }
-                }
+                if #available(iOS 26, *) { DefaultToolbarItem(kind: .search, placement: .topBarTrailing) }
             }
             .safeAreaInset(edge: .bottom) { DemoIndicator(enabled: model.isDemo) }
+            .overlay(alignment: .bottom) {
+                if model.busy {
+                    HStack(spacing: 12) {
+                        ProgressView().tint(.white)
+                        Text(model.progress).fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                        Button("Abbrechen", role: .cancel) { model.cancel() }
+                            .buttonStyle(.bordered).tint(.white)
+                    }
+                    .font(.subheadline.weight(.medium)).foregroundStyle(.white)
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(Color.accentColor, in: Capsule())
+                    .shadow(color: .black.opacity(0.25), radius: 8, y: 2)
+                    .padding(.bottom, 8).padding(.horizontal, 16)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
             .onChange(of: model.libraryGeneration) { _, _ in search = ""; deleteCandidate = nil; share = nil }
             .sheet(isPresented: $accounts) { AccountsView(model: model) }
             .sheet(item: $share) { item in
@@ -101,20 +122,10 @@ private struct ActivityRow: View {
     let busy: Bool
     let share: () -> Void
     let download: () -> Void
-    let delete: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top) {
-                Text(activity.source.title).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                Spacer(minLength: 8)
-                if activity.sharedAt != nil {
-                    Image(systemName: "checkmark.circle")
-                        .font(.title3).foregroundStyle(.tint)
-                        .accessibilityLabel("Geteilt")
-                        .accessibilityIdentifier("shared-status-\(activity.source.rawValue)-\(activity.remoteID)")
-                }
-            }
+            Text(activity.source.title).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
             Text(activityName).font(.headline)
             if let date = activity.date { Text(date, format: .dateTime.day().month(.abbreviated).year().hour().minute()).font(.subheadline) }
             else { Text("Datum unbekannt").font(.subheadline) }
@@ -128,9 +139,15 @@ private struct ActivityRow: View {
                     .font(.subheadline).foregroundStyle(.secondary)
             }
             if let date = activity.sharedAt {
-                Text("Zuletzt geteilt: \(date.formatted(date: .abbreviated, time: .shortened))")
-                    .font(.caption).foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 6) {
+                    Text("Zuletzt geteilt: \(date.formatted(date: .abbreviated, time: .shortened))")
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Image(systemName: "checkmark.circle")
+                        .font(.caption).foregroundStyle(.tint)
+                        .accessibilityLabel("Geteilt")
+                        .accessibilityIdentifier("shared-status-\(activity.source.rawValue)-\(activity.remoteID)")
+                }
             }
             HStack {
                 if activity.status == .available {
@@ -140,18 +157,6 @@ private struct ActivityRow: View {
                 } else if connected {
                     Button(activity.source == .demo ? String(localized: "Wiederherstellen") : (activity.status == .deleted ? String(localized: "Erneut laden") : String(localized: "Laden")), systemImage: "arrow.down", action: download)
                         .frame(minHeight: 44).disabled(busy)
-                }
-                Spacer(minLength: 8)
-                if activity.receipt != nil || activity.status == .failed {
-                    Menu {
-                        Button("Datei löschen", systemImage: "trash", role: .destructive, action: delete)
-                    } label: {
-                        Label("Dateioptionen", systemImage: "ellipsis.circle").labelStyle(.iconOnly)
-                            .frame(minWidth: 44, minHeight: 44)
-                    }
-                    .accessibilityLabel("Dateioptionen für \(activityName)")
-                    .accessibilityIdentifier("file-options-\(activity.source.rawValue)-\(activity.remoteID)")
-                    .disabled(busy)
                 }
             }
             .buttonStyle(.borderless)
