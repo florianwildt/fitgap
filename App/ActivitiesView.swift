@@ -49,7 +49,8 @@ struct ActivitiesView: View {
     private static let jumpThreshold = 6
 
     var body: some View {
-        // Compact widths collapse to a single stack; wide screens (e.g. an unfolded foldable) show list and details side by side.
+        // Compact widths collapse to a single stack; wide screens (e.g. an unfolded iPhone Duo) show list and details side by side.
+        // The system sizes the columns and adapts them to the fold, so no column width is set.
         NavigationSplitView(columnVisibility: $columns) {
             ScrollViewReader { proxy in
             List(selection: $selected) {
@@ -136,7 +137,6 @@ struct ActivitiesView: View {
                 ShareSheet(url: item.url) { completed in if completed { model.markShared(item.record, generation: item.generation) } }
             }
             }
-            .navigationSplitViewColumnWidth(min: 340, ideal: 393, max: 420)
         } detail: {
             Group {
             if let selected, let activity = model.activities.first(where: { $0.key == selected }) {
