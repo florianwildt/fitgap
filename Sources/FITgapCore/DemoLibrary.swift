@@ -21,7 +21,14 @@ public struct DemoLibrary: Sendable {
 
     public func load() throws -> [ActivityRecord] {
         if FileManager.default.fileExists(atPath: library.directory.appendingPathComponent("activities.json").path) {
-            return try library.load()
+            var records = try library.load()
+            // Bundled demo files are small: refresh older cached metrics directly.
+            guard records.contains(where: \.needsMetrics) else { return records }
+            for index in records.indices where records[index].needsMetrics {
+                if let metrics = try? library.metrics(for: records[index]) { records[index].metrics = metrics }
+            }
+            try library.save(records)
+            return records
         }
         let records = try Self.samples.map { sample in
             try restoring(ActivityRecord(source: .demo, remoteID: sample.id, name: "",

@@ -26,6 +26,8 @@ public struct ActivityRecord: Codable, Identifiable, Sendable {
     public var metrics: ActivityMetrics?
     public var key: ActivityKey { ActivityKey(source: source.rawValue, id: remoteID) }
     public var id: String { key.filename }
+    /// Missing or older cached metrics are read once more from the verified original FIT.
+    public var needsMetrics: Bool { status == .available && metrics?.isCurrent != true }
 
     public init(source: Source, remoteID: String, name: String, date: Date?, duration: TimeInterval?, status: DownloadStatus = .pending) {
         self.source = source; self.remoteID = remoteID; self.name = name

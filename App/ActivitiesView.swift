@@ -33,9 +33,15 @@ struct ActivitiesView: View {
                 }
                 Section {
                     ForEach(visible) { activity in
-                        ActivityRow(activity: activity, connected: model.isDemo || model.connected.contains(activity.source), busy: model.busy || model.switchingMode,
-                                    share: { prepareShare(activity) }, download: { model.download(activity) },
-                                    delete: { deleteCandidate = activity })
+                        // Row buttons stay borderless and keep their own taps; the rest of the row opens the details.
+                        NavigationLink {
+                            ActivityDetailView(model: model, initial: activity)
+                        } label: {
+                            ActivityRow(activity: activity, connected: model.isDemo || model.connected.contains(activity.source), busy: model.busy || model.switchingMode,
+                                        share: { prepareShare(activity) }, download: { model.download(activity) },
+                                        delete: { deleteCandidate = activity })
+                        }
+                        .accessibilityIdentifier("activity-\(activity.source.rawValue)-\(activity.remoteID)")
                     }
                 } footer: {
                     if model.isDemo {
@@ -166,18 +172,9 @@ private struct ActivityRow: View {
         return formatter.string(from: seconds) ?? String(localized: "unbekannt")
     }
 
-    private var distance: String {
-        guard let meters = activity.metrics?.distanceMeters else { return "— km" }
-        return (meters / 1000).formatted(.number.precision(.fractionLength(2))) + " km"
-    }
-    private var ascent: String {
-        guard let meters = activity.metrics?.ascentMeters else { return "— m" }
-        return meters.formatted(.number.precision(.fractionLength(0))) + " m"
-    }
-    private var averageSpeed: String {
-        guard let speed = activity.metrics?.averageSpeedMetersPerSecond else { return "— km/h" }
-        return (speed * 3.6).formatted(.number.precision(.fractionLength(2))) + " km/h"
-    }
+    private var distance: String { ActivityFormat.distance(activity.metrics?.distanceMeters) ?? "— km" }
+    private var ascent: String { activity.metrics?.ascentMeters.map(ActivityFormat.meters) ?? "— m" }
+    private var averageSpeed: String { ActivityFormat.speed(activity.metrics?.averageSpeedMetersPerSecond) ?? "— km/h" }
 }
 
 private struct SharedFile: Identifiable {
