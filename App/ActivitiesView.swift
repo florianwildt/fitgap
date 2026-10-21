@@ -16,13 +16,20 @@ struct ActivitiesView: View {
     @State private var deleteCandidate: ActivityRecord?
     @State private var share: SharedFile?
     @State private var showError = false
+    @State private var limit = Self.pageSize
+    @State private var visibleRows: Set<Int> = []
 
-    private var visible: [ActivityRecord] {
+    private static let pageSize = 10
+
+    private var matches: [ActivityRecord] {
         model.activities.filter { search.isEmpty || $0.displayName.localizedStandardContains(search) || $0.source.title.localizedStandardContains(search) }
     }
 
+    private static let jumpThreshold = 6
+
     var body: some View {
         NavigationStack {
+            ScrollViewReader { proxy in
             List {
                 DemoSection(model: model)
                 if model.activities.isEmpty {
@@ -30,11 +37,13 @@ struct ActivitiesView: View {
                         ContentUnavailableView("Noch keine Aktivitäten", systemImage: "figure.outdoor.cycle",
                             description: Text("Verbinde unter „Konten“ Wahoo oder Zwift und ziehe die Liste nach unten."))
                     }
-                } else if visible.isEmpty {
+                } else if matches.isEmpty {
                     ContentUnavailableView.search(text: search)
                 }
+                let all = matches
+                let visible = Array(all.prefix(limit))
                 Section {
-                    ForEach(visible) { activity in
+                    ForEach(Array(visible.enumerated()), id: \.element.id) { index, activity in
                         // Row buttons stay borderless and keep their own taps; the rest of the row opens the details.
                         NavigationLink {
                             ActivityDetailView(model: model, initial: activity)
@@ -43,6 +52,11 @@ struct ActivitiesView: View {
                                         share: { prepareShare(activity) }, download: { model.download(activity) })
                         }
                         .accessibilityIdentifier("activity-\(activity.source.rawValue)-\(activity.remoteID)")
+                        .onAppear {
+                            visibleRows.insert(index)
+                            if activity.id == visible.last?.id, visible.count < all.count { limit += Self.pageSize }
+                        }
+                        .onDisappear { visibleRows.remove(index) }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             if activity.receipt != nil || activity.status == .failed {
                                 Button("Datei löschen", systemImage: "trash", role: .destructive) { deleteCandidate = activity }
@@ -57,6 +71,22 @@ struct ActivitiesView: View {
                     } else { Text("FITs bleiben offline verfügbar. Aktualisieren startet beim App-Start oder durch Herunterziehen. Ein laufender Abruf nutzt die verfügbare iOS-Hintergrundzeit und wird nach einer Unterbrechung beim Öffnen fortgesetzt. Wähle beim Teilen HealthFit, sofern installiert. „Geteilt“ bestätigt keinen erfolgreichen Import.") }
                 }
             }
+            .overlay(alignment: .bottomTrailing) {
+                if (visibleRows.max() ?? 0) >= Self.jumpThreshold, let first = matches.first {
+                    Button {
+                        withAnimation { proxy.scrollTo(first.id, anchor: .top) }
+                    } label: {
+                        Image(systemName: "arrow.up").font(.title3.weight(.semibold)).frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.borderedProminent).buttonBorderShape(.circle)
+                    .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
+                    .padding(.trailing, 16).padding(.bottom, model.busy ? 72 : 16)
+                    .accessibilityLabel("Nach oben")
+                    .accessibilityIdentifier("scroll-to-top")
+                    .transition(.scale.combined(with: .opacity))
+                }
+            }
+            .animation(.default, value: (visibleRows.max() ?? 0) >= Self.jumpThreshold)
             .refreshable { await model.refreshAndWait() }
             .animation(.default, value: model.busy)
             .navigationTitle("FITgap")
@@ -86,10 +116,12 @@ struct ActivitiesView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .onChange(of: model.libraryGeneration) { _, _ in search = ""; deleteCandidate = nil; share = nil }
+            .onChange(of: search) { _, _ in limit = Self.pageSize; visibleRows = [] }
+            .onChange(of: model.libraryGeneration) { _, _ in search = ""; limit = Self.pageSize; deleteCandidate = nil; share = nil }
             .sheet(isPresented: $accounts) { AccountsView(model: model) }
             .sheet(item: $share) { item in
                 ShareSheet(url: item.url) { completed in if completed { model.markShared(item.record, generation: item.generation) } }
+            }
             }
             .onChange(of: model.errorMessage, initial: true) { _, message in showError = message != nil && !accounts }
             .onChange(of: accounts) { _, shown in showError = !shown && model.errorMessage != nil }

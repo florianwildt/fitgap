@@ -5,6 +5,7 @@
 "Abbrechen" = "Cancel";
 "Abruf abgebrochen. Bereits gespeicherte FITs bleiben verfügbar." = "Sync cancelled. Previously saved FIT files remain available.";
 "Aktivität ohne Namen" = "Unnamed activity";
+"Nach oben" = "Back to top";
 "Aktivitäten suchen" = "Search activities";
 "Aktivitäten werden abgerufen …" = "Fetching activities…";
 "Anmeldung über Wahoo mit lesendem Zugriff." = "Sign in through Wahoo with read-only access.";
