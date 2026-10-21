@@ -283,3 +283,23 @@ Der vorhandene Client-Wechsel-Schutz verwendet alte Sandbox-Sitzungen nicht weit
 - Gesamten vorhandenen Diff mit `git diff --check` geprüft. Nicht blockierende Hinweise: AppIntents-Metadaten ohne Framework-Abhängigkeit; beim Testbuild zwei Actor-Isolationswarnungen im bereits vorhandenen Screenshot-Test `AppStoreScreenshotTests.swift:10` sowie der bekannte SDK-Buildnummernhinweis. Keine Änderung an diesen nicht betroffenen Tests.
 
 **Grenzen:** Kein echter Production-Kontotest und keine neue visuelle UI-/Farbschema-/Geräteprüfung. Keine Browsersteuerung oder Prüfung des aktuellen Developer-Portalstatus; letzter bestätigter Status bleibt Pending Approval, die lokale Umstellung ist kein Freigabenachweis. Kein Cloud-/Store-Build, Upload oder Veröffentlichung. Kein Commit oder Push.
+
+## 2026-10-21 – Aktivitätsdetails, 0.2.0 (1)
+
+Der nachträglich mit einem anderen Werkzeug erstellte Detailumfang (Commit `2edc738` und lokale Folgeänderungen) war fachlich fehlerhaft und nicht baubar. Auf Nutzerauftrag lokal auf `512886b` zurückgesetzt (nicht gepusht) und `Konzept/` entfernt; anschließend neu umgesetzt.
+
+- Bestehenden Session-Leser in `FITMetrics.swift` um Felder der Session-Nachricht 18 nach Garmin FIT Global Profile erweitert: Zeiten (7/8), Max.-Geschwindigkeit (15/125), Kalorien (11), Herzfrequenz (16/17), Trittfrequenz (18/19), Leistung (20/21), Abstieg (23), Höhenbereich (71/50, 127/128 mit Skala 5 und Offset 500), Sportart (5/6). Nur exakt passende Größe und Basistyp; ungültige Werte bleiben leer. Mehrere Sessions: Summen, Maxima, nach Timerzeit gewichtete Mittel, Sportart nur bei Übereinstimmung. Feldnummern 5–9, 16, 17, 22, 23, 124, 125 zusätzlich am mit dem Garmin-SDK erzeugten Demo-FIT bestätigt.
+- `ActivityMetrics` um optionale Felder und eine Revision erweitert. Bestehende Schema-1-Indizes bleiben lesbar; ältere Caches (auch Demo) werden einmalig aus der geprüften Original-FIT neu gelesen.
+- Native Detailansicht (`App/ActivityDetailView.swift`) per Tipp auf die Zeile; Teilen und Dateioptionen in der Zeile bleiben erhalten. Nicht vorhandene Werte werden ausgeblendet. Deutsch/Englisch ergänzt.
+
+**Prüfungen:**
+
+- 35 Core-Testfunktionen bestanden, darunter neue Tests für alle Session-Felder in beiden Byte-Reihenfolgen, Mehrfach-Sessions, ungültige/falsch typisierte Werte, Lap-Abgrenzung, Cache-Revision und erwartete Demo-Werte. [Protokoll](.local/validation/2026-10-21-details-core.log).
+- iOS-Unit-Tests (16) und Demo-UI-Abläufe auf iPhone 16e, iOS 26.2, hell/Standardschrift, Deutsch und Englisch bestanden; der Demo-Ablauf öffnet jetzt die Details und prüft Dauer, Herzfrequenz und Sportart. Aufnahmen visuell geprüft. [Protokoll](.local/validation/2026-10-21-details-demo-ui.log), [Ergebnisbundle](.local/validation/ios-details-demo.xcresult).
+- Zusätzlicher Demo-Lauf auf temporärem iPhone SE (3. Generation), dunkel/größte Bedienungshilfen-Schrift, bestanden; der erste Versuch scheiterte am Testselektor für noch nicht erzeugte Zeilen unterhalb des sichtbaren Bereichs (Hierarchie ausgewertet, nur Test angepasst). [Protokoll](.local/validation/2026-10-21-details-demo-ui-se.log). Temporären Simulator danach gelöscht. Künftig nur noch Standardschrift (Nutzervorgabe).
+- Die sieben `FITgapUITests` mit vorbereiteter synthetischer Zwift-Bibliothek scheiterten im unvorbereiteten Simulator an der fehlenden Fixture (`share-zwift-900000000001` nicht vorhanden); nicht erneut mit Fixture ausgeführt. [Protokoll](.local/validation/2026-10-21-details-ios.log).
+- Lokaler iPhone-Release-Build nach letzter Codeänderung erfolgreich, Exitstatus 0, **Version 0.1.0, Build 1**, ohne Gerätesignierung. Einziger Hinweis: AppIntents-Metadaten ohne Framework-Abhängigkeit. [Buildprotokoll](.local/validation/2026-10-21-details-release.log).
+
+- Der Nutzer hat diesen Umfang anschließend der App-Version **0.2.0** zugeordnet und die Version in Xcode gesetzt (Buildnummer unverändert 1). Erneuter lokaler iPhone-Release-Build erfolgreich, Exitstatus 0, **Version 0.2.0, Build 1** im Artefakt bestätigt, ohne Gerätesignierung. [Buildprotokoll](.local/validation/2026-10-21-details-release-0.2.0.log). Die obigen Test- und Buildnachweise liefen noch mit 0.1.0 (1) bei identischem Code.
+
+**Grenzen:** Keine echten Wahoo-/Zwift-FITs geprüft; Felder 11, 15, 18–21, 50, 71, 127 und 128 nur mit synthetischen Testdaten belegt. Demo-FITs enthalten keine Session-Werte für Kalorien, Trittfrequenz, Leistung und Höhenbereich, daher dort ausgeblendet. Karte, Diagramme, Laps und ähnliche Aktivitäten nicht umgesetzt. Kein Gerätetest, kein Commit oder Push.

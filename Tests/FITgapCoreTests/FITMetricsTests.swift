@@ -24,6 +24,56 @@ func fitSessionMetricsUseDocumentedScalesAndEnhancedSpeed(_ big: Bool) {
     #expect(result?.averageSpeedMetersPerSecond == 6.578)
 }
 
+/// Session with every additional summary field, encoded as in the Garmin FIT Global Profile.
+private func detailedSession(big: Bool = false, timer: UInt32 = 5075000, heartRate: UInt8 = 140,
+                             power: UInt32 = 150, sport: UInt8 = 2) -> [UInt8] {
+    let fields: [(UInt8, UInt8, UInt8, UInt32)] = [
+        (5, 1, 0x00, UInt32(sport)), (6, 1, 0x00, 0), (7, 4, 0x86, timer + 10000), (8, 4, 0x86, timer),
+        (9, 4, 0x86, 3338275), (11, 2, 0x84, 762), (14, 2, 0x84, 6578), (15, 2, 0x84, 18786),
+        (16, 1, 0x02, UInt32(heartRate)), (17, 1, 0x02, 185), (18, 1, 0x02, 77), (19, 1, 0x02, 119),
+        (20, 2, 0x84, power), (21, 2, 0x84, 763), (22, 2, 0x84, 440), (23, 2, 0x84, 441),
+        (127, 4, 0x86, (532 + 500) * 5), (128, 4, 0x86, (788 + 500) * 5)
+    ]
+    return [0x40, 0, big ? 1 : 0] + uint(18, 2, big: big) + [UInt8(fields.count)] + fields.flatMap { [$0.0, $0.1, $0.2] }
+        + [0] + fields.flatMap { uint($0.3, Int($0.1), big: big) }
+}
+
+@Test(arguments: [false, true])
+func fitSessionDetailsUseGlobalProfileFieldsAndScales(_ big: Bool) {
+    let result = FITMetrics.read(fit(detailedSession(big: big), headerSize: big ? 12 : 14))
+    #expect(result == ActivityMetrics(distanceMeters: 33382.75, ascentMeters: 440, averageSpeedMetersPerSecond: 6.578,
+        descentMeters: 441, timerSeconds: 5075, elapsedSeconds: 5085, maximumSpeedMetersPerSecond: 18.786,
+        energyKilocalories: 762, averageHeartRate: 140, maximumHeartRate: 185, averageCadence: 77, maximumCadence: 119,
+        averagePowerWatts: 150, maximumPowerWatts: 763, minimumAltitudeMeters: 532, maximumAltitudeMeters: 788,
+        sport: 2, subSport: 0))
+}
+
+@Test func fitSessionDetailsCombineSessionsWithoutFabricatingValues() {
+    // Averages weighted by timer time; maxima across sessions; sport only when all sessions agree.
+    let combined = FITMetrics.read(fit(detailedSession(timer: 1000000, heartRate: 100, power: 100)
+        + detailedSession(timer: 3000000, heartRate: 140, power: 200, sport: 1)))
+    #expect(combined?.averageHeartRate == 130)
+    #expect(combined?.averagePowerWatts == 175)
+    #expect(combined?.maximumPowerWatts == 763)
+    #expect(combined?.energyKilocalories == 1524)
+    #expect(combined?.sport == nil)
+    // Invalid uint8 and enum values stay missing; a wrongly typed field is skipped, not misread.
+    let invalid: [UInt8] = [0x40, 0, 0, 18, 0, 3, 16, 1, 0x02, 5, 1, 0x00, 21, 1, 0x02, 0, 0xff, 0xff, 7]
+    #expect(FITMetrics.read(fit(invalid)) == ActivityMetrics())
+    // Lap messages (global 19) use other field numbers and are never read as session totals.
+    #expect(FITMetrics.read(fit([0x40, 0, 0, 19, 0, 1, 9, 4, 0x86, 0] + uint(100, 4))) == nil)
+}
+
+@Test func olderCachedMetricsAreReadAgainOnce() throws {
+    var record = ActivityRecord(source: .wahoo, remoteID: "1", name: "", date: nil, duration: nil, status: .available)
+    record.metrics = try JSONDecoder().decode(ActivityMetrics.self, from: Data(#"{"distanceMeters":1000}"#.utf8))
+    #expect(record.metrics?.distanceMeters == 1000 && record.needsMetrics)
+    record.metrics = ActivityMetrics()
+    #expect(!record.needsMetrics)
+    record.status = .deleted; record.metrics = nil
+    #expect(!record.needsMetrics)
+}
+
 @Test func fitMetricsSkipDeveloperFieldsCompressedTimestampsAndRedefinedMessages() {
     // Definition 0: record with timestamp/HR plus two developer bytes, then compressed record.
     let record: [UInt8] = [0x60, 0, 0, 20, 0, 2, 253, 4, 0x86, 3, 1, 2, 1, 99, 2, 0]

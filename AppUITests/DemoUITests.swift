@@ -62,6 +62,20 @@ final class DemoUITests: XCTestCase {
         XCTAssertTrue(metrics.label.contains(german ? "10,80" : "10.80"), metrics.label)
         XCTAssertTrue(indicator.isHittable)
         capture(app, "Demo-metrics-\(german)")
+        // Tapping the row outside its buttons opens the session details read from the bundled FIT.
+        metrics.tap()
+        XCTAssertTrue(app.navigationBars[german ? "Demo: Lockere Morgenfahrt" : "Demo: Easy Morning Ride"].waitForExistence(timeout: 5))
+        capture(app, "Demo-details-\(german)")
+        // Rows below the fold are created lazily, e.g. with the largest accessibility text size.
+        for value in ["0:30:00", german ? "120 S/min" : "120 bpm", german ? "Indoor-Radfahren" : "Indoor cycling"] {
+            let row = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", value)).firstMatch
+            reveal(row, in: app)
+            XCTAssertTrue(row.exists, app.debugDescription)
+        }
+        capture(app, "Demo-details-bottom-\(german)")
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(share.waitForExistence(timeout: 5))
+        reveal(share, in: app)
         share.tap()
         let close = app.buttons.matching(NSPredicate(format: "label IN %@", ["Schließen", "Close", "Abbrechen", "Cancel"])).firstMatch
         XCTAssertTrue(close.waitForExistence(timeout: 5), app.debugDescription)

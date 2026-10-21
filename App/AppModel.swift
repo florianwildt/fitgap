@@ -184,7 +184,7 @@ final class AppModel: ObservableObject {
             } catch { errorMessage = Self.message(error) }
             return
         }
-        guard !connected.isEmpty || activities.contains(where: { $0.status == .available && $0.metrics == nil }) else { return }
+        guard !connected.isEmpty || activities.contains(where: \.needsMetrics) else { return }
         run(label: String(localized: "Aktivitäten werden abgerufen …"), resume: { [weak self] in self?.refresh() }) {
             try await self.fillMissingMetrics()
             var failures: [String] = []
@@ -283,7 +283,7 @@ final class AppModel: ObservableObject {
     }
 
     private func fillMissingMetrics() async throws {
-        let missing = activities.filter { $0.status == .available && $0.metrics == nil }
+        let missing = activities.filter(\.needsMetrics)
         guard !missing.isEmpty else { return }
         let indices = Dictionary(uniqueKeysWithValues: activities.enumerated().map { ($0.element.key, $0.offset) })
         for start in stride(from: 0, to: missing.count, by: 10) {

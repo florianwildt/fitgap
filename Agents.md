@@ -72,7 +72,7 @@
   - Prüfhistorie: datierte Prüf-, Build- und Abnahmenachweise je Version oder Thema.
   - Aufgabenliste: ausschließlich offene oder zurückgestellte Aufgaben; Erledigtes entfernen.
   - AGENTS.md: Arbeitsregeln.
-  - Release Notes: umgesetzter Umfang der jeweiligen Version.
+  - Release Notes: umgesetzter Umfang der jeweiligen Version; je Version eine eigene Datei `Release Notes/Release Notes Version <Version>.md` nach `Release Notes/Release Notes Template.md`.
 - Historische Nachweise mit Datum, Umfang, Abnahmen, Version/Build, Ergebnissen, Nachweispfaden und damaligen Grenzen erhalten.
 - Keine fortlaufenden Arbeitsprotokolle in der README und keine einzelnen Nachweisdateien für jede kleine Prüfung anlegen.
 - Historische Archive und Release-Dokumente behalten ihren ursprünglichen Zeit- und Versionsbezug.
