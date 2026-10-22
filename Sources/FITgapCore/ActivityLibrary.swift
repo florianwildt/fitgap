@@ -26,6 +26,8 @@ public struct ActivityRecord: Codable, Identifiable, Sendable {
     public var metrics: ActivityMetrics?
     /// Set once a download attempt found no FIT, so later catalog merges do not retry it.
     public var noFITConfirmed: Bool?
+    /// Name of the user-visible copy in the Files app; set once, so a copy the user removed there is not recreated.
+    public var filesName: String?
     public var key: ActivityKey { ActivityKey(source: source.rawValue, id: remoteID) }
     public var id: String { key.filename }
     /// Missing or older cached metrics are read once more from the verified original FIT.
@@ -145,6 +147,47 @@ public struct ActivityLibrary: Sendable {
         }
         var record = record
         record.receipt = nil; record.sharedAt = nil; record.status = .deleted
+        return record
+    }
+}
+
+/// User-visible copies in the app's Documents folder, which the Files app shows under "On My iPhone".
+public struct FilesFolder: Sendable {
+    public let directory: URL
+    public init(directory: URL) { self.directory = directory }
+
+    /// Readable and unique: local start time, source and provider ID.
+    public static func filename(for record: ActivityRecord) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd HH.mm"
+        let date = record.date.map { formatter.string(from: $0) + " " } ?? ""
+        let id = record.remoteID.map { $0.isLetter || $0.isNumber || $0 == "-" ? $0 : "_" }
+        return "\(date)\(record.source.title) \(String(id)).fit"
+    }
+
+    /// Copies the verified original; on APFS the copy is a clone and needs no extra space.
+    /// An existing file with the same name is left untouched.
+    public func export(_ record: ActivityRecord, from library: ActivityLibrary) throws -> ActivityRecord {
+        let original = try library.verifiedFile(for: record)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let name = Self.filename(for: record)
+        let file = directory.appendingPathComponent(name)
+        if !FileManager.default.fileExists(atPath: file.path) {
+            try FileManager.default.copyItem(at: original, to: file)
+            try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: file.path)
+        }
+        var record = record
+        record.filesName = name
+        return record
+    }
+
+    public func remove(_ record: ActivityRecord) throws -> ActivityRecord {
+        var record = record
+        guard let name = record.filesName else { return record }
+        let file = directory.appendingPathComponent(name)
+        if FileManager.default.fileExists(atPath: file.path) { try FileManager.default.removeItem(at: file) }
+        record.filesName = nil
         return record
     }
 }

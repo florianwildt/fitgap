@@ -73,3 +73,22 @@ private func record(_ source: Source = .zwift) -> ActivityRecord {
     let named = WahooWorkout(id: 2, name: "My ride / Meine Fahrt", starts: nil, minutes: nil, workout_summary: nil)
     #expect(ActivityRecord(named).name == "My ride / Meine Fahrt")
 }
+
+@Test func filesFolderCopyKeepsOriginalAndLeavesUserFilesAlone() throws {
+    let library = libraryFixture()
+    let folder = FilesFolder(directory: library.directory.appendingPathComponent("Documents"))
+    defer { try? FileManager.default.removeItem(at: library.directory) }
+    var available = record()
+    available.receipt = try library.files.save(fitBytes, key: available.key)
+    available.status = .available
+    let exported = try folder.export(available, from: library)
+    let copy = folder.directory.appendingPathComponent(try #require(exported.filesName))
+    #expect(exported.filesName?.hasSuffix("Zwift 42.fit") == true)
+    #expect(try Data(contentsOf: copy) == fitBytes)
+    // Deleting the copy (as in the Files app) keeps the verified original.
+    try FileManager.default.removeItem(at: copy)
+    #expect(try library.verifiedFile(for: exported).path.hasSuffix(".fit"))
+    _ = try folder.export(available, from: library)
+    let removed = try folder.remove(exported)
+    #expect(removed.filesName == nil && !FileManager.default.fileExists(atPath: copy.path))
+}

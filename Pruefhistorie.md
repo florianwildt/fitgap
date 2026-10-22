@@ -317,3 +317,17 @@ Auftrag: Optimierung für ein aufgeklapptes Faltgerät („iPhone Duo“): links
 Erneuter lokaler Release-Build mit **Version 0.2.0, Build 1**, Exitstatus 0. [Buildprotokoll](.local/validation/2026-10-21-duo-release-0.2.0.log).
 
 **Grenzen:** Keine UI-Tests ausgeführt; kein Test auf Faltgerät oder entsprechendem Simulator. Kein Commit oder Push.
+
+## 2026-10-22 – Mehrfachauswahl und Dateien-App, 0.2.0 (1)
+
+- **Mehrfachauswahl beim Teilen** (`ActivitiesView`): „Auswählen“ in der Navigationsleiste startet den nativen Auswahlmodus der Liste; „Alle auswählen“/„Auswahl aufheben“ betreffen nur heruntergeladene Einträge der aktuellen Suche. „Teilen“ übergibt alle geprüften Dateien in einem `UIActivityViewController`; nach abgeschlossener Übergabe werden alle übergebenen Einträge markiert. Der Auswahlmodus endet beim Schließen des Share Sheets und beim Bibliothekswechsel. Nicht heruntergeladene Einträge sind nicht auswählbar; Dateien mit abweichender Prüfsumme werden ausgelassen. Deutsch/Englisch ergänzt.
+- **FIT-Kopien in der Dateien-App** (`FilesFolder` in `ActivityLibrary.swift`, `AppModel`): Kopie jeder echten FIT nach SHA-256-Prüfung in den Documents-Ordner, Name `JJJJ-MM-TT HH.mm <Quelle> <ID>.fit`; `UIFileSharingEnabled` und `LSSupportsOpeningDocumentsInPlace` in der Info.plist. Optionales Indexfeld `filesName` (Schema 1 kompatibel) verhindert erneutes Anlegen vom Nutzer gelöschter Kopien. Ältere Downloads werden einmalig beim App-Start bzw. nach Verlassen der Demo übernommen; Demo-Dateien bleiben ausgeschlossen. Zusätzlich `ITSAppUsesNonExemptEncryption = false` gesetzt.
+- **App-Store-Grafik:** Screenshots 0.1.0 aus `Assets/AppStore/{de-DE,en-US}` entfernt; neues Header-Motiv unter `Assets/AppStore/Header/`, erzeugt mit [render-header.swift](scripts/render-header.swift).
+
+**Prüfungen:** 36 Core-Testfunktionen bestanden, darunter neuer Test für Dateien-App-Kopie, erhaltenes Original nach Löschen der Kopie und Entfernen mit der lokalen FIT. [Protokoll](.local/validation/2026-10-22-files-selection-core.log). Funktionstest durch den Nutzer.
+
+**Grenzen:** Kein HealthFit-Import mehrerer Dateien in einer Übergabe nachgewiesen. Keine UI-Tests für den Auswahlmodus. Kein neuer lokaler Release-Build in dieser Dokumentationsrunde. Kein Commit oder Push.
+
+## 2026-10-22 – App-Store-Texte, 0.2.0 (1)
+
+Texte für die App-Store-Produktseite (Deutsch/Englisch) und die Hinweise für das App-Review-Team (Englisch) für **0.2.0 (Build 1)** erstellt: [App-Store-Texte](Assets/AppStore/AppStore-Texte-0.2.0.md). Nicht in App Store Connect eingetragen oder dort validiert; Einreichung erfolgt manuell durch den Nutzer.

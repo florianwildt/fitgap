@@ -110,3 +110,7 @@
 "Training" = "Training";
 "Aktivität auswählen" = "Select an activity";
 "Wähle links eine Aktivität, um ihre Details zu sehen." = "Choose an activity on the left to see its details.";
+"Auswählen" = "Select";
+"Alle auswählen" = "Select All";
+"Auswahl aufheben" = "Deselect All";
+"%lld ausgewählt" = "%lld selected";

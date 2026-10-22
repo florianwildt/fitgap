@@ -31,11 +31,14 @@ struct ActivitiesView: View {
     @State private var search = ""
     @State private var accounts = false
     @State private var deleteCandidate: ActivityRecord?
-    @State private var share: SharedFile?
+    @State private var share: SharedFiles?
     @State private var showError = false
     @State private var limit = Self.pageSize
     @State private var showJump = false
     @State private var selected: ActivityKey?
+    @State private var editMode = EditMode.inactive
+    @State private var picked = Set<ActivityKey>()
+    @State private var sharedSelection = false
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var columns = NavigationSplitViewVisibility.all
 
@@ -48,12 +51,22 @@ struct ActivitiesView: View {
 
     private static let jumpThreshold = 6
 
+    private var selecting: Bool { editMode.isEditing }
+    /// Downloaded files in the current search; only these can be picked for sharing.
+    private var pickable: [ActivityRecord] { matches.filter { $0.status == .available } }
+
+    /// Outside selection mode the list keeps its single selection that drives the details column.
+    private var listSelection: Binding<Set<ActivityKey>> {
+        Binding(get: { selecting ? picked : Set([selected].compactMap { $0 }) },
+                set: { if selecting { picked = $0 } else { selected = $0.first } })
+    }
+
     var body: some View {
         // Compact widths collapse to a single stack; wide screens (e.g. an unfolded iPhone Duo) show list and details side by side.
         // The system sizes the columns and adapts them to the fold, so no column width is set.
         NavigationSplitView(columnVisibility: $columns) {
             ScrollViewReader { proxy in
-            List(selection: $selected) {
+            List(selection: listSelection) {
                 DemoSection(model: model)
                 if model.activities.isEmpty {
                     Section {
@@ -73,6 +86,7 @@ struct ActivitiesView: View {
                                         share: { prepareShare(activity) }, download: { model.download(activity) })
                         }
                         .accessibilityIdentifier("activity-\(activity.source.rawValue)-\(activity.remoteID)")
+                        .selectionDisabled(selecting && activity.status != .available)
                         .onAppear {
                             if index >= Self.jumpThreshold { showJump = true } else if index == 0 { showJump = false }
                             if activity.id == visible.last?.id, visible.count < all.count { limit += Self.pageSize }
@@ -109,8 +123,38 @@ struct ActivitiesView: View {
             .animation(.default, value: showJump)
             .transaction(value: search) { $0.animation = nil }
             .refreshable { await model.refreshAndWait() }
-            .navigationTitle("FITgap")
+            .environment(\.editMode, $editMode)
+            .navigationTitle(selecting ? String(localized: "\(picked.count) ausgewählt") : "FITgap")
             .modifier(ChromeToolbar(show: !wide) { accounts = true })
+            .toolbar {
+                if selecting {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Fertig", systemImage: "checkmark") { endSelection() }
+                            .accessibilityIdentifier("select-done")
+                    }
+                    ToolbarItemGroup(placement: .primaryAction) {
+                        let all = Set(pickable.map(\.key))
+                        if !all.isEmpty && all.isSubset(of: picked) {
+                            Button("Auswahl aufheben", systemImage: "circle") { picked.removeAll() }
+                                .accessibilityIdentifier("select-none")
+                        } else {
+                            Button("Alle auswählen", systemImage: "checkmark.circle.badge.plus") { picked.formUnion(all) }
+                                .disabled(all.isEmpty)
+                                .accessibilityIdentifier("select-all")
+                        }
+                        Button("Teilen", systemImage: "square.and.arrow.up", action: prepareSelectionShare)
+                            .disabled(picked.isEmpty || model.busy || model.switchingMode)
+                            .accessibilityValue(Text("\(picked.count) ausgewählt"))
+                            .accessibilityIdentifier("share-selected")
+                    }
+                } else {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button("Auswählen", systemImage: "checkmark.circle") { picked.removeAll(); withAnimation { editMode = .active } }
+                            .disabled(model.activities.allSatisfy { $0.status != .available } || model.switchingMode)
+                            .accessibilityIdentifier("select-start")
+                    }
+                }
+            }
             .safeAreaInset(edge: .bottom) { DemoIndicator(enabled: model.isDemo) }
             .overlay(alignment: .bottom) {
                 if model.busy {
@@ -131,10 +175,13 @@ struct ActivitiesView: View {
             }
             .animation(.default, value: model.busy)
             .onChange(of: search) { _, _ in limit = Self.pageSize; showJump = false }
-            .onChange(of: model.libraryGeneration) { _, _ in search = ""; limit = Self.pageSize; deleteCandidate = nil; share = nil; selected = nil }
+            .onChange(of: model.libraryGeneration) { _, _ in search = ""; limit = Self.pageSize; deleteCandidate = nil; share = nil; selected = nil; endSelection() }
             .sheet(isPresented: $accounts) { AccountsView(model: model) }
-            .sheet(item: $share) { item in
-                ShareSheet(url: item.url) { completed in if completed { model.markShared(item.record, generation: item.generation) } }
+            // Selection mode ends once the share sheet is gone, whether the handoff finished or was cancelled.
+            .sheet(item: $share, onDismiss: { if sharedSelection { sharedSelection = false; endSelection() } }) { item in
+                ShareSheet(urls: item.urls) { completed in
+                    if completed { model.markShared(item.records, generation: item.generation) }
+                }
             }
             }
         } detail: {
@@ -171,8 +218,25 @@ struct ActivitiesView: View {
     }
 
     private func prepareShare(_ activity: ActivityRecord) {
-        do { share = SharedFile(record: activity, url: try model.fileForSharing(activity), generation: model.libraryGeneration) }
+        do { share = SharedFiles(records: [activity], urls: [try model.fileForSharing(activity)], generation: model.libraryGeneration) }
         catch { model.errorMessage = AppModel.message(error) }
+    }
+
+    private func endSelection() {
+        picked.removeAll()
+        withAnimation { editMode = .inactive }
+    }
+
+    /// Hands the picked files to one share sheet; files that fail verification stay unshared and visible in the list.
+    private func prepareSelectionShare() {
+        var records: [ActivityRecord] = [], urls: [URL] = [], failure: Error?
+        for activity in model.activities where picked.contains(activity.key) && activity.status == .available {
+            do { urls.append(try model.fileForSharing(activity)); records.append(activity) }
+            catch { failure = failure ?? error }
+        }
+        if records.isEmpty { if let failure { model.errorMessage = AppModel.message(failure) }; return }
+        sharedSelection = true
+        share = SharedFiles(records: records, urls: urls, generation: model.libraryGeneration)
     }
 }
 
@@ -246,19 +310,19 @@ private struct ActivityRow: View {
     private var averageSpeed: String { ActivityFormat.speed(activity.metrics?.averageSpeedMetersPerSecond) ?? "— km/h" }
 }
 
-private struct SharedFile: Identifiable {
+private struct SharedFiles: Identifiable {
     let id = UUID()
-    let record: ActivityRecord
-    let url: URL
+    let records: [ActivityRecord]
+    let urls: [URL]
     let generation: UUID
 }
 
 private struct ShareSheet: UIViewControllerRepresentable {
-    let url: URL
+    let urls: [URL]
     let completion: @MainActor (Bool) -> Void
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        let controller = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        let controller = UIActivityViewController(activityItems: urls, applicationActivities: nil)
         controller.completionWithItemsHandler = { _, completed, _, _ in
             Task { @MainActor in completion(completed) }
         }
