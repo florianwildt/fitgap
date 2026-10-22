@@ -19,6 +19,8 @@ final class AppModel: ObservableObject {
     private(set) var libraryGeneration = UUID()
     private let realLibrary: ActivityLibrary
     private let demo: DemoLibrary
+    /// Real FITs only; demo files stay out of the Files app.
+    private let filesFolder: FilesFolder?
     var library: ActivityLibrary { isDemo ? demo.library : realLibrary }
     private let credentials: CredentialStore
     private let defaults: UserDefaults
@@ -41,11 +43,14 @@ final class AppModel: ObservableObject {
     private let wahooClientKey = "wahooClientID"
     private var cursorFile: URL { library.directory.appendingPathComponent("wahoo-catalog.json") }
 
-    init(library: ActivityLibrary? = nil, credentials: CredentialStore = CredentialStore(), defaults: UserDefaults = .standard,
+    init(library: ActivityLibrary? = nil, filesFolder: URL? = nil, credentials: CredentialStore = CredentialStore(), defaults: UserDefaults = .standard,
          wahoo: WahooProbe = WahooProbe(), zwift: ZwiftProbe = ZwiftProbe()) {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let real = library ?? ActivityLibrary(directory: support.appendingPathComponent("FITgap", isDirectory: true))
         realLibrary = real
+        // An injected library without an explicit folder never writes into the real Documents folder.
+        let documents = library == nil ? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0] : nil
+        self.filesFolder = (filesFolder ?? documents).map(FilesFolder.init)
         demo = DemoLibrary(realDirectory: real.directory)
         self.credentials = credentials; self.defaults = defaults
         self.wahoo = wahoo; self.zwift = zwift
@@ -93,6 +98,7 @@ final class AppModel: ObservableObject {
             defaults.set(enabled, forKey: "demoMode")
             storageReady = true
             errorMessage = nil; demoNotice = nil
+            if !enabled { exportMissingFiles() }
         } catch {
             if !enabled {
                 // Exiting remains possible even if the real index or Keychain is unavailable.
@@ -128,6 +134,7 @@ final class AppModel: ObservableObject {
     func start() {
         guard !started else { return }
         started = true
+        exportMissingFiles()
         refresh()
     }
 
@@ -331,6 +338,8 @@ final class AppModel: ObservableObject {
             guard let index = activities.firstIndex(where: { $0.key == receipt.key }) else { return }
             activities[index].receipt = receipt; activities[index].status = .available
             activities[index].metrics = metrics
+            if !isDemo, let filesFolder, activities[index].filesName == nil,
+               let exported = try? filesFolder.export(activities[index], from: library) { activities[index] = exported }
             try library.save(activities)
         }
     }
@@ -373,20 +382,55 @@ final class AppModel: ObservableObject {
         do {
             guard let index = activities.firstIndex(where: { $0.key == record.key }) else { return }
             if isDemo { try demo.removeExport(record) }
+            else if let filesFolder { activities[index] = try filesFolder.remove(activities[index]) }
             activities[index] = try library.deletingFile(for: activities[index])
             try library.save(activities)
         } catch { errorMessage = Self.message(error) }
     }
 
+    /// One-time copy of downloads from before the Files folder existed; later downloads are copied in `commit`.
+    private func exportMissingFiles() {
+        guard !isDemo, storageReady, let filesFolder else { return }
+        let missing = activities.filter { $0.status == .available && $0.filesName == nil }
+        guard !missing.isEmpty else { return }
+        let generation = libraryGeneration
+        Task {
+            // Checksums are verified off the main actor before each copy.
+            let exported = await Task.detached(priority: .utility) { [library] in
+                missing.compactMap { try? filesFolder.export($0, from: library) }
+            }.value
+            guard !isDemo, !switchingMode, generation == libraryGeneration else { return }
+            var changed = false
+            for record in exported {
+                guard let index = activities.firstIndex(where: { $0.key == record.key }),
+                      activities[index].status == .available, activities[index].filesName == nil,
+                      activities[index].receipt?.sha256 == record.receipt?.sha256 else { continue }
+                activities[index].filesName = record.filesName
+                changed = true
+            }
+            guard changed else { return }
+            do { try library.save(activities) } catch { errorMessage = Self.message(error) }
+        }
+    }
+
     func markShared(_ record: ActivityRecord, generation: UUID? = nil) {
+        markShared([record], generation: generation)
+    }
+
+    /// Marks every handed-off file at once and saves the index a single time.
+    func markShared(_ records: [ActivityRecord], generation: UUID? = nil) {
         guard !switchingMode, generation == nil || generation == libraryGeneration else { return }
-        do {
+        let now = Date()
+        var changed = false
+        for record in records {
             guard let index = activities.firstIndex(where: { $0.key == record.key }),
                   activities[index].status == .available,
-                  activities[index].receipt?.sha256 == record.receipt?.sha256 else { return }
-            activities[index].sharedAt = Date()
-            try library.save(activities)
-        } catch { errorMessage = Self.message(error) }
+                  activities[index].receipt?.sha256 == record.receipt?.sha256 else { continue }
+            activities[index].sharedAt = now
+            changed = true
+        }
+        guard changed else { return }
+        do { try library.save(activities) } catch { errorMessage = Self.message(error) }
     }
 
     func cancel() { manuallyCancelled = true; interrupted = nil; retryTask?.cancel(); task?.cancel() }
