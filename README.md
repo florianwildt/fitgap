@@ -1,6 +1,6 @@
 # FITgap
 
-[Deutsch](README.de.md) · [Website](https://florianwildt.github.io/fitgap/) · [Privacy Policy](https://florianwildt.github.io/fitgap/privacy/)
+[Deutsch](README.de.md) · [Website](https://florianwildt.github.io/fitgap/) · [Privacy Policy](https://florianwildt.github.io/fitgap/privacy/en/)
 
 ![FITgap – Your original FIT files. Shared directly.](docs/assets/header.png)
 
@@ -54,7 +54,7 @@ The iOS keychain, sync lifecycle and UI tests are part of the Xcode scheme.
 - Activities and FIT files are stored on the device in `Application Support/FITgap/`. Nothing is sent to a server operated by the project.
 - Disconnecting removes only the local session; the authorisation at the provider and downloaded files remain.
 
-See the full [Privacy Policy](https://florianwildt.github.io/fitgap/privacy/).
+See the full [Privacy Policy](https://florianwildt.github.io/fitgap/privacy/en/).
 
 ## Project layout
 

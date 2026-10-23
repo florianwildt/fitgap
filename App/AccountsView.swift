@@ -40,7 +40,7 @@ struct AccountsView: View {
                     Text("Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt nur die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden.")
                 }
                 Section("Datenschutz") {
-                    Link(destination: URL(string: "https://florianwildt.github.io/fitgap-info/")!) {
+                    Link(destination: URL(string: String(localized: "https://florianwildt.github.io/fitgap/privacy/"))!) {
                         Text("Datenschutzerklärung")
                             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                             .contentShape(Rectangle())
