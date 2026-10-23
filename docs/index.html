@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FITgap – Original FIT files, shared directly</title>
+<meta name="description" content="FITgap downloads your original FIT files from Wahoo and Zwift to your iPhone and hands them straight to HealthFit. Open source, no backend.">
+<meta property="og:title" content="FITgap">
+<meta property="og:description" content="Your original FIT files. Shared directly.">
+<meta property="og:image" content="assets/header.png">
+<link rel="icon" href="assets/logo.png">
+<style>
+:root{--bg:#fff;--fg:#1d1d1f;--muted:#6e6e73;--card:#f5f5f7;--accent:#0a5cff;--line:#d2d2d7}
+@media (prefers-color-scheme:dark){:root{--bg:#000;--fg:#f5f5f7;--muted:#a1a1a6;--card:#1c1c1e;--accent:#4d8dff;--line:#38383a}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+nav{display:flex;justify-content:space-between;align-items:center;padding:18px 0}
+nav .brand{display:flex;align-items:center;gap:10px;font-weight:600;color:var(--fg)}
+nav .brand img{width:32px;height:32px;border-radius:8px}
+nav .links{display:flex;gap:18px;align-items:center;font-size:15px}
+.lang button{background:none;border:1px solid var(--line);color:var(--muted);border-radius:6px;padding:2px 8px;font:inherit;font-size:13px;cursor:pointer}
+.lang button[aria-pressed=true]{color:var(--fg);border-color:var(--fg)}
+.hero{text-align:center;padding:48px 0 24px}
+.hero h1{font-size:clamp(34px,6vw,60px);line-height:1.08;margin:0 0 16px;letter-spacing:-.02em}
+.hero p{font-size:clamp(18px,2.4vw,22px);color:var(--muted);max-width:640px;margin:0 auto 28px}
+.btn{display:inline-block;background:var(--accent);color:#fff;padding:12px 24px;border-radius:980px;font-weight:600}
+.btn.alt{background:transparent;color:var(--accent);border:1px solid var(--accent);margin-left:8px}
+.btn:hover{text-decoration:none;opacity:.9}
+.banner{border-radius:24px;overflow:hidden;margin:32px 0}
+.banner img{display:block;width:100%;height:auto}
+.shots{display:flex;gap:20px;overflow-x:auto;padding:8px 20px 28px;margin:0 -20px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+.shots figure{flex:0 0 min(62vw,260px);margin:0;scroll-snap-align:center}
+.shots img{width:100%;height:auto;display:block;border-radius:28px;border:1px solid var(--line);box-shadow:0 12px 32px rgba(0,0,0,.12)}
+.shots figcaption{text-align:center;color:var(--muted);font-size:14px;margin-top:10px}
+.shots figure.wide{flex-basis:min(88vw,520px);align-self:center}
+@media(min-width:1000px){.shots{justify-content:center;overflow:visible;flex-wrap:nowrap;align-items:center}.shots figure{flex:1 1 0;min-width:0}.shots figure.wide{flex:2.2 1 0}}
+section{padding:40px 0}
+h2{font-size:clamp(26px,4vw,38px);line-height:1.15;letter-spacing:-.01em;margin:0 0 24px;text-align:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.card{background:var(--card);border-radius:20px;padding:24px}
+.card h3{margin:0 0 8px;font-size:19px}
+.card p{margin:0;color:var(--muted);font-size:16px}
+.steps{counter-reset:s;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;padding:0;list-style:none;margin:0}
+.steps li{counter-increment:s;background:var(--card);border-radius:20px;padding:24px;font-weight:600}
+.steps li::before{content:counter(s);display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;margin-bottom:12px}
+.steps span{display:block;font-weight:400;color:var(--muted);font-size:16px}
+.oss{text-align:center;max-width:680px;margin:0 auto;color:var(--muted)}
+footer{border-top:1px solid var(--line);margin-top:40px;padding:28px 0 48px;text-align:center;color:var(--muted);font-size:14px}
+footer a{color:var(--muted);text-decoration:underline}
+[data-l]{display:none}
+html[lang=en] [data-l=en],html[lang=de] [data-l=de]{display:revert}
+html[lang=en] span[data-l=en],html[lang=de] span[data-l=de]{display:inline}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="brand" href="#"><img src="assets/logo.png" alt="" width="32" height="32">FITgap</a>
+    <div class="links">
+      <a href="https://github.com/florianwildt/fitgap">GitHub</a>
+      <a href="https://florianwildt.github.io/fitgap-info/"><span data-l="en">Privacy</span><span data-l="de">Datenschutz</span></a>
+      <span class="lang"><button data-set="en">EN</button> <button data-set="de">DE</button></span>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <h1><span data-l="en">Your original FIT files.<br>Shared directly.</span><span data-l="de">Deine Original-FIT-Dateien.<br>Direkt geteilt.</span></h1>
+    <p><span data-l="en">FITgap loads your rides from Wahoo and Zwift to your iPhone and hands the untouched FIT file to HealthFit with one tap.</span><span data-l="de">FITgap lädt deine Fahrten von Wahoo und Zwift aufs iPhone und übergibt die unveränderte FIT-Datei mit einem Tipp an HealthFit.</span></p>
+    <!-- App Store: Link hier einsetzen, sobald verfügbar -->
+    <a class="btn" href="https://github.com/florianwildt/fitgap"><span data-l="en">View source on GitHub</span><span data-l="de">Quellcode auf GitHub</span></a>
+  </header>
+
+  <div class="banner"><img src="assets/header.png" alt="A FIT file travelling from a ride to HealthFit" width="1600" height="686"></div>
+
+  <div class="shots" id="shots">
+    <figure><img src="assets/shot-list.png" alt="Activity list with Wahoo and Zwift rides" width="560" height="1217" loading="lazy"><figcaption><span data-l="en">Your activities</span><span data-l="de">Deine Aktivitäten</span></figcaption></figure>
+    <figure><img src="assets/shot-detail.png" alt="Activity details read from the FIT file" width="560" height="1217" loading="lazy"><figcaption><span data-l="en">Details from the FIT</span><span data-l="de">Details aus der FIT</span></figcaption></figure>
+    <figure class="wide"><img src="assets/shot-duo-split.png" alt="Two-column layout on the unfolded iPhone Duo" width="1100" height="774" loading="lazy"><figcaption><span data-l="en">Two columns on iPhone Duo</span><span data-l="de">Zweispaltig auf dem iPhone Duo</span></figcaption></figure>
+  </div>
+
+  <section>
+    <h2><span data-l="en">How it works</span><span data-l="de">So funktioniert's</span></h2>
+    <ol class="steps">
+      <li><span data-l="en">Connect</span><span data-l="de">Verbinden</span><span><span data-l="en">Sign in to Wahoo or Zwift.</span><span data-l="de">Bei Wahoo oder Zwift anmelden.</span></span></li>
+      <li><span data-l="en">Download</span><span data-l="de">Laden</span><span><span data-l="en">All original FIT files are fetched and stored locally.</span><span data-l="de">Alle Original-FITs werden geladen und lokal gespeichert.</span></span></li>
+      <li><span data-l="en">Share</span><span data-l="de">Teilen</span><span><span data-l="en">Pick one or many and send them to HealthFit via the share sheet.</span><span data-l="de">Eine oder mehrere wählen und per Share Sheet an HealthFit senden.</span></span></li>
+    </ol>
+  </section>
+
+  <section>
+    <h2><span data-l="en">Made simple</span><span data-l="de">Bewusst schlicht</span></h2>
+    <div class="grid">
+      <div class="card"><h3><span data-l="en">Untouched originals</span><span data-l="de">Unveränderte Originale</span></h3><p><span data-l="en">Files are checked with SHA-256 and never converted or re-encoded.</span><span data-l="de">Dateien werden per SHA-256 geprüft und nie konvertiert oder neu kodiert.</span></p></div>
+      <div class="card"><h3><span data-l="en">Private by design</span><span data-l="de">Privat von Grund auf</span></h3><p><span data-l="en">No backend, no tracking. Tokens stay in your device keychain.</span><span data-l="de">Kein Backend, kein Tracking. Tokens bleiben im Schlüsselbund deines Geräts.</span></p></div>
+      <div class="card"><h3><span data-l="en">Files app</span><span data-l="de">Dateien-App</span></h3><p><span data-l="en">Every FIT also appears in the Files app on your iPhone.</span><span data-l="de">Jede FIT erscheint zusätzlich in der Dateien-App auf deinem iPhone.</span></p></div>
+      <div class="card"><h3><span data-l="en">Try the demo</span><span data-l="de">Demo ausprobieren</span></h3><p><span data-l="en">No account needed: explore the app with sample rides.</span><span data-l="de">Kein Konto nötig: App mit Beispielfahrten erkunden.</span></p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Open Source</h2>
+    <p class="oss"><span data-l="en">FITgap is licensed under the Apache License 2.0. Read it, build it yourself or contribute. The App Store version is a convenient way to support development. The name, logo and app icon are not part of the license.</span><span data-l="de">FITgap steht unter der Apache License 2.0. Du kannst den Code lesen, selbst bauen oder mitwirken. Die App-Store-Version ist eine bequeme Möglichkeit, die Entwicklung zu unterstützen. Name, Logo und App-Symbol sind nicht Teil der Lizenz.</span></p>
+    <p style="text-align:center"><a class="btn alt" style="margin:0" href="https://github.com/florianwildt/fitgap"><span data-l="en">Source code</span><span data-l="de">Quellcode</span></a></p>
+  </section>
+
+  <footer>
+    <p><span data-l="en">FITgap is an independent app and not affiliated with Wahoo, Zwift, Garmin or HealthFit.</span><span data-l="de">FITgap ist eine unabhängige App und steht in keiner Verbindung zu Wahoo, Zwift, Garmin oder HealthFit.</span></p>
+    <p>© 2026 Florian Wildt · <a href="https://github.com/florianwildt/fitgap/blob/main/LICENSE">Apache-2.0</a> · <a href="https://florianwildt.github.io/fitgap-info/"><span data-l="en">Privacy Policy</span><span data-l="de">Datenschutzerklärung</span></a></p>
+  </footer>
+</div>
+<script>
+(function(){
+  var html=document.documentElement,btns=document.querySelectorAll('[data-set]');
+  function set(l){
+    html.lang=l;
+    btns.forEach(function(b){b.setAttribute('aria-pressed',b.dataset.set===l)});
+    try{localStorage.setItem('lang',l)}catch(e){}
+  }
+  btns.forEach(function(b){b.addEventListener('click',function(){set(b.dataset.set)})});
+  var saved;try{saved=localStorage.getItem('lang')}catch(e){}
+  set(saved||((navigator.language||'en').slice(0,2)==='de'?'de':'en'));
+})();
+</script>
+</body>
+</html>

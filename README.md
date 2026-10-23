@@ -1,60 +1,83 @@
 # FITgap
 
-[Quellcode auf GitHub](https://github.com/florianwildt/fitgap)
+[Deutsch](README.de.md) · [Website](https://florianwildt.github.io/fitgap/) · [Privacy Policy](https://florianwildt.github.io/fitgap-info/)
 
-Schlanke Open-Source-iPhone-App ab iOS 17 im **Hochformat** (auf breiten Displays wie dem aufgeklappten iPhone Duo auch quer und zweispaltig), mit automatischem Hell-/Dunkelmodus und deutscher/englischer Oberfläche nach iOS-Spracheinstellung: **Wahoo / Zwift → Original-FIT herunterladen → natives Share Sheet → HealthFit**. Ohne Backend, HealthKit, KI-Funktionen oder externe Abhängigkeiten. [MIT-Lizenz](LICENSE).
+![FITgap – Your original FIT files. Shared directly.](docs/assets/header.png)
 
-## Lokal starten
+FITgap is a small, open-source iPhone app that downloads your **original FIT files** from Wahoo and Zwift and hands them directly to apps like [HealthFit](https://apps.apple.com/app/healthfit/id1202650514) through the native share sheet. Files are never converted or re-encoded.
 
-`FITgap.xcodeproj` in Xcode öffnen, Scheme **FITgap** wählen. Für das eigene iPhone unter **Target FITgap → Signing & Capabilities** das eigene Developer-Team auswählen, gegebenenfalls eine eigene eindeutige Bundle-ID setzen, das iPhone als Ziel wählen und **Run** ausführen. Simulator-Builds regulär lokal signieren; bei vollständig deaktivierter Signierung ist der Schlüsselbundzugriff im Simulator nicht verfügbar.
+- Requires iOS 17 or later, written in SwiftUI with native controls
+- Light and dark mode, German and English interface (follows the iOS language, English as fallback)
+- Two-column layout on wide displays such as the unfolded iPhone Duo and in landscape
+- No backend, no tracking, no third-party dependencies
 
-In der App unter **Konten** Wahoo oder Zwift verbinden; danach **Aktualisieren**. Beim ersten Abruf werden alle verfügbaren Aktivitäten und FITs geladen; vorhandene Dateien werden übersprungen. Aktualisieren startet automatisch beim App-Start, über den Button oder durch Herunterziehen der Liste. Downloads laufen nacheinander und sind abbrechbar. Bereits gespeicherte Dateien werden bei Fortsetzung übersprungen. Ein laufender Sync nutzt die von iOS gewährte zusätzliche Hintergrundzeit; nach deren Ablauf wird sicher angehalten und beim Öffnen fortgesetzt. Bei beendeter App beginnt der nächste App-Start den Abgleich erneut. Es gibt keine garantierte dauerhafte Hintergrundausführung. Netzwerkfehler eines Anbieters verhindern den Abruf des anderen nicht.
+<p>
+  <img src="docs/assets/shot-list.png" width="200" alt="Activity list">
+  <img src="docs/assets/shot-detail.png" width="200" alt="Activity details">
+  <img src="docs/assets/shot-duo-narrow.png" width="200" alt="iPhone Duo folded">
+</p>
+<p><img src="docs/assets/shot-duo-split.png" width="620" alt="Two-column layout on the unfolded iPhone Duo"></p>
 
-Für große Wahoo-Archive werden bis zu 100 Einträge pro Seite angefordert; maßgeblich bleibt die tatsächliche Seitengröße des Servers. Jede Seite und ihr Fortsetzungspunkt werden gespeichert. Nach Unterbrechungen werden die neueste und die letzte bearbeitete Seite geprüft; bei verschobenem Anker wird die Liste sicher erneut durchlaufen. Höchstens 500 Seiten je Durchlauf. Abruflimit-Header pausieren weitere API-Anfragen; die Wartezeit bleibt über App-Neustarts erhalten. Bei geöffneter App wird nach Ablauf automatisch weitergemacht, sonst beim nächsten Öffnen. Dateien vom CDN zählen laut Wahoo nicht zum API-Limit.
+## Features
 
-**Wahoo verwendet die registrierte Production-App.** Einmal unter Konten neu verbinden; Sitzungen der bisherigen Sandbox-App werden nicht weiterverwendet, gespeicherte FITs bleiben erhalten. Production bietet laut Dokumentation 200 Anfragen/5 Minuten, 1.000/Stunde und 5.000/Tag. Detailabrufe für FIT-Links zählen mit. [Wahoo-Limits](https://cloud-api.wahooligan.com/#rate-limiting). Die lokale Umstellung bestätigt weder den aktuellen Freigabestatus im Portal noch eine erfolgreiche Production-Anmeldung; der letzte bestätigte Portalstatus war Pending Approval. [Prüfstand der Umstellung](Pruefhistorie.md#2026-10-21--wahoo-auf-production-umgestellt-010-1).
+- **Wahoo and Zwift:** Connect one or both accounts and load every activity with its original FIT file. Existing files are skipped on later syncs.
+- **Share:** Hand one FIT or a multi-selection to the system share sheet, for example to HealthFit. Shared activities are marked in the list.
+- **Details:** Distance, duration, average and maximum speed, heart rate, cadence, power, elevation and more, read locally from the FIT session summary.
+- **Search** across all downloaded activities.
+- **Files app:** Every downloaded FIT is also available under *On My iPhone › FITgap*.
+- **Large archives:** Paged syncing with resume, respect for Wahoo rate limits, and cancellable downloads.
+- **Integrity:** Downloads are stored atomically and verified with SHA-256 before sharing.
+- **Demo mode:** Try the app without an account using three synthetic sample rides.
 
-**Teilen** übergibt die lokale `.fit`-Datei an das System-Share-Sheet; dort HealthFit wählen, sofern installiert. Nach abgeschlossener Übergabe zeigt die Liste oben rechts ein blaues `checkmark.circle` und linksbündig „Zuletzt geteilt“ mit Datum/Uhrzeit. Der Zeitpunkt bleibt über App-Neustarts und Aktualisierungen erhalten. Ein abgebrochenes Share Sheet setzt keine Markierung. Das Symbol dokumentiert ausschließlich die erfolgreiche Übergabe im Share Sheet und bestätigt keinen HealthFit-Import oder ein bestimmtes Ziel. Beim Löschen der lokalen Datei wird deren Markierung zurückgesetzt. Über **Auswählen** in der Navigationsleiste wechselt die Liste in den nativen Auswahlmodus: beliebig viele heruntergeladene FITs antippen oder mit **Alle auswählen** alle heruntergeladenen Einträge der aktuellen Suche markieren (**Auswahl aufheben** leert die Auswahl). **Teilen** übergibt die Auswahl gemeinsam in einem Share Sheet; nach abgeschlossener Übergabe werden alle übergebenen Dateien markiert. Sobald das Share Sheet geschlossen ist, endet der Auswahlmodus, auch nach einem Abbruch. Nicht heruntergeladene Einträge sind nicht auswählbar; Dateien mit abweichender Prüfsumme werden ausgelassen und bleiben unmarkiert. Ob HealthFit mehrere Dateien in einer Übergabe importiert, ist nicht geprüft; eine vollautomatische Übergabe ohne Share Sheet erlauben iOS und HealthFit nicht.
+## Build and run
 
-Zusätzlich liegt jede geladene echte FIT als Kopie im Documents-Ordner der App (`UIFileSharingEnabled`, `LSSupportsOpeningDocumentsInPlace`), sichtbar in der Dateien-App unter „Auf meinem iPhone › FITgap“ mit dem App-Symbol. Dateiname: `JJJJ-MM-TT HH.mm <Quelle> <ID>.fit` (lokale Startzeit). Kopiert wird nach SHA-256-Prüfung; auf APFS als Klon ohne zusätzlichen Speicher. Neue Downloads werden sofort übernommen, ältere einmalig beim App-Start bzw. nach Verlassen der Demo. Der Name wird im Index (`filesName`, optional, Schema 1 kompatibel) vermerkt: In der Dateien-App gelöschte Kopien werden nicht erneut angelegt, das Original bleibt unberührt. Löschen der lokalen FIT in der App entfernt auch die Kopie. Demo-Dateien erscheinen nicht in der Dateien-App.
+1. Open `FITgap.xcodeproj` in Xcode and select the **FITgap** scheme.
+2. Under **Signing & Capabilities** choose your own team and, if needed, set your own unique bundle identifier.
+3. Select a simulator or your iPhone and run.
 
-Die Aktivitätseinträge zeigen zusätzlich Strecke in km, aufsummierte Höhenmeter und Durchschnittsgeschwindigkeit in km/h. Die Werte werden ausschließlich lesend aus den lokalen FIT-Session-Summen ermittelt und im Index zwischengespeichert; vorhandene Downloads werden beim nächsten App-Start offline ergänzt. Bereits gespeicherte Kennzahlen erscheinen unmittelbar aus dem Index, ohne erneutes Lesen der FIT. Bei der einmaligen Nachverarbeitung werden jeweils zehn Dateien berechnet, angezeigt und atomar gespeichert. Nach Abbruch oder Prozessende bleiben abgeschlossene Blöcke erhalten; nur der laufende Block mit höchstens zehn Dateien kann erneut nötig sein. Neue Downloads speichern ihre Kennzahlen direkt beim Übernehmen. Fehlende oder nicht lesbare Werte erscheinen als „—“. Die Dauer bleibt die bisherige Gesamtdauer einschließlich Pausen; die Geschwindigkeit stammt aus der FIT-Session beziehungsweise bei fehlendem Mittelwert aus Strecke/Timerzeit. Der Hinweis „Offline verfügbar“ entfällt pro Eintrag; andere Download-/Fehlerzustände bleiben sichtbar.
+Run the Swift package tests with:
 
-## Demo ohne Konto
+```bash
+swift test
+```
 
-Wenn weder Wahoo noch Zwift verbunden ist, ist direkt über der Aktivitätenliste und unter **Konten** **Demo ausprobieren / Try Demo** erreichbar, auch bei leerer Liste. Sobald eines der Konten verbunden ist, wird der Demo-Einstieg ausgeblendet und die Aktivierung gesperrt. Gespeicherte echte Aktivitäten ohne verbundenes Konto verhindern die Demo nicht. **Demo – Beispieldaten / Demo – Sample Data** bleibt am unteren Bildschirmrand sichtbar. Drei vollständig synthetische Indoor-Fahrten bieten Namen, Datum, Dauer, Strecke, Höhenmeter und Durchschnittsgeschwindigkeit. Teilen übergibt eine echte lokale Datei namens `FITgap-Demo-….fit` an das native Share Sheet; die Markierung bestätigt weiterhin nur die Dateiübergabe.
+The iOS keychain, sync lifecycle and UI tests are part of the Xcode scheme.
 
-Der Demo-Bestand einschließlich FITs, Kennzahlen, Exportkopien und Teilen-Markierungen liegt getrennt unter `Application Support/FITgap-Demo/`, echte Daten weiterhin unter `FITgap/`. Der Modus bleibt über Neustarts erhalten. Beim Einstieg wird laufende Arbeit abgebrochen und vollständig abgewartet, bevor der Speicher wechselt. Beim Start wird der gespeicherte Demo-Wunsch nur ohne verbundene Anbieter übernommen. Während der Demo gibt es keine Anbieteranfragen, OAuth-Anmeldung, Token-Erneuerung oder Änderung echter Sitzungen und Sync-Fortschritte. **Aktualisieren** liest nur den lokalen Demo-Bestand; gelöschte Dateien bleiben gelöscht. **Wiederherstellen** kopiert die Beispieldatei lokal zurück. **Demo zurücksetzen** erneuert ausschließlich Demo-Daten. **Demo beenden** zeigt den echten Bestand wieder an, ohne automatisch einen Anbieterabruf zu starten.
+## Using your own accounts and API access
 
-Die gebündelten FITs enthalten keine GPS-Koordinaten oder persönlichen Daten. Sie wurden ausschließlich synthetisch mit Garmins offiziellem Python-FIT-SDK 21.218.0 erzeugt und unabhängig vom App-Parser einschließlich CRC, Pflichtnachrichten und konsistenter Kennzahlen dekodiert. Das SDK ist nur ein lokales Entwicklungswerkzeug, keine App-Abhängigkeit. Reproduzierbare Erzeugung/Validierung: [Generator](scripts/generate-demo-fit.py); fachliche Grundlage: [Garmin Activity File Cookbook](https://developer.garmin.com/fit/articles/cookbook/encoding_activity_files.html). Demo-Prüfnachweise und Grenzen stehen in der [Prüfhistorie](Pruefhistorie.md#2026-10-21--demo-modus-010-1). Lokaler Demo-Prüfstand: 32 Core- und 16 iOS-Testfunktionen sowie vier UI-/Sprachabläufe bestanden, einschließlich kleinem iPhone mit maximaler Schrift im Dunkelmodus. Finaler lokaler Release-Build **0.1.0 (Build 1)** mit drei bytegleich eingebetteten Demo-FITs bestanden. Ein HealthFit-Import und ein physischer Gerätetest der Demo sind nicht geprüft; echte Anbieteranmeldungen werden durch den Demo-Modus nicht nachgewiesen.
+- **Wahoo** uses OAuth 2.0 with PKCE (`fitgap://oauth/wahoo`, scopes `user_read workouts_read`) and a public client ID, no client secret. The client ID is defined in `Sources/FITgapCore/WahooOAuth.swift`. If you build your own version, register your own application in the [Wahoo Cloud API](https://cloud-api.wahooligan.com/) portal and use its client ID and redirect URI.
+- **Zwift** has no public API. FITgap uses unofficial interfaces with a public client ID, which Zwift may change or restrict at any time. Your password is only used transiently for sign-in and is never stored.
 
-## Konten und Daten
+## Privacy
 
-- Wahoo verwendet die öffentliche Production-Client-ID mit PKCE/S256, `fitgap://oauth/wahoo` und den Scopes `user_read workouts_read`. Die öffentliche Client-ID steht in `Sources/FITgapCore/WahooOAuth.swift`; kein Client-Secret. Für Forks eine eigene Wahoo-App und öffentliche Client-ID verwenden. Die frühere Sandbox-Freigabe gilt nicht als Production-Freigabe; es handelt sich um getrennte registrierte Anwendungen. Fremdanbieter-Workouts werden von Wahoo nicht geliefert.
-- Zwift nutzt die am eigenen Konto geprüften **inoffiziellen** Schnittstellen und eine öffentliche Client-ID, kein fremdes App-Geheimnis. Änderungen oder Einschränkungen bei Zwift können eine Anpassung erforderlich machen. Das Passwort wird nur vorübergehend zur Anmeldung verwendet.
-- Access-/Refresh-Tokens und der für Wahoo-Refresh benötigte PKCE-Verifier liegen ausschließlich im lokalen Schlüsselbund (`WhenUnlockedThisDeviceOnly`, ohne iCloud-Synchronisierung). Erneuerung erfolgt bei Bedarf vor dem Abruf. Keine Zugangsdaten oder privaten Downloadlinks im Aktivitätsindex, Fortsetzungspunkt oder Log. Für einen laufenden Abruf bleibt der Zugriffstoken vorübergehend im Arbeitsspeicher; dieser Cache wird anschließend geleert. Der Schlüsselbundschutz bleibt unverändert.
-- **Trennen** entfernt nur die lokale Sitzung. Die Freigabe beim Anbieter sowie heruntergeladene FITs bleiben bestehen. Unter den Dateioptionen lässt sich eine FIT separat löschen und bei verbundenem Konto ausdrücklich erneut laden; Aktualisieren stellt absichtlich gelöschte Dateien nicht automatisch wieder her.
-- Index (Schema 1) und Dateien liegen unter `Application Support/FITgap/`. Quelle + Aktivitäts-ID verhindern Duplikate. Vollständige Downloads werden atomar gespeichert und mit SHA-256 erfasst; vor dem Teilen wird die Prüfsumme erneut geprüft. Originalbytes werden weder konvertiert noch neu encodiert. Kennzahlen werden nach SHA-256-Prüfung im Hintergrund gelesen; der optionale Cache ist mit bisherigen Schema-1-Indizes kompatibel. Der eigene begrenzte Leser berücksichtigt ausschließlich native Session-Felder (Nachricht 18 laut Garmin FIT Global Profile: Strecke, Zeiten, Geschwindigkeiten, Kalorien, Herz-/Trittfrequenz, Leistung, Höhenmeter, Höhenbereich, Sportart), Endianness, Definitionen, Entwicklerfeldlängen und komprimierte Zeitstempel; er ersetzt keinen vollständigen FIT-Decoder. Header-/Längenprüfung beim Speichern, keine FIT-CRC- oder vollständige semantische Validierung und keine Garantie über serverseitige Verarbeitung vor dem Download. Inkompatible Indexversionen werden abgelehnt, vorhandene Dateien erhalten. Ältere Kennzahlen-Caches werden einmalig aus der geprüften Original-FIT neu gelesen.
-- Ein Tipp auf eine Aktivität öffnet die Detailübersicht. Sie zeigt nur Werte, die in der FIT-Session vorhanden sind; Record-, Lap-, GPS- und Entwicklerdaten werden nicht ausgewertet. [Prüfstand, 21.10.2026](Pruefhistorie.md#2026-10-21--aktivitätsdetails-020-1).
+- Access and refresh tokens are stored only in the local keychain (`WhenUnlockedThisDeviceOnly`, no iCloud sync).
+- Activities and FIT files are stored on the device in `Application Support/FITgap/`. Nothing is sent to a server operated by the project.
+- Disconnecting removes only the local session; the authorisation at the provider and downloaded files remain.
 
-## Projekt und Prüfstand
+See the full [Privacy Policy](https://florianwildt.github.io/fitgap-info/).
 
-Links auf `.local/validation/` verweisen auf ausschließlich lokal aufbewahrte Nachweise. Diese Protokolle, Simulatoraufnahmen und persönlichen FIT-Dateien werden nicht ins Git-Repository aufgenommen; die datierten Ergebnisse stehen in der [Prüfhistorie](Pruefhistorie.md).
+## Project layout
 
-Aktueller lokaler Entwicklungsstand **0.2.0 (Build 1)** mit Aktivitätsdetails, zweispaltiger Ansicht für breite Displays (Liste links, Details rechts), Mehrfachauswahl beim Teilen und FIT-Kopien in der Dateien-App: Release-Builds erfolgreich, Tests und Grenzen in der [Prüfhistorie](Pruefhistorie.md#2026-10-21--aktivitätsdetails-020-1), [Prüfhistorie](Pruefhistorie.md#2026-10-21--zweispaltige-ansicht-020-1) und [Prüfhistorie](Pruefhistorie.md#2026-10-22--mehrfachauswahl-und-dateien-app-020-1). Nicht veröffentlicht. App-Store-Texte und Review-Hinweise für 0.2.0: [Prüfhistorie](Pruefhistorie.md#2026-10-22--app-store-texte-020-1).
+| Path | Contents |
+|---|---|
+| `App/` | SwiftUI app, localisation (`de.lproj`, `en.lproj`), assets |
+| `Sources/FITgapCore/` | Provider access, keychain, storage, FIT summary reader, demo data |
+| `Sources/FITgapProbe/`, `Sources/WahooProbe/` | Small macOS command-line clients for API experiments |
+| `Tests/`, `AppTests/`, `AppUITests/` | Package, iOS and UI tests |
+| `scripts/` | Helper scripts, e.g. `generate-demo-fit.py` for the synthetic demo files |
+| `Assets/` | Brand and App Store artwork |
+| `docs/` | Project website (GitHub Pages) |
 
-Vorheriger lokaler Stand **0.1.0 (Build 1)**: Release-Build für das iPhone-SDK erfolgreich, Hochformat im erzeugten App-Artefakt bestätigt. 32 Core-Testfunktionen einschließlich FIT-Kennzahlen und eines simulierten Archivs mit 1.000 Aktivitäten, iOS-Schlüsselbund-/Sync-Lebenszyklustests und native UI-Abläufe sind geprüft. UI-Nachweise betreffen iPhone 16e im Hellmodus und iPhone SE im Dunkelmodus mit größter Bedienungshilfen-Schrift, jeweils Hochformat. Der lokale Release-Build ist ohne Gerätesignierung; das eigene Developer-Team ist im Projekt bereits ausgewählt. Die bisherige App sowie die anschließende Kennzahlen-Cache-Anpassung wurden vom Nutzer auf dem Gerät erfolgreich getestet und bestätigt. Die neuen Sync-Anpassungen wurden zusätzlich lokal simuliert geprüft; Einzelheiten und Grenzen stehen in der Prüfhistorie.
+The bundled demo FITs contain no GPS coordinates or personal data. They were generated synthetically with Garmin's official Python FIT SDK, which is only a development tool and not an app dependency.
 
-Die deutsche/englische Sprachauswahl einschließlich Fallback wurde lokal im Simulator geprüft; der neue Sprachumfang ist noch nicht am physischen iPhone bestätigt ([Nachweise und Grenzen](Pruefhistorie.md)). Die Oberfläche einschließlich Konten, Dialogen, Fortschritt, Fehlern und VoiceOver-Beschriftungen folgt der bevorzugten unterstützten iOS-Sprache: Deutsch oder Englisch, mit Englisch als Fallback. Datums- und Zahlenformate folgen weiterhin der Systemregion; Aktivitätsnamen vom Anbieter bleiben unverändert. Sprachressourcen liegen in `App/{de,en}.lproj` und im Ressourcen-Bundle von `FITgapCore`.
+## Contributing
 
-`App/` enthält die SwiftUI-Oberfläche mit nativen iOS-Controls und dem Share Sheet. Hell- und Dunkelmodus folgen von Anfang an der iOS-Systemeinstellung; Texte, Flächen und SF-Symbole verwenden adaptive Systemfarben. Dynamic Type und VoiceOver-Beschriftungen sind berücksichtigt. Das lokale Swift-Paket `Sources/FITgapCore` enthält Anbieterzugriffe, Schlüsselbund und Dateiverwaltung. Swift-Tests: `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test`; iOS-Schlüsselbund- und UI-Tests sind im Xcode-Scheme enthalten. Keine Kontodaten oder echten persönlichen FITs in Test-Fixtures oder App-Artefakten.
+Issues and pull requests are welcome. By submitting a contribution you agree that it is licensed under the Apache License 2.0 (section 5 of the license). Please keep changes focused and match the existing code style.
 
-Am Ende der Liste unter „Konten“ öffnet der native Link „Datenschutzerklärung“ / „Privacy Policy“ die [öffentliche Datenschutzerklärung](https://florianwildt.github.io/fitgap-info/) im Standardbrowser. Der Abschnitt ist unabhängig von verbundenen Konten und laufender Synchronisierung erreichbar. Lokaler Prüfstand für diesen Umfang: [Datenschutzlink, 21.10.2026](Pruefhistorie.md#2026-10-21--datenschutzlink-in-konten-010-1).
+## License
 
-Beide Kontotests mit echten FIT-Downloads sind am 20.10.2026 durch den Nutzer bestätigt: Zwift-FIT 171.397 Bytes; Wahoo 543 Aktivitäten und FIT 314.302 Bytes. Lokale SHA-256-Nachweise stimmen überein. Aktueller App-Build, simulierte Prüfungen und verbleibende Grenzen: [Prüfhistorie](Pruefhistorie.md). Umgesetzter App-Umfang: [Release Notes 0.1.0](<Release Notes/Release Notes Version 0.1.0.md>), [Release Notes 0.2.0](<Release Notes/Release Notes Version 0.2.0.md>). Der Nutzer hat den bisherigen App-Test am iPhone als erfolgreich abgeschlossen gemeldet. Neue Hintergrund-/Großmengenabläufe und die jetzt konfigurierte Production-Anbindung benötigen noch einen realen Gerätenachweis; Veröffentlichung bleibt manuell.
+Licensed under the [Apache License 2.0](LICENSE). The name **FITgap**, the logo and the app icon are not covered by this license and may not be used to identify modified versions or derived apps; see [NOTICE](NOTICE).
 
-Die ursprünglichen macOS-Prüfclients bleiben erhalten: `Sources/FITgapProbe` (Zwift-Terminal) und `Sources/WahooProbe` (`sh scripts/build-wahoo-probe.sh`). Deren historische Nachweise liegen unter `.local/validation/` und in der Prüfhistorie; kein erneuter Kontotest erforderlich. Neue Releases, Cloud-/Store-Builds und Veröffentlichungen erfolgen ausschließlich nach Auftrag durch den Nutzer.
+The App Store version is a convenient, paid build of this same source code. You are free to build the app yourself.
 
-Logo: [512 × 512 für Wahoo](Assets/Brand/fitgap-logo-512.png), [1024 × 1024 für das App-Symbol](Assets/Brand/fitgap-logo-1024.png). Das mit Imagegen erstellte F-/Brückenmotiv ist im AppIcon-Asset eingebunden.
-
-App-Store-Grafik: Header-Motiv „Your original FIT files. Shared directly.“ unter [Assets/AppStore/Header](Assets/AppStore/Header/) in **3840 × 1646** und **5244 × 2950 Pixeln** (PNG, zusätzlich JPEG); reproduzierbar mit `swift scripts/render-header.swift <Zielordner>`. Die früheren Screenshots für **0.1.0 (Build 1)** wurden aus dem Repository entfernt; Entstehung und Nachweise bleiben in der [Prüfhistorie](Pruefhistorie.md#2026-10-21--app-store-screenshots-010-1), das lokale Upload-Paket unter `.local/exports/`. Upload und Veröffentlichung erfolgen manuell.
+FITgap is an independent project and is not affiliated with or endorsed by Wahoo, Zwift, Garmin or HealthFit.

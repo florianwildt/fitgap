@@ -4,3 +4,13 @@
 .DS_Store
 xcuserdata/
 *.xcuserstate
+
+# Interne Projektdateien (nur lokal)
+AGENTS.md
+CLAUDE.md
+.claude/
+Pruefhistorie.md
+Release Notes/
+Assets/AppStore/AppStore-Texte-*.md
+Assets/AppStore/IMG_*.PNG
+Assets/AppStore/Screenshot*.png
