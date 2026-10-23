@@ -6,6 +6,7 @@ struct AccountsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var zwiftLogin = false
     @State private var disconnectCandidate: Source?
+    @State private var confirmHealthExport = false
 
     var body: some View {
         NavigationStack {
@@ -32,7 +33,29 @@ struct AccountsView: View {
                         }
                     }
                 }
-                if model.busy { Section { HStack { ProgressView(); Text(model.progress) }; Button("Abbrechen") { model.cancel() } } }
+                if model.healthAvailable {
+                    Section {
+                        Toggle("Neue Aktivitäten automatisch sichern",
+                               isOn: Binding(get: { model.healthAutoExportSince != nil }, set: { model.setHealthAutoExport($0) }))
+                            .disabled(model.busy || model.isDemo || model.switchingMode || !model.storageReady)
+                            .accessibilityIdentifier("health-auto-export")
+                        let pending = model.healthPending.count
+                        Button("Alle vergangenen Aktivitäten sichern", systemImage: "heart.text.square") { confirmHealthExport = true }
+                            .badge(pending)
+                            .disabled(pending == 0 || model.busy || model.isDemo || model.switchingMode || !model.storageReady)
+                            .accessibilityIdentifier("health-export-all")
+                        if let summary = model.healthSummary, summary.finished {
+                            LabeledContent("Letzter Export", value: String(localized: "\(summary.done) von \(summary.total)"))
+                            Text(summary.counts).font(.footnote).foregroundStyle(.secondary)
+                                .accessibilityIdentifier("health-export-summary")
+                        }
+                    } header: {
+                        Text("Apple Health")
+                    } footer: {
+                        Text("FITgap schreibt Trainings nach Apple Health und liest dort nur Trainings, um Duplikate zu erkennen. Überschneidet sich ein vorhandenes Training (z. B. von Apple Watch, HealthFit oder der Anbieter-App) zeitlich mit einer Aktivität, wird sie übersprungen. Automatisch gesichert werden beim App-Start und nach jedem Abgleich alle Aktivitäten, die nach dem Einschalten beginnen oder geladen werden; ältere sicherst du über „Alle vergangenen Aktivitäten sichern“, in den Details oder per Auswahl.")
+                    }
+                }
+                if model.busy && !model.healthExporting { Section { HStack { ProgressView(); Text(model.progress) }; Button("Abbrechen") { model.cancel() } } }
                 if let error = model.errorMessage {
                     Section("Hinweis") { Text(error); Button("OK") { model.errorMessage = nil } }
                 }
@@ -53,6 +76,7 @@ struct AccountsView: View {
             .navigationTitle("Konten")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } } }
             .sheet(isPresented: $zwiftLogin) { ZwiftLoginView(model: model) }
+            .modifier(HealthExportStatus(model: model))
             .confirmationDialog("\(disconnectCandidate?.title ?? String(localized: "Konto")) trennen?",
                                 isPresented: Binding(get: { disconnectCandidate != nil }, set: { if !$0 { disconnectCandidate = nil } }),
                                 titleVisibility: .visible) {
@@ -62,6 +86,12 @@ struct AccountsView: View {
                 }
                 Button("Abbrechen", role: .cancel) { disconnectCandidate = nil }
             } message: { Text("Die lokale Sitzung wird entfernt. Deine FIT-Dateien bleiben verfügbar.") }
+            .alert("\(model.healthPending.count) Aktivitäten in Apple Health sichern?", isPresented: $confirmHealthExport) {
+                Button("Abbrechen", role: .cancel) {}
+                Button("Sichern") { model.exportAllToHealth() }
+            } message: {
+                Text("Aktivitäten, für die Health bereits ein Training enthält, werden übersprungen. Ein unterbrochener Export wird beim nächsten Öffnen fortgesetzt.")
+            }
         }
     }
 }

@@ -5,6 +5,7 @@ import SwiftUI
 struct ActivityDetailView: View {
     @ObservedObject var model: AppModel
     let initial: ActivityRecord
+    @State private var confirmOverlap = false
 
     // Follow the live record so recalculated metrics or a new sharing mark appear immediately.
     private var activity: ActivityRecord { model.activities.first { $0.key == initial.key } ?? initial }
@@ -50,11 +51,44 @@ struct ActivityDetailView: View {
                 row("Ø Leistung", metrics?.averagePowerWatts.map { ActivityFormat.integer($0) + " W" })
                 row("Max. Leistung", metrics?.maximumPowerWatts.map { ActivityFormat.integer($0) + " W" })
             }
+            if model.healthAvailable && !model.isDemo {
+                Section {
+                    if let health = activity.health {
+                        if let existing = health.existingSource {
+                            LabeledContent("Apple Health", value: String(localized: "Bereits vorhanden (\(existing))"))
+                            if existing != "FITgap" {
+                                Button("Trotzdem in Health sichern", systemImage: "heart") { confirmOverlap = true }
+                                    .disabled(activity.status != .available || model.busy || model.switchingMode)
+                                    .accessibilityIdentifier("health-export-anyway")
+                            }
+                        } else {
+                            row("In Health gesichert", health.date.formatted(date: .abbreviated, time: .shortened))
+                        }
+                    } else {
+                        Button("In Health sichern", systemImage: "heart") { model.exportToHealth([activity]) }
+                            .disabled(activity.status != .available || model.busy || model.switchingMode)
+                            .accessibilityIdentifier("health-export")
+                    }
+                } header: {
+                    Text("Apple Health")
+                } footer: {
+                    if activity.health == nil {
+                        Text("Sichert das Training mit allen Messwerten, Runden, Pausen und Route. Liegt in Health schon ein Training für diesen Zeitraum, wird nichts geschrieben.")
+                    }
+                }
+            }
             Section {
                 if activity.status != .available { row("Datei", activity.status.title) }
                 row("Zuletzt geteilt", activity.sharedAt?.formatted(date: .abbreviated, time: .shortened))
             }
         }
+        .alert("Trotzdem in Health sichern?", isPresented: $confirmOverlap) {
+            Button("Abbrechen", role: .cancel) {}
+            Button("Sichern") { model.exportToHealthDespiteOverlap(activity) }
+        } message: {
+            Text("In Apple Health liegt bereits ein Training von \(activity.health?.existingSource ?? "") für diesen Zeitraum. Es entsteht ein zweites Training; Aktivitätsringe und Statistiken können doppelt zählen.")
+        }
+        .modifier(HealthExportStatus(model: model))
         .navigationTitle(activity.displayName)
         .navigationBarTitleDisplayMode(.inline)
     }

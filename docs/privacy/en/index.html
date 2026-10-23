@@ -37,7 +37,7 @@ footer a{color:var(--muted);text-decoration:underline}
 <p>Please do not send passwords, access tokens or complete workout files without agreeing this beforehand.</p>
 
 <h1 id="privacy-policy">Privacy Policy</h1>
-<p>Last updated: 20 October 2026</p>
+<p>Last updated: 23 October 2026</p>
 <p><em>This is a translation of the <a href="../">German original</a>. In case of doubt, the German version prevails.</em></p>
 
 <h2 id="1-controller">1. Controller</h2>
@@ -65,7 +65,7 @@ Germany</p>
   <li>Provider and activity identifiers, as well as the names and times of your activities.</li>
   <li>Workout metrics such as duration, distance, elevation gain and average speed.</li>
   <li>Original FIT files. Depending on the recording, these may contain further personal data such as location, heart rate or power data.</li>
-  <li>Local download, synchronisation and sharing status information.</li>
+  <li>Local download, synchronisation and sharing status information, and the Apple Health export status.</li>
 </ul>
 
 <p>The stored data is used to provide the app functions you use.</p>
@@ -89,24 +89,37 @@ Germany</p>
 
 <p>When you share via the iOS share sheet, the selected original file is handed to the app or destination you choose, for example HealthFit. A FIT file may also contain sensitive workout and location data. The recipient’s privacy policy applies to any further processing by the recipient.</p>
 
-<h2 id="6-retention-and-deletion">6. Retention and deletion</h2>
+<h2 id="6-apple-health">6. Apple Health</h2>
+<p>Saving to Apple Health is optional and only happens when you trigger it for an activity, a selection or automatically for new activities, and allow access in iOS.</p>
+
+<ul>
+  <li><strong>Writing:</strong> FITgap creates a workout in Apple Health from a downloaded FIT file. Depending on the recording, this includes heart rate, respiratory rate, power, cadence, speed, running dynamics, distance, steps, swimming strokes, energy burned, laps, pauses, device name and the recorded route, including virtual coordinates such as those from Zwift.</li>
+  <li><strong>Reading:</strong> FITgap only reads workouts (time span and source app) to check before writing whether the activity is already present. This prevents duplicates. No other health data is read.</li>
+  <li>Data from Apple Health is not transmitted to the developer or third parties, not used for advertising, marketing or profiling, and not stored in iCloud or other cloud services. FITgap only stores locally when an activity was saved or which app already contained it.</li>
+  <li>Storage in Apple Health is subject to Apple’s terms and your Health settings, including any iCloud synchronisation of Health by Apple.</li>
+</ul>
+
+<p>You can change or revoke access at any time in Settings › Apps › Health › Data Access &amp; Devices › FITgap. You manage and delete workouts already saved in the Health app.</p>
+
+<h2 id="7-retention-and-deletion">7. Retention and deletion</h2>
 <p>The data remains stored locally until you remove it.</p>
 
 <ul>
   <li>“Disconnect” removes the access tokens stored in FITgap for the respective provider. Files already downloaded and activity information are kept.</li>
   <li>“Disconnect” does not revoke permission granted at the provider. Please also manage it with the provider.</li>
+  <li>Turning off automatic saving or deleting FITgap does not remove workouts already saved to Apple Health.</li>
   <li>Deleting a FIT file removes the local file. The activity entry and metrics already saved may remain.</li>
   <li>To remove all local app storage, delete the app through iOS. “Offload App”, by contrast, keeps documents and data. Disconnect your accounts beforehand, as keychain data can survive an app deletion.</li>
 </ul>
 
 <p>Copies in other apps, at the provider or in device backups are not deleted by this. They must be managed separately there.</p>
 
-<h2 id="7-contact-and-support">7. Contact and support</h2>
+<h2 id="8-contact-and-support">8. Contact and support</h2>
 <p>If you send an email, your email address, the content of your message and any attachments you choose to send are processed in order to handle your request. The email service in use is also involved in this.</p>
 
 <p>Support messages are deleted as soon as they are no longer needed to handle your request and no statutory retention obligations apply.</p>
 
-<h2 id="8-this-website">8. This website</h2>
+<h2 id="9-this-website">9. This website</h2>
 <p>This information page is provided through GitHub Pages. When you visit the page, GitHub processes technical connection data and, in particular, stores IP addresses for security purposes.</p>
 
 <p>No additional analytics tools, advertising services or contact forms are used on this page.</p>
@@ -115,7 +128,7 @@ Germany</p>
 
 <p><a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub privacy statement</a></p>
 
-<h2 id="9-legal-bases-and-rights">9. Legal bases and rights</h2>
+<h2 id="10-legal-bases-and-rights">10. Legal bases and rights</h2>
 <p>Where the processing is attributable to the controller, it takes place to provide the functions you request and to handle related enquiries, on the basis of Art. 6(1)(b) GDPR. The secure operation of this information page and the handling of general enquiries are based on Art. 6(1)(f) GDPR.</p>
 
 <p>Subject to the statutory requirements, you have the rights of access, rectification, erasure, restriction of processing and data portability. You may object to processing based on legitimate interests on grounds relating to your particular situation. You may withdraw any consent you have given with effect for the future.</p>

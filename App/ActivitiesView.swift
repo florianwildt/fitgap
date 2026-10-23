@@ -91,6 +91,14 @@ struct ActivitiesView: View {
                             if index >= Self.jumpThreshold { showJump = true } else if index == 0 { showJump = false }
                             if activity.id == visible.last?.id, visible.count < all.count { limit += Self.pageSize }
                         }
+                        .swipeActions(edge: .leading) {
+                            if model.healthAvailable && !model.isDemo && activity.status == .available && activity.health == nil {
+                                Button("In Health sichern", systemImage: "heart") { model.exportToHealth([activity]) }
+                                    .tint(.pink)
+                                    .disabled(model.busy || model.switchingMode)
+                                    .accessibilityIdentifier("health-swipe-\(activity.source.rawValue)-\(activity.remoteID)")
+                            }
+                        }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             if activity.receipt != nil || activity.status == .failed {
                                 Button("Datei löschen", systemImage: "trash", role: .destructive) { deleteCandidate = activity }
@@ -146,6 +154,11 @@ struct ActivitiesView: View {
                             .disabled(picked.isEmpty || model.busy || model.switchingMode)
                             .accessibilityValue(Text("\(picked.count) ausgewählt"))
                             .accessibilityIdentifier("share-selected")
+                        if model.healthAvailable && !model.isDemo {
+                            Button("In Health sichern", systemImage: "heart", action: exportSelectionToHealth)
+                                .disabled(picked.isEmpty || model.busy || model.switchingMode)
+                                .accessibilityIdentifier("health-export-selected")
+                        }
                     }
                 } else {
                     ToolbarItem(placement: .primaryAction) {
@@ -157,7 +170,7 @@ struct ActivitiesView: View {
             }
             .safeAreaInset(edge: .bottom) { DemoIndicator(enabled: model.isDemo) }
             .overlay(alignment: .bottom) {
-                if model.busy {
+                if model.busy && !model.healthExporting {
                     HStack(spacing: 12) {
                         ProgressView().tint(.white)
                         Text(model.progress).fixedSize(horizontal: false, vertical: true)
@@ -177,6 +190,7 @@ struct ActivitiesView: View {
             .onChange(of: search) { _, _ in limit = Self.pageSize; showJump = false }
             .onChange(of: model.libraryGeneration) { _, _ in search = ""; limit = Self.pageSize; deleteCandidate = nil; share = nil; selected = nil; endSelection() }
             .sheet(isPresented: $accounts) { AccountsView(model: model) }
+            .modifier(HealthExportStatus(model: model))
             // Selection mode ends once the share sheet is gone, whether the handoff finished or was cancelled.
             .sheet(item: $share, onDismiss: { if sharedSelection { sharedSelection = false; endSelection() } }) { item in
                 ShareSheet(urls: item.urls) { completed in
@@ -220,6 +234,11 @@ struct ActivitiesView: View {
     private func prepareShare(_ activity: ActivityRecord) {
         do { share = SharedFiles(records: [activity], urls: [try model.fileForSharing(activity)], generation: model.libraryGeneration) }
         catch { model.errorMessage = AppModel.message(error) }
+    }
+
+    private func exportSelectionToHealth() {
+        model.exportToHealth(model.activities.filter { picked.contains($0.key) })
+        endSelection()
     }
 
     private func endSelection() {
@@ -272,6 +291,12 @@ private struct ActivityRow: View {
                         .accessibilityLabel("Geteilt")
                         .accessibilityIdentifier("shared-status-\(activity.source.rawValue)-\(activity.remoteID)")
                 }
+            }
+            if activity.health != nil {
+                // Saved by FITgap or already present from another app: either way the workout is in Health.
+                Label("In Health gespeichert", systemImage: "heart.fill")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .accessibilityIdentifier("health-status-\(activity.source.rawValue)-\(activity.remoteID)")
             }
             HStack {
                 if activity.status == .available {

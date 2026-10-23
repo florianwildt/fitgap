@@ -37,7 +37,7 @@ footer a{color:var(--muted);text-decoration:underline}
 <p>Bitte sende keine Passwörter, Zugangstokens oder vollständigen Trainingsdateien ohne vorherige Abstimmung.</p>
 
 <h1 id="datenschutzerklärung">Datenschutzerklärung</h1>
-<p>Stand: 20. Oktober 2026</p>
+<p>Stand: 23. Oktober 2026</p>
 
 <h2 id="1-verantwortlicher">1. Verantwortlicher</h2>
 <p>Florian Wildt<br />
@@ -64,7 +64,7 @@ Deutschland</p>
   <li>Anbieter- und Aktivitätskennungen sowie Namen und Zeitpunkte deiner Aktivitäten.</li>
   <li>Trainingskennzahlen, beispielsweise Dauer, Strecke, Höhenmeter und Durchschnittsgeschwindigkeit.</li>
   <li>Original-FIT-Dateien. Diese können je nach Aufzeichnung weitere persönliche Daten enthalten, etwa Positions-, Herzfrequenz- oder Leistungsdaten.</li>
-  <li>Lokale Download-, Synchronisierungs- und Teilen-Statusinformationen.</li>
+  <li>Lokale Download-, Synchronisierungs- und Teilen-Statusinformationen sowie der Exportstatus für Apple Health.</li>
 </ul>
 
 <p>Die gespeicherten Daten dienen der Bereitstellung der von dir genutzten App-Funktionen.</p>
@@ -88,24 +88,37 @@ Deutschland</p>
 
 <p>Beim Teilen über das iOS-Teilen-Menü wird die ausgewählte Originaldatei an die von dir gewählte App oder das gewählte Ziel übergeben, beispielsweise HealthFit. Eine FIT-Datei kann dabei auch sensible Trainings- und Positionsdaten enthalten. Für die weitere Verarbeitung beim Empfänger gelten dessen Datenschutzbestimmungen.</p>
 
-<h2 id="6-speicherdauer-und-löschen">6. Speicherdauer und Löschen</h2>
+<h2 id="6-apple-health">6. Apple Health</h2>
+<p>Die Sicherung in Apple Health ist optional und erfolgt nur, wenn du sie für eine Aktivität, eine Auswahl oder automatisch für neue Aktivitäten auslöst und den Zugriff in iOS erlaubst.</p>
+
+<ul>
+  <li><strong>Schreiben:</strong> FITgap legt aus einer heruntergeladenen FIT-Datei ein Training in Apple Health an. Dazu gehören je nach Aufzeichnung Herzfrequenz, Atemfrequenz, Leistung, Trittfrequenz, Geschwindigkeit, Laufdynamik, Strecke, Schritte, Schwimmzüge, Energieverbrauch, Runden, Pausen, Gerätename und die aufgezeichnete Route einschließlich virtueller Koordinaten, etwa aus Zwift.</li>
+  <li><strong>Lesen:</strong> FITgap liest ausschließlich Trainings (Zeitraum und Quell-App), um vor dem Schreiben zu prüfen, ob die Aktivität bereits vorhanden ist. So werden Duplikate vermieden. Andere Gesundheitsdaten werden nicht gelesen.</li>
+  <li>Daten aus Apple Health werden nicht an den Entwickler oder Dritte übermittelt, nicht für Werbung, Marketing oder Profilbildung verwendet und nicht in iCloud oder anderen Cloud-Diensten gespeichert. FITgap speichert lokal nur, wann eine Aktivität gesichert wurde oder welche App sie bereits enthielt.</li>
+  <li>Die Speicherung in Apple Health unterliegt Apples Bestimmungen und deinen Health-Einstellungen, einschließlich einer etwaigen iCloud-Synchronisierung von Health durch Apple.</li>
+</ul>
+
+<p>Du kannst den Zugriff jederzeit unter Einstellungen › Apps › Health › Datenzugriff & Geräte › FITgap ändern oder widerrufen. Bereits gesicherte Trainings verwaltest und löschst du in der Health-App.</p>
+
+<h2 id="7-speicherdauer-und-löschen">7. Speicherdauer und Löschen</h2>
 <p>Die Daten bleiben lokal gespeichert, bis du sie entfernst.</p>
 
 <ul>
   <li>„Trennen“ entfernt die in FITgap gespeicherten Zugangstokens des jeweiligen Anbieters. Bereits heruntergeladene Dateien und Aktivitätsinformationen bleiben erhalten.</li>
   <li>Eine beim Anbieter erteilte Freigabe wird durch „Trennen“ nicht widerrufen. Verwalte sie zusätzlich beim jeweiligen Anbieter.</li>
+  <li>Das Ausschalten der automatischen Sicherung oder das Löschen von FITgap entfernt keine bereits in Apple Health gesicherten Trainings.</li>
   <li>Das Löschen einer FIT-Datei entfernt die lokale Datei. Der Aktivitätseintrag und bereits gespeicherte Kennzahlen können weiterhin vorhanden sein.</li>
   <li>Zum Entfernen des gesamten lokalen App-Speichers kannst du die App über iOS löschen. „App auslagern“ erhält dagegen Dokumente und Daten. Trenne zuvor die Konten, da Schlüsselbunddaten eine App-Deinstallation überdauern können.</li>
 </ul>
 
 <p>Kopien in anderen Apps, beim Anbieter oder in Gerätesicherungen werden dadurch nicht gelöscht. Sie müssen dort gesondert verwaltet werden.</p>
 
-<h2 id="7-kontakt-und-support">7. Kontakt und Support</h2>
+<h2 id="8-kontakt-und-support">8. Kontakt und Support</h2>
 <p>Wenn du eine E-Mail sendest, werden deine E-Mail-Adresse, der Nachrichteninhalt und gegebenenfalls freiwillig übermittelte Anhänge zur Bearbeitung verarbeitet. Hierfür wird auch der eingesetzte E-Mail-Dienst genutzt.</p>
 
 <p>Supportnachrichten werden gelöscht, sobald sie für die Bearbeitung nicht mehr erforderlich sind und keine gesetzlichen Aufbewahrungspflichten entgegenstehen.</p>
 
-<h2 id="8-diese-website">8. Diese Website</h2>
+<h2 id="9-diese-website">9. Diese Website</h2>
 <p>Diese Informationsseite wird über GitHub Pages bereitgestellt. GitHub verarbeitet beim Seitenaufruf technische Verbindungsdaten und speichert insbesondere IP-Adressen zu Sicherheitszwecken.</p>
 
 <p>Auf dieser Seite werden keine zusätzlichen Analysewerkzeuge, Werbedienste oder Kontaktformulare eingesetzt.</p>
@@ -114,7 +127,7 @@ Deutschland</p>
 
 <p><a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub-Datenschutzerklärung</a></p>
 
-<h2 id="9-rechtsgrundlagen-und-rechte">9. Rechtsgrundlagen und Rechte</h2>
+<h2 id="10-rechtsgrundlagen-und-rechte">10. Rechtsgrundlagen und Rechte</h2>
 <p>Soweit die Verarbeitung dem Verantwortlichen zuzurechnen ist, erfolgt sie zur Bereitstellung angeforderter Funktionen und zur Bearbeitung entsprechender Anfragen auf Grundlage von Art. 6 Abs. 1 Buchst. b DSGVO. Der sichere Betrieb dieser Informationsseite und die Bearbeitung allgemeiner Anfragen beruhen auf Art. 6 Abs. 1 Buchst. f DSGVO.</p>
 
 <p>Im Rahmen der gesetzlichen Voraussetzungen hast du Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung und Datenübertragbarkeit. Einer Verarbeitung aufgrund berechtigter Interessen kannst du aus Gründen deiner besonderen Situation widersprechen. Erteilte Einwilligungen kannst du für die Zukunft widerrufen.</p>

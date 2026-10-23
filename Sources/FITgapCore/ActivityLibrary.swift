@@ -14,6 +14,19 @@ public enum DownloadStatus: String, Codable, Sendable {
     }
 }
 
+/// Result of the Apple Health export; set once, so an activity is never written twice.
+public struct HealthExport: Codable, Sendable, Equatable {
+    public let date: Date
+    /// Checksum of the exported original FIT; `nil` when the activity was skipped as a duplicate.
+    public let sha256: String?
+    /// App that already holds this workout in Health when FITgap skipped it.
+    public let existingSource: String?
+
+    public init(date: Date, sha256: String?, existingSource: String?) {
+        self.date = date; self.sha256 = sha256; self.existingSource = existingSource
+    }
+}
+
 public struct ActivityRecord: Codable, Identifiable, Sendable {
     public let source: Source
     public let remoteID: String
@@ -28,6 +41,7 @@ public struct ActivityRecord: Codable, Identifiable, Sendable {
     public var noFITConfirmed: Bool?
     /// Name of the user-visible copy in the Files app; set once, so a copy the user removed there is not recreated.
     public var filesName: String?
+    public var health: HealthExport?
     public var key: ActivityKey { ActivityKey(source: source.rawValue, id: remoteID) }
     public var id: String { key.filename }
     /// Missing or older cached metrics are read once more from the verified original FIT.
@@ -138,6 +152,11 @@ public struct ActivityLibrary: Sendable {
 
     public func metrics(for record: ActivityRecord) throws -> ActivityMetrics {
         FITMetrics.read(try verifiedData(for: record)) ?? ActivityMetrics()
+    }
+
+    /// Full timeline of the verified original for the Apple Health export.
+    public func activity(for record: ActivityRecord) throws -> FITActivity {
+        try FITActivity.read(verifiedData(for: record))
     }
 
     public func deletingFile(for record: ActivityRecord) throws -> ActivityRecord {

@@ -22,6 +22,7 @@ FITgap is a small, open-source iPhone app that downloads your **original FIT fil
 
 - **Wahoo and Zwift:** Connect one or both accounts and load every activity with its original FIT file. Existing files are skipped on later syncs.
 - **Share:** Hand one FIT or a multi-selection to the system share sheet, for example to HealthFit. Shared activities are marked in the list.
+- **Apple Health:** Save activities as workouts with every record sample Health supports (heart rate, power, cadence, speed, running dynamics, distance, energy, swim lengths), laps, pauses, route and the session summary as metadata. Individually, by selection or automatically for new activities. Workouts already in Health, from FITgap or another app, are detected and skipped.
 - **Details:** Distance, duration, average and maximum speed, heart rate, cadence, power, elevation and more, read locally from the FIT session summary.
 - **Search** across all downloaded activities.
 - **Files app:** Every downloaded FIT is also available under *On My iPhone › FITgap*.
@@ -52,6 +53,7 @@ The iOS keychain, sync lifecycle and UI tests are part of the Xcode scheme.
 
 - Access and refresh tokens are stored only in the local keychain (`WhenUnlockedThisDeviceOnly`, no iCloud sync).
 - Activities and FIT files are stored on the device in `Application Support/FITgap/`. Nothing is sent to a server operated by the project.
+- Apple Health access is optional. FITgap writes workouts and only reads workouts to detect duplicates; no Health data leaves the device through FITgap.
 - Disconnecting removes only the local session; the authorisation at the provider and downloaded files remain.
 
 See the full [Privacy Policy](https://florianwildt.github.io/fitgap/privacy/en/).
