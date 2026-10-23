@@ -1,6 +1,6 @@
 # FITgap
 
-[English](README.md) · [Website](https://florianwildt.github.io/fitgap/) · [Datenschutzerklärung](https://florianwildt.github.io/fitgap-info/)
+[English](README.md) · [Website](https://florianwildt.github.io/fitgap/) · [Datenschutzerklärung](https://florianwildt.github.io/fitgap/privacy/)
 
 ![FITgap – Deine Original-FIT-Dateien. Direkt geteilt.](docs/assets/header.png)
 
@@ -54,7 +54,7 @@ Schlüsselbund-, Sync-Lebenszyklus- und UI-Tests sind im Xcode-Scheme enthalten.
 - Aktivitäten und FIT-Dateien liegen auf dem Gerät unter `Application Support/FITgap/`. Es werden keine Daten an einen Server des Projekts gesendet.
 - Trennen entfernt nur die lokale Sitzung; die Freigabe beim Anbieter und heruntergeladene Dateien bleiben bestehen.
 
-Siehe die vollständige [Datenschutzerklärung](https://florianwildt.github.io/fitgap-info/).
+Siehe die vollständige [Datenschutzerklärung](https://florianwildt.github.io/fitgap/privacy/).
 
 ## Projektstruktur
 
