@@ -79,7 +79,20 @@ struct ActivityDetailView: View {
             }
             Section {
                 if activity.status != .available { row("Datei", activity.status.title) }
+                row("Messreihen", metrics?.richness.map { String($0.channels.count + $0.developerFields) })
                 row("Zuletzt geteilt", activity.sharedAt?.formatted(date: .abbreviated, time: .shortened))
+            }
+            let copies = model.duplicates.alternatives[activity.key] ?? []
+            if !copies.isEmpty {
+                Section {
+                    ForEach(copies, id: \.self) { key in
+                        if let copy = model.activities.first(where: { $0.key == key }) { CopyRow(model: model, copy: copy) }
+                    }
+                } header: {
+                    Text("Weitere Quellen")
+                } footer: {
+                    Text("Dieselbe Aktivität liegt bei mehreren Quellen. FITgap zeigt, teilt und sichert die Datei mit den meisten Messreihen und Kennzahlen; die übrigen bleiben gespeichert.")
+                }
             }
         }
         .alert("Trotzdem in Health sichern?", isPresented: $confirmOverlap) {
@@ -114,6 +127,29 @@ struct ActivityDetailView: View {
         case (4, _): String(localized: "Fitnessgerät")
         case (10, _): String(localized: "Training")
         default: nil
+        }
+    }
+}
+
+/// Another source's copy of the shown activity, with what its file holds or a way to load it.
+private struct CopyRow: View {
+    @ObservedObject var model: AppModel
+    let copy: ActivityRecord
+
+    var body: some View {
+        if copy.status == .available {
+            LabeledContent(copy.source.title, value: copy.metrics?.richness.map {
+                String(localized: "\($0.channels.count + $0.developerFields) Messreihen")
+            } ?? copy.status.title)
+        } else if model.connected.contains(copy.source) && copy.status != .unavailable {
+            Button {
+                model.download(copy)
+            } label: {
+                LabeledContent(copy.source.title) { Label("Laden", systemImage: "arrow.down") }
+            }
+            .disabled(model.busy || model.switchingMode)
+        } else {
+            LabeledContent(copy.source.title, value: copy.status.title)
         }
     }
 }

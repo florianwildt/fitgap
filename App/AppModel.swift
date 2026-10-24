@@ -6,7 +6,10 @@ import UIKit
 
 @MainActor
 final class AppModel: ObservableObject {
-    @Published var activities: [ActivityRecord] = []
+    @Published var activities: [ActivityRecord] = [] { didSet { duplicates = DuplicateGroups(activities) } }
+    /// Copies of one workout from several sources; only the fullest is listed, shared and saved to Health.
+    @Published private(set) var duplicates = DuplicateGroups()
+    var visibleActivities: [ActivityRecord] { activities.filter { !duplicates.hidden.contains($0.key) } }
     @Published var connected = Set<Source>()
     @Published var busy = false
     @Published var progress = "" { didSet { continued.update(subtitle: progress) } }
@@ -85,6 +88,8 @@ final class AppModel: ObservableObject {
         do {
             // Cached real FITs remain readable even when the Keychain is temporarily unavailable.
             activities = try isDemo ? demo.load() : real.load()
+            // Observers do not run for assignments in the initializer.
+            duplicates = DuplicateGroups(activities)
             storageReady = accountsReady
         } catch { errorMessage = Self.message(error) }
     }
@@ -249,7 +254,7 @@ final class AppModel: ObservableObject {
             // After the provider import, at app start and on every refresh: new activities go to Health.
             // Without a granted write access the automatic export stays silent; manual exports report it.
             if let since = self.healthAutoExportSince, self.health.canWrite {
-                try await self.exportHealth(self.activities.filter { self.isNewForHealth($0, since: since) }.map(\.key), priority: .utility)
+                try await self.exportHealth(self.visibleActivities.filter { self.isNewForHealth($0, since: since) }.map(\.key), priority: .utility)
             }
         }
     }
@@ -313,7 +318,7 @@ final class AppModel: ObservableObject {
     }
 
     /// Downloaded activities not yet saved to or found in Apple Health.
-    var healthPending: [ActivityRecord] { activities.filter { $0.health == nil && $0.status == .available } }
+    var healthPending: [ActivityRecord] { visibleActivities.filter { $0.health == nil && $0.status == .available } }
 
     /// Saves the whole history; uses iOS background time and continues after an interruption when the app opens again.
     func exportAllToHealth() {

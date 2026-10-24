@@ -47,7 +47,7 @@ struct ActivitiesView: View {
     private var wide: Bool { sizeClass == .regular }
 
     private var matches: [ActivityRecord] {
-        model.activities.filter { search.isEmpty || $0.displayName.localizedStandardContains(search) || $0.source.title.localizedStandardContains(search) }
+        model.visibleActivities.filter { search.isEmpty || $0.displayName.localizedStandardContains(search) || $0.source.title.localizedStandardContains(search) }
     }
 
     private static let jumpThreshold = 6

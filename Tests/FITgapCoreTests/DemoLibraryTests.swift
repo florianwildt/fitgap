@@ -14,7 +14,11 @@ import Testing
     let samples = [(10800.0, 30.0, 6.0, 1800.0, 120.0), (28800.0, 120.0, 8.0, 3600.0, 145.0), (21600.0, 80.0, 9.0, 2400.0, 155.0)]
     for (record, expected) in zip(records, samples) {
         #expect(record.source == .demo)
-        #expect(record.metrics == ActivityMetrics(distanceMeters: expected.0, ascentMeters: expected.1,
+        // The whole timeline is counted for picking the fullest copy among duplicates.
+        #expect((record.metrics?.richness?.samples ?? 0) > 0)
+        var metrics = record.metrics
+        metrics?.richness = nil
+        #expect(metrics == ActivityMetrics(distanceMeters: expected.0, ascentMeters: expected.1,
             averageSpeedMetersPerSecond: expected.2, descentMeters: 0, timerSeconds: expected.3, elapsedSeconds: expected.3,
             maximumSpeedMetersPerSecond: expected.2, averageHeartRate: expected.4, maximumHeartRate: expected.4,
             sport: 2, subSport: 6))

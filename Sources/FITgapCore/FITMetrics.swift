@@ -2,7 +2,7 @@ import Foundation
 
 public struct ActivityMetrics: Codable, Sendable, Equatable {
     /// Increased when new session fields are read; older caches are read again once from the original FIT.
-    public static let currentRevision = 2
+    public static let currentRevision = 3
     public let revision: Int?
     public let distanceMeters: Double?
     public let ascentMeters: Double?
@@ -23,6 +23,8 @@ public struct ActivityMetrics: Codable, Sendable, Equatable {
     /// FIT `sport` and `sub_sport` enum values.
     public let sport: Int?
     public let subSport: Int?
+    /// Measurement series and analyses in the whole file; nil when the FIT has no readable activity timeline.
+    public var richness: DataRichness?
 
     public init(distanceMeters: Double? = nil, ascentMeters: Double? = nil, averageSpeedMetersPerSecond: Double? = nil,
                 descentMeters: Double? = nil, timerSeconds: Double? = nil, elapsedSeconds: Double? = nil,

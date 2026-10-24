@@ -157,3 +157,7 @@
 "Export abgebrochen" = "Export abgebrochen";
 "Wird gerade gesichert" = "Wird gerade gesichert";
 "Health: %lld gesichert · %lld übersprungen" = "Health: %lld gesichert · %lld übersprungen";
+"Messreihen" = "Messreihen";
+"%lld Messreihen" = "%lld Messreihen";
+"Weitere Quellen" = "Weitere Quellen";
+"Dieselbe Aktivität liegt bei mehreren Quellen. FITgap zeigt, teilt und sichert die Datei mit den meisten Messreihen und Kennzahlen; die übrigen bleiben gespeichert." = "Dieselbe Aktivität liegt bei mehreren Quellen. FITgap zeigt, teilt und sichert die Datei mit den meisten Messreihen und Kennzahlen; die übrigen bleiben gespeichert.";

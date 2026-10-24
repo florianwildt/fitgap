@@ -156,7 +156,10 @@ public struct ActivityLibrary: Sendable {
     }
 
     public func metrics(for record: ActivityRecord) throws -> ActivityMetrics {
-        FITMetrics.read(try verifiedData(for: record)) ?? ActivityMetrics()
+        let data = try verifiedData(for: record)
+        var metrics = FITMetrics.read(data) ?? ActivityMetrics()
+        metrics.richness = (try? FITActivity.read(data)).map(DataRichness.init)
+        return metrics
     }
 
     /// Full timeline of the verified original for the Apple Health export.

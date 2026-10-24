@@ -21,6 +21,7 @@ FITgap ist eine schlanke Open-Source-iPhone-App, die deine **Original-FIT-Dateie
 ## Funktionen
 
 - **Wahoo, Zwift und MyWhoosh:** Beliebige dieser Konten verbinden und alle Aktivitäten samt Original-FIT laden. Vorhandene Dateien werden bei späteren Abgleichen übersprungen.
+- **Dubletten:** Liefern mehrere Quellen dasselbe Training, zeigt die Liste nur die Kopie mit den meisten Messreihen und Kennzahlen; sie wird geteilt und in Health gesichert. Die übrigen Kopien bleiben gespeichert und stehen in den Details.
 - **Teilen:** Eine FIT oder eine Mehrfachauswahl ans System-Share-Sheet übergeben, z. B. an HealthFit. Geteilte Aktivitäten werden in der Liste markiert.
 - **Apple Health:** Aktivitäten als Trainings sichern, mit allen Messwerten, für die Health einen Typ hat (Herzfrequenz, Leistung, Trittfrequenz, Geschwindigkeit, Laufdynamik, Strecke, Energie, Schwimmbahnen), Runden, Pausen, Route und der Session-Zusammenfassung als Metadaten. Einzeln, per Auswahl oder automatisch für neue Aktivitäten. Bereits in Health vorhandene Trainings, von FITgap oder einer anderen App, werden erkannt und übersprungen.
 - **Details:** Strecke, Dauer, Durchschnitts- und Höchstgeschwindigkeit, Herzfrequenz, Trittfrequenz, Leistung, Höhenmeter und mehr, lokal aus der FIT-Session gelesen.

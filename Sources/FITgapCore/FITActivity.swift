@@ -93,6 +93,8 @@ public struct FITActivity: Sendable {
     public var lengths: [Length] = []
     public var timerEvents: [TimerEvent] = []
     public var records: [Record] = []
+    /// Distinct developer fields defined for records; their values are skipped, only their presence is counted.
+    public var developerFields = 0
 
     public var start: Date? { sessions.map(\.start).min() }
     public var end: Date? { sessions.map(\.end).max() }
@@ -127,6 +129,7 @@ public struct FITActivity: Sendable {
         var definitions: [Int: Definition] = [:]
         var lastTimestamp: UInt32?
         var activity = FITActivity()
+        var developerFields = Set<[UInt8]>()
 
         /// Messages FITgap exports; everything else is skipped by its defined size.
         static let globals: Set<Int> = [0, 18, 19, 20, 21, 101]
@@ -158,7 +161,8 @@ public struct FITActivity: Sendable {
                     if header & 0x20 != 0 {
                         let count = try byte()
                         for _ in 0..<Int(count) {
-                            _ = try byte(); developerSize += Int(try byte()); _ = try byte()
+                            let number = try byte(); developerSize += Int(try byte()); let index = try byte()
+                            if global == 20 { developerFields.insert([index, number]) }
                         }
                     }
                     definitions[local] = Definition(global: Int(global), bigEndian: bigEndian, fields: fields, developerSize: developerSize)
@@ -186,6 +190,7 @@ public struct FITActivity: Sendable {
                 }
             }
             guard !activity.sessions.isEmpty else { throw ReadError.invalid }
+            activity.developerFields = developerFields.count
             activity.sessions.sort { $0.start < $1.start }
             activity.records.sort { $0.date < $1.date }
             activity.laps.sort { $0.interval.start < $1.interval.start }
