@@ -93,7 +93,7 @@ struct ActivitiesView: View {
                             if activity.id == visible.last?.id, visible.count < all.count { limit += Self.pageSize }
                         }
                         .swipeActions(edge: .leading) {
-                            if model.healthAvailable && !model.isDemo && activity.status == .available && activity.health == nil {
+                            if model.healthAvailable && activity.status == .available && activity.health == nil {
                                 Button("In Health sichern", systemImage: "heart") { model.exportToHealth([activity]) }
                                     .tint(.pink)
                                     .disabled(model.busy || model.switchingMode)
@@ -155,7 +155,7 @@ struct ActivitiesView: View {
                             .disabled(picked.isEmpty || model.busy || model.switchingMode)
                             .accessibilityValue(Text("\(picked.count) ausgewählt"))
                             .accessibilityIdentifier("share-selected")
-                        if model.healthAvailable && !model.isDemo {
+                        if model.healthAvailable {
                             Button("In Health sichern", systemImage: "heart", action: exportSelectionToHealth)
                                 .disabled(picked.isEmpty || model.busy || model.switchingMode)
                                 .accessibilityIdentifier("health-export-selected")

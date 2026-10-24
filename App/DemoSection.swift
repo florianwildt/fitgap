@@ -39,7 +39,7 @@ struct DemoSection: View {
                 Button("Demo zurücksetzen", role: .destructive) { model.resetDemo() }
                 Button("Abbrechen", role: .cancel) { }
             } message: {
-                Text("Nur Demo-Dateien, Demo-Kennzahlen und Demo-Teilen-Markierungen werden zurückgesetzt. Echte Daten bleiben erhalten.")
+                Text("Nur Demo-Dateien, Demo-Kennzahlen, Demo-Markierungen und in Apple Health gesicherte Demo-Trainings werden zurückgesetzt. Echte Daten bleiben erhalten.")
             }
         }
     }

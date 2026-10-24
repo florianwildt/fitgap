@@ -65,7 +65,7 @@
 "Kernfunktionen mit synthetischen Aktivitäten und lokalen FIT-Dateien ausprobieren. Kein Konto bei Wahoo, Zwift oder MyWhoosh erforderlich." = "Kernfunktionen mit synthetischen Aktivitäten und lokalen FIT-Dateien ausprobieren. Kein Konto bei Wahoo, Zwift oder MyWhoosh erforderlich.";
 "Modus wird gewechselt …" = "Modus wird gewechselt …";
 "Demo zurücksetzen?" = "Demo zurücksetzen?";
-"Nur Demo-Dateien, Demo-Kennzahlen und Demo-Teilen-Markierungen werden zurückgesetzt. Echte Daten bleiben erhalten." = "Nur Demo-Dateien, Demo-Kennzahlen und Demo-Teilen-Markierungen werden zurückgesetzt. Echte Daten bleiben erhalten.";
+"Nur Demo-Dateien, Demo-Kennzahlen, Demo-Markierungen und in Apple Health gesicherte Demo-Trainings werden zurückgesetzt. Echte Daten bleiben erhalten." = "Nur Demo-Dateien, Demo-Kennzahlen, Demo-Markierungen und in Apple Health gesicherte Demo-Trainings werden zurückgesetzt. Echte Daten bleiben erhalten.";
 "Demo: Lockere Morgenfahrt" = "Demo: Lockere Morgenfahrt";
 "Demo: Ausdauertraining" = "Demo: Ausdauertraining";
 "Demo: Tempofahrt" = "Demo: Tempofahrt";
@@ -133,6 +133,7 @@
 "Neue Aktivitäten automatisch sichern" = "Neue Aktivitäten automatisch sichern";
 "FITgap schreibt Trainings nach Apple Health und liest dort nur Trainings, um Duplikate zu erkennen. Überschneidet sich ein vorhandenes Training (z. B. von Apple Watch, HealthFit oder der Anbieter-App) zeitlich mit einer Aktivität, wird sie übersprungen. Automatisch gesichert werden beim App-Start und nach jedem Abgleich alle Aktivitäten, die nach dem Einschalten beginnen oder geladen werden; ältere sicherst du über „Alle vergangenen Aktivitäten sichern“, in den Details oder per Auswahl." = "FITgap schreibt Trainings nach Apple Health und liest dort nur Trainings, um Duplikate zu erkennen. Überschneidet sich ein vorhandenes Training (z. B. von Apple Watch, HealthFit oder der Anbieter-App) zeitlich mit einer Aktivität, wird sie übersprungen. Automatisch gesichert werden beim App-Start und nach jedem Abgleich alle Aktivitäten, die nach dem Einschalten beginnen oder geladen werden; ältere sicherst du über „Alle vergangenen Aktivitäten sichern“, in den Details oder per Auswahl.";
 "Alle vergangenen Aktivitäten sichern" = "Alle vergangenen Aktivitäten sichern";
+"Demo: Die Beispielfahrten werden als synthetische Trainings in Apple Health gesichert und beim Zurücksetzen oder Beenden der Demo dort wieder entfernt. Automatisches Sichern ist in der Demo pausiert." = "Demo: Die Beispielfahrten werden als synthetische Trainings in Apple Health gesichert und beim Zurücksetzen oder Beenden der Demo dort wieder entfernt. Automatisches Sichern ist in der Demo pausiert.";
 "%lld Aktivitäten in Apple Health sichern?" = "%lld Aktivitäten in Apple Health sichern?";
 "Sichern" = "Sichern";
 "Aktivitäten, für die Health bereits ein Training enthält, werden übersprungen. Ein unterbrochener Export wird beim nächsten Öffnen fortgesetzt." = "Aktivitäten, für die Health bereits ein Training enthält, werden übersprungen. Ein unterbrochener Export wird beim nächsten Öffnen fortgesetzt.";

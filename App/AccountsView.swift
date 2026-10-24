@@ -34,7 +34,7 @@ struct AccountsView: View {
                         let pending = model.healthPending.count
                         Button("Alle vergangenen Aktivitäten sichern", systemImage: "heart.text.square") { confirmHealthExport = true }
                             .badge(pending)
-                            .disabled(pending == 0 || model.busy || model.isDemo || model.switchingMode || !model.storageReady)
+                            .disabled(pending == 0 || model.busy || model.switchingMode || !model.storageReady)
                             .accessibilityIdentifier("health-export-all")
                         if let summary = model.healthSummary, summary.finished {
                             LabeledContent("Letzter Export", value: String(localized: "\(summary.done) von \(summary.total)"))
@@ -44,7 +44,11 @@ struct AccountsView: View {
                     } header: {
                         Text("Apple Health")
                     } footer: {
-                        Text("FITgap schreibt Trainings nach Apple Health und liest dort nur Trainings, um Duplikate zu erkennen. Überschneidet sich ein vorhandenes Training (z. B. von Apple Watch, HealthFit oder der Anbieter-App) zeitlich mit einer Aktivität, wird sie übersprungen. Automatisch gesichert werden beim App-Start und nach jedem Abgleich alle Aktivitäten, die nach dem Einschalten beginnen oder geladen werden; ältere sicherst du über „Alle vergangenen Aktivitäten sichern“, in den Details oder per Auswahl.")
+                        if model.isDemo {
+                            Text("Demo: Die Beispielfahrten werden als synthetische Trainings in Apple Health gesichert und beim Zurücksetzen oder Beenden der Demo dort wieder entfernt. Automatisches Sichern ist in der Demo pausiert.")
+                        } else {
+                            Text("FITgap schreibt Trainings nach Apple Health und liest dort nur Trainings, um Duplikate zu erkennen. Überschneidet sich ein vorhandenes Training (z. B. von Apple Watch, HealthFit oder der Anbieter-App) zeitlich mit einer Aktivität, wird sie übersprungen. Automatisch gesichert werden beim App-Start und nach jedem Abgleich alle Aktivitäten, die nach dem Einschalten beginnen oder geladen werden; ältere sicherst du über „Alle vergangenen Aktivitäten sichern“, in den Details oder per Auswahl.")
+                        }
                     }
                 }
                 // One progress for the whole run: provider import, then the Apple Health export.

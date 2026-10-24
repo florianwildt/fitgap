@@ -51,7 +51,7 @@ struct ActivityDetailView: View {
                 row("Ø Leistung", metrics?.averagePowerWatts.map { ActivityFormat.integer($0) + " W" })
                 row("Max. Leistung", metrics?.maximumPowerWatts.map { ActivityFormat.integer($0) + " W" })
             }
-            if model.healthAvailable && !model.isDemo {
+            if model.healthAvailable {
                 Section {
                     if let health = activity.health {
                         if let existing = health.existingSource {

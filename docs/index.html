@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FITgap – Original FIT files, shared directly</title>
-<meta name="description" content="FITgap downloads your original FIT files from Wahoo, Zwift and MyWhoosh to your iPhone and hands them straight to HealthFit. Open source, no backend.">
+<title>FITgap – Original FIT files to Apple Health</title>
+<meta name="description" content="FITgap downloads your original FIT files from Wahoo, Zwift and MyWhoosh to your iPhone, saves them to Apple Health in full with a duplicate check, or shares them unchanged. Open source, no backend.">
 <meta property="og:title" content="FITgap">
-<meta property="og:description" content="Your original FIT files. Shared directly.">
+<meta property="og:description" content="Your original FIT files. Complete in Apple Health.">
 <meta property="og:image" content="assets/header.png">
 <link rel="icon" href="assets/logo.png">
 <style>
@@ -67,13 +67,13 @@ html[lang=en] span[data-l=en],html[lang=de] span[data-l=de]{display:inline}
   </nav>
 
   <header class="hero">
-    <h1><span data-l="en">Your original FIT files.<br>Shared directly.</span><span data-l="de">Deine Original-FIT-Dateien.<br>Direkt geteilt.</span></h1>
-    <p><span data-l="en">FITgap loads your rides from Wahoo, Zwift and MyWhoosh to your iPhone and hands the untouched FIT file to HealthFit with one tap.</span><span data-l="de">FITgap lädt deine Fahrten von Wahoo, Zwift und MyWhoosh aufs iPhone und übergibt die unveränderte FIT-Datei mit einem Tipp an HealthFit.</span></p>
+    <h1><span data-l="en">Your original FIT files.<br>Complete in Apple Health.</span><span data-l="de">Deine Original-FIT-Dateien.<br>Vollständig in Apple Health.</span></h1>
+    <p><span data-l="en">FITgap loads your rides from Wahoo, Zwift and MyWhoosh to your iPhone and saves them to Apple Health with every metric, lap and route – without duplicates. Or hand the untouched FIT file to HealthFit with one tap.</span><span data-l="de">FITgap lädt deine Fahrten von Wahoo, Zwift und MyWhoosh aufs iPhone und sichert sie mit allen Messwerten, Runden und Route in Apple Health – ohne Dubletten. Oder übergib die unveränderte FIT-Datei mit einem Tipp an HealthFit.</span></p>
     <!-- App Store: Link hier einsetzen, sobald verfügbar -->
     <a class="btn" href="https://github.com/florianwildt/fitgap"><span data-l="en">View source on GitHub</span><span data-l="de">Quellcode auf GitHub</span></a>
   </header>
 
-  <div class="banner"><img src="assets/header.png" alt="A FIT file travelling from a ride to HealthFit" width="1600" height="686"></div>
+  <div class="banner"><img src="assets/header.png" alt="A FIT file travelling from a ride to your iPhone" width="1600" height="686"></div>
 
   <div class="shots" id="shots">
     <figure><img src="assets/shot-list.png" alt="Activity list with Wahoo and Zwift rides" width="560" height="1217" loading="lazy"><figcaption><span data-l="en">Your activities</span><span data-l="de">Deine Aktivitäten</span></figcaption></figure>
@@ -86,17 +86,20 @@ html[lang=en] span[data-l=en],html[lang=de] span[data-l=de]{display:inline}
     <ol class="steps">
       <li><span data-l="en">Connect</span><span data-l="de">Verbinden</span><span class="sub"><span data-l="en">Sign in to Wahoo, Zwift or MyWhoosh.</span><span data-l="de">Bei Wahoo, Zwift oder MyWhoosh anmelden.</span></span></li>
       <li><span data-l="en">Download</span><span data-l="de">Laden</span><span class="sub"><span data-l="en">All original FIT files are fetched and stored locally.</span><span data-l="de">Alle Original-FITs werden geladen und lokal gespeichert.</span></span></li>
-      <li><span data-l="en">Share</span><span data-l="de">Teilen</span><span class="sub"><span data-l="en">Pick one or many and send them to HealthFit via the share sheet.</span><span data-l="de">Eine oder mehrere wählen und per Share Sheet an HealthFit senden.</span></span></li>
+      <li><span data-l="en">Save to Health</span><span data-l="de">In Health sichern</span><span class="sub"><span data-l="en">One, a selection, all past activities or new ones automatically after every sync.</span><span data-l="de">Eine, eine Auswahl, alle vergangenen oder neue automatisch nach jedem Abgleich.</span></span></li>
+      <li><span data-l="en">Or share</span><span data-l="de">Oder teilen</span><span class="sub"><span data-l="en">Pick one or many and send them to HealthFit via the share sheet.</span><span data-l="de">Eine oder mehrere wählen und per Share Sheet an HealthFit senden.</span></span></li>
     </ol>
   </section>
 
   <section>
-    <h2><span data-l="en">Made simple</span><span data-l="de">Bewusst schlicht</span></h2>
+    <h2><span data-l="en">What sets it apart</span><span data-l="de">Was FITgap ausmacht</span></h2>
     <div class="grid">
+      <div class="card"><h3><span data-l="en">The whole workout in Health</span><span data-l="de">Das ganze Training in Health</span></h3><p><span data-l="en">Not just a summary: heart rate, power, cadence, speed, running dynamics, laps, pauses, swim lengths, route and metrics like TSS and Normalized Power.</span><span data-l="de">Nicht nur eine Zusammenfassung: Herzfrequenz, Leistung, Trittfrequenz, Geschwindigkeit, Laufdynamik, Runden, Pausen, Schwimmbahnen, Route und Kennzahlen wie TSS und Normalized Power.</span></p></div>
+      <div class="card"><h3><span data-l="en">No duplicates</span><span data-l="de">Keine Dubletten</span></h3><p><span data-l="en">Workouts already in Health – from FITgap, Apple Watch, HealthFit or your provider's app – are skipped. The same ride from two sources? The most complete file wins.</span><span data-l="de">Trainings, die schon in Health liegen – von FITgap, Apple Watch, HealthFit oder der Anbieter-App –, werden übersprungen. Dieselbe Fahrt aus zwei Quellen? Die vollständigste Datei gewinnt.</span></p></div>
       <div class="card"><h3><span data-l="en">Untouched originals</span><span data-l="de">Unveränderte Originale</span></h3><p><span data-l="en">Files are checked with SHA-256 and never converted or re-encoded.</span><span data-l="de">Dateien werden per SHA-256 geprüft und nie konvertiert oder neu kodiert.</span></p></div>
-      <div class="card"><h3><span data-l="en">Private by design</span><span data-l="de">Privat von Grund auf</span></h3><p><span data-l="en">No backend, no tracking. Tokens stay in your device keychain.</span><span data-l="de">Kein Backend, kein Tracking. Tokens bleiben im Schlüsselbund deines Geräts.</span></p></div>
+      <div class="card"><h3><span data-l="en">Private by design</span><span data-l="de">Privat von Grund auf</span></h3><p><span data-l="en">No backend, no tracking. Tokens stay in your device keychain. Health access is optional.</span><span data-l="de">Kein Backend, kein Tracking. Tokens bleiben im Schlüsselbund deines Geräts. Health-Zugriff ist optional.</span></p></div>
       <div class="card"><h3><span data-l="en">Files app</span><span data-l="de">Dateien-App</span></h3><p><span data-l="en">Every FIT also appears in the Files app on your iPhone.</span><span data-l="de">Jede FIT erscheint zusätzlich in der Dateien-App auf deinem iPhone.</span></p></div>
-      <div class="card"><h3><span data-l="en">Try the demo</span><span data-l="de">Demo ausprobieren</span></h3><p><span data-l="en">No account needed: explore the app with sample rides.</span><span data-l="de">Kein Konto nötig: App mit Beispielfahrten erkunden.</span></p></div>
+      <div class="card"><h3><span data-l="en">Try the demo</span><span data-l="de">Demo ausprobieren</span></h3><p><span data-l="en">No account needed: explore the app with sample rides, Apple Health export included.</span><span data-l="de">Kein Konto nötig: App mit Beispielfahrten erkunden, inklusive Export nach Apple Health.</span></p></div>
     </div>
   </section>
 

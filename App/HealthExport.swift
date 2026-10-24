@@ -112,6 +112,26 @@ struct HealthExporter: Sendable {
         return .exported
     }
 
+    /// Deletes FITgap's own workouts with these sync identifiers together with their samples and route.
+    /// HealthKit only lets an app delete what it saved itself; without write access there is nothing of FITgap's to remove.
+    func removeWorkouts(syncIdentifiers: [String]) async throws {
+        guard canWrite, !syncIdentifiers.isEmpty else { return }
+        let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            HKQuery.predicateForObjects(withMetadataKey: HKMetadataKeySyncIdentifier, allowedValues: syncIdentifiers),
+            HKQuery.predicateForObjects(from: .default())
+        ])
+        let workouts = try await HKSampleQueryDescriptor(predicates: [.workout(predicate)], sortDescriptors: [],
+                                                         limit: HKObjectQueryNoLimit).result(for: store)
+        let types = Self.quantityTypes.map { HKQuantityType($0) as HKObjectType } + [HKSeriesType.workoutRoute()]
+        for workout in workouts {
+            let associated = HKQuery.predicateForObjects(from: workout)
+            for type in types where store.authorizationStatus(for: type) == .sharingAuthorized {
+                _ = try await store.deleteObjects(of: type, predicate: associated)
+            }
+            try await store.delete(workout)
+        }
+    }
+
     // MARK: Duplicate check
 
     /// Name of the app whose workout already covers this activity: FITgap's own earlier export,

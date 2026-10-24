@@ -27,9 +27,9 @@ FITgap ist eine schlanke Open-Source-iPhone-App, die deine **Original-FIT-Dateie
 - **Details:** Strecke, Dauer, Durchschnitts- und Höchstgeschwindigkeit, Herzfrequenz, Trittfrequenz, Leistung, Höhenmeter und mehr, lokal aus der FIT-Session gelesen.
 - **Suche** über alle heruntergeladenen Aktivitäten.
 - **Dateien-App:** Jede geladene FIT liegt zusätzlich unter *Auf meinem iPhone › FITgap*.
-- **Große Archive:** Seitenweiser Abgleich mit Fortsetzung, Beachtung der Wahoo-Abruflimits und abbrechbare Downloads.
+- **Große Archive:** Seitenweiser Abgleich mit Fortsetzung, Beachtung der Wahoo-Abruflimits und abbrechbare Downloads. Ab iOS 26 läuft ein selbst gestarteter Abgleich oder Health-Export nach dem Verlassen der App weiter, mit Fortschritt in der Dynamic Island.
 - **Integrität:** Downloads werden atomar gespeichert und vor dem Teilen per SHA-256 geprüft.
-- **Demo-Modus:** App ohne Konto mit drei synthetischen Beispielfahrten ausprobieren.
+- **Demo-Modus:** App ohne Konto mit drei synthetischen Beispielfahrten ausprobieren, auch den Export nach Apple Health. Zurücksetzen oder Beenden der Demo entfernt die Demo-Trainings wieder aus Health.
 
 ## Bauen und starten
 

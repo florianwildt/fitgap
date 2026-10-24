@@ -113,6 +113,7 @@ final class AppModel: ObservableObject {
         cancel()
         let previous = task
         await previous?.value
+        let removal = enabled ? nil : await removeDemoWorkouts()
         do {
             let records = try enabled ? demo.load() : realLibrary.load()
             // No network work resumes automatically on leaving the demo.
@@ -122,7 +123,7 @@ final class AppModel: ObservableObject {
             isDemo = enabled
             defaults.set(enabled, forKey: "demoMode")
             storageReady = true
-            errorMessage = nil; demoNotice = nil
+            errorMessage = removal; demoNotice = nil
             if !enabled { exportMissingFiles() }
         } catch {
             if !enabled {
@@ -140,6 +141,17 @@ final class AppModel: ObservableObject {
 
     func resetDemo() {
         guard isDemo, !switchingMode, !busy else { return }
+        // Only demo workouts saved to Apple Health make the reset wait; otherwise it completes right away.
+        guard activities.contains(where: { $0.health != nil }) else { renewDemo(); return }
+        switchingMode = true
+        Task {
+            defer { switchingMode = false }
+            if let removal = await removeDemoWorkouts() { errorMessage = removal; return }
+            renewDemo()
+        }
+    }
+
+    private func renewDemo() {
         do {
             activities = try demo.reset()
             libraryGeneration = UUID()
@@ -279,11 +291,11 @@ final class AppModel: ObservableObject {
 
     /// Writes the given downloaded activities to Apple Health; already exported or duplicate ones are skipped.
     func exportToHealth(_ records: [ActivityRecord], resume: (@MainActor () -> Void)? = nil) {
-        guard !isDemo, !switchingMode else { return }
+        guard !switchingMode else { return }
         let keys = records.filter { $0.health == nil && $0.status == .available }.map(\.key)
         guard !keys.isEmpty else { return }
         run(label: String(localized: "Apple Health wird vorbereitet …"), resume: resume,
-            continuedTitle: String(localized: "Export nach Apple Health")) {
+            continuedTitle: String(localized: "Export nach Apple Health"), allowsDemo: true) {
             try await self.health.requestAuthorization()
             guard self.health.canWrite else { throw HealthExportError.notAuthorized }
             try await self.exportHealth(keys)
@@ -292,11 +304,12 @@ final class AppModel: ObservableObject {
 
     /// Writes an activity that was skipped because another app's workout overlaps it, at the user's explicit request.
     func exportToHealthDespiteOverlap(_ record: ActivityRecord) {
-        guard !isDemo, !switchingMode, record.status == .available, record.health?.existingSource != nil,
+        guard !switchingMode, record.status == .available, record.health?.existingSource != nil,
               let index = activities.firstIndex(where: { $0.key == record.key }) else { return }
         let previous = activities[index].health
         activities[index].health = nil
-        run(label: String(localized: "Apple Health wird vorbereitet …"), continuedTitle: String(localized: "Export nach Apple Health")) {
+        run(label: String(localized: "Apple Health wird vorbereitet …"), continuedTitle: String(localized: "Export nach Apple Health"),
+            allowsDemo: true) {
             do {
                 try await self.health.requestAuthorization()
                 guard self.health.canWrite else { throw HealthExportError.notAuthorized }
@@ -315,6 +328,21 @@ final class AppModel: ObservableObject {
         guard let index = activities.firstIndex(where: { $0.key == key }), activities[index].health == nil else { return }
         activities[index].health = previous
         try? library.save(activities)
+    }
+
+    nonisolated static func healthSyncIdentifier(_ record: ActivityRecord) -> String {
+        "org.fitgap.\(record.source.rawValue).\(record.remoteID)"
+    }
+
+    /// Demo workouts are synthetic, so they leave Apple Health with the demo: on reset and when it ends.
+    /// Returns the error message when Health refused; the marks then stay, so the list keeps showing what is in Health.
+    private func removeDemoWorkouts() async -> String? {
+        guard isDemo, activities.contains(where: { $0.health != nil }) else { return nil }
+        do { try await health.removeWorkouts(syncIdentifiers: activities.map(Self.healthSyncIdentifier)) }
+        catch { return Self.message(error) }
+        for index in activities.indices { activities[index].health = nil }
+        try? library.save(activities)
+        return nil
     }
 
     /// Downloaded activities not yet saved to or found in Apple Health.
@@ -375,7 +403,7 @@ final class AppModel: ObservableObject {
                             guard await self.claimHealthInterval(interval) else { return (key, sha256, name, .success(.existing("FITgap"))) }
                             claim = interval
                         }
-                        let outcome = try await health.export(activity, syncIdentifier: "org.fitgap.\(record.source.rawValue).\(record.remoteID)",
+                        let outcome = try await health.export(activity, syncIdentifier: Self.healthSyncIdentifier(record),
                                                               name: name, source: record.source.title, sha256: sha256,
                                                               includeOverlaps: includeOverlaps)
                         return (key, sha256, name, .success(outcome))
@@ -684,9 +712,10 @@ final class AppModel: ObservableObject {
     func cancel() { manuallyCancelled = true; interrupted = nil; retryTask?.cancel(); task?.cancel() }
 
     /// `continuedTitle` marks work the user started explicitly; on iOS 26 it may continue in the background with system progress.
-    func run(label: String, resume: (@MainActor () -> Void)? = nil, continuedTitle: String? = nil,
+    /// `allowsDemo` is only for the Apple Health export, so App Review can try HealthKit with the sample rides.
+    func run(label: String, resume: (@MainActor () -> Void)? = nil, continuedTitle: String? = nil, allowsDemo: Bool = false,
              operation: @escaping @MainActor () async throws -> Void) {
-        guard !busy, storageReady, !switchingMode, !isDemo else { return }
+        guard !busy, storageReady, !switchingMode, !isDemo || allowsDemo else { return }
         retryTask?.cancel()
         manuallyCancelled = false
         busy = true; progress = label; errorMessage = nil
