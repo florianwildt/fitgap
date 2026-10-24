@@ -7,7 +7,9 @@ final class AppStoreScreenshotTests: XCTestCase {
         continueAfterFailure = false
         let name = ProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"] ?? ""
         try XCTSkipUnless(name.hasPrefix("FITgap App Store"), "Requires a dedicated App Store screenshot simulator.")
-        XCUIDevice.shared.appearance = self.name.contains("DarkLibraries") ? .dark : .light
+        // The overridden setUp is nonisolated, but XCTest runs it on the main thread.
+        let dark = self.name.contains("DarkLibraries")
+        MainActor.assumeIsolated { XCUIDevice.shared.appearance = dark ? .dark : .light }
     }
 
     func testGermanScreenshots() { captureStore(language: "de", locale: "de_DE") }
@@ -82,8 +84,8 @@ final class AppStoreScreenshotTests: XCTestCase {
         app.buttons[german ? "Konten" : "Accounts"].tap()
         XCTAssertTrue(app.buttons["accounts-end-demo"].waitForExistence(timeout: 5))
         app.buttons["accounts-end-demo"].tap()
-        XCTAssertTrue(app.buttons["connect-zwift"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["connect-wahoo"].exists)
+        XCTAssertTrue(app.buttons["source-zwift"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["source-wahoo"].exists && app.buttons["source-mywhoosh"].exists)
         capture("\(language)-04-accounts")
         app.buttons[german ? "Fertig" : "Done"].tap()
 

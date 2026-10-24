@@ -2,6 +2,7 @@ import CoreLocation
 import FITgapCore
 import Foundation
 import HealthKit
+import os
 
 enum HealthExportError: Error, LocalizedError {
     case unavailable, notAuthorized, notSaved
@@ -21,6 +22,8 @@ struct HealthExporter: Sendable {
     enum Outcome: Sendable { case exported, existing(String) }
 
     private let store = HKHealthStore()
+    /// Durations per step in Console (subsystem org.fitgap.app); no names or health values are logged.
+    private static let log = Logger(subsystem: "org.fitgap.app", category: "HealthExport")
 
     static var isAvailable: Bool { HKHealthStore.isHealthDataAvailable() }
 
@@ -51,9 +54,14 @@ struct HealthExporter: Sendable {
         guard let start = activity.start, let end = activity.end, end > start,
               let main = activity.sessions.max(by: { $0.interval.duration < $1.interval.duration }) else { throw HealthExportError.notSaved }
         let interval = DateInterval(start: start, end: end)
+        let clock = ContinuousClock()
+        var stepStart = clock.now
+        func step() -> Duration { defer { stepStart = clock.now }; return clock.now - stepStart }
         if let existing = try await existingSource(syncIdentifier: syncIdentifier, interval: interval, includeOverlaps: includeOverlaps) {
+            Self.log.info("Duplicate check \(step(), privacy: .public): skipped")
             return .existing(existing)
         }
+        let checked = step()
 
         let hasRoute = activity.records.contains { $0.latitude != nil }
         let sports = Set(activity.sessions.map { $0.sport ?? -1 })
@@ -65,6 +73,7 @@ struct HealthExporter: Sendable {
         do {
             try await builder.beginCollection(at: start)
             let samples = samples(activity, device: device)
+            let built = step()
             for offset in stride(from: 0, to: samples.count, by: 10_000) {
                 try Task.checkCancellation()
                 try await builder.addSamples(Array(samples[offset..<min(offset + 10_000, samples.count)]))
@@ -87,15 +96,18 @@ struct HealthExporter: Sendable {
             if let indoor = Self.indoor(main, hasRoute: hasRoute), !multisport { metadata[HKMetadataKeyIndoorWorkout] = indoor }
             try await builder.addMetadata(metadata)
             try await builder.endCollection(at: end)
+            Self.log.info("Duplicate check \(checked, privacy: .public), \(samples.count, privacy: .public) samples built \(built, privacy: .public), written \(step(), privacy: .public)")
         } catch {
             builder.discardWorkout()
             throw error
         }
         guard let workout = try await builder.finishWorkout() else { throw HealthExportError.notSaved }
+        Self.log.info("Workout finished \(step(), privacy: .public)")
         // Every recorded position is kept, including the virtual coordinates of indoor rides (e.g. Zwift worlds);
         // the workout itself stays marked as indoor.
         if hasRoute, store.authorizationStatus(for: HKSeriesType.workoutRoute()) == .sharingAuthorized {
             try? await saveRoute(activity, workout: workout, device: device)
+            Self.log.info("Route saved \(step(), privacy: .public)")
         }
         return .exported
     }
@@ -104,14 +116,16 @@ struct HealthExporter: Sendable {
 
     /// Name of the app whose workout already covers this activity: FITgap's own earlier export,
     /// or any workout that overlaps at least half of the shorter of both durations (watch, HealthFit, provider apps).
+    /// One query over the activity's time span: it is indexed by date and also contains FITgap's own earlier export,
+    /// which has the same time span. A metadata query instead would scan every workout in Health.
     private func existingSource(syncIdentifier: String, interval: DateInterval, includeOverlaps: Bool) async throws -> String? {
-        let own = HKSampleQueryDescriptor(predicates: [.workout(HKQuery.predicateForObjects(
-            withMetadataKey: HKMetadataKeySyncIdentifier, allowedValues: [syncIdentifier]))], sortDescriptors: [], limit: 1)
-        if let workout = try await own.result(for: store).first { return workout.sourceRevision.source.name }
+        let overlapping = try await HKSampleQueryDescriptor(predicates: [.workout(HKQuery.predicateForSamples(
+            withStart: interval.start, end: interval.end))], sortDescriptors: [], limit: HKObjectQueryNoLimit).result(for: store)
+        if let own = overlapping.first(where: { $0.metadata?[HKMetadataKeySyncIdentifier] as? String == syncIdentifier }) {
+            return own.sourceRevision.source.name
+        }
         guard !includeOverlaps else { return nil }
-        let overlapping = HKSampleQueryDescriptor(predicates: [.workout(HKQuery.predicateForSamples(
-            withStart: interval.start, end: interval.end))], sortDescriptors: [], limit: HKObjectQueryNoLimit)
-        for workout in try await overlapping.result(for: store) {
+        for workout in overlapping {
             let other = DateInterval(start: workout.startDate, end: max(workout.startDate, workout.endDate))
             if Self.sameWorkout(interval, other) { return workout.sourceRevision.source.name }
         }

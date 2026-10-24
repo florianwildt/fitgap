@@ -4,34 +4,26 @@ import SwiftUI
 struct AccountsView: View {
     @ObservedObject var model: AppModel
     @Environment(\.dismiss) private var dismiss
-    @State private var zwiftLogin = false
-    @State private var disconnectCandidate: Source?
     @State private var confirmHealthExport = false
+    @State private var healthDetails = false
 
     var body: some View {
         NavigationStack {
             Form {
                 DemoSection(model: model, identifierPrefix: "accounts-")
-                ForEach(Source.providers) { source in
-                    Section(source.title) {
-                        Label(model.isDemo ? String(localized: "Im Demo-Modus pausiert") : (model.connected.contains(source) ? String(localized: "Verbunden") : String(localized: "Nicht verbunden")),
-                              systemImage: model.isDemo ? "pause.circle" : (model.connected.contains(source) ? "checkmark.circle" : "person.crop.circle"))
-                        Button(model.connected.contains(source) ? String(localized: "Erneut verbinden") : String(localized: "Verbinden")) {
-                            if source == .zwift { zwiftLogin = true } else { model.connectWahoo() }
+                Section {
+                    ForEach(Source.providers) { source in
+                        NavigationLink {
+                            SourceAccountView(model: model, source: source)
+                        } label: {
+                            LabeledContent(source.title, value: model.connectionStatus(source))
                         }
-                        .accessibilityIdentifier("connect-\(source.rawValue)")
-                        .disabled(model.busy || !model.storageReady || model.isDemo || model.switchingMode)
-                        if model.connected.contains(source) {
-                            Button("Trennen", role: .destructive) { disconnectCandidate = source }.disabled(model.busy || model.isDemo || model.switchingMode)
-                        }
-                        if source == .zwift {
-                            Text("Inoffizielle Schnittstelle. Änderungen bei Zwift können die Verbindung unterbrechen.")
-                                .font(.footnote).foregroundStyle(.secondary)
-                        } else {
-                            Text("Anmeldung über Wahoo mit lesendem Zugriff.")
-                                .font(.footnote).foregroundStyle(.secondary)
-                        }
+                        .accessibilityIdentifier("source-\(source.rawValue)")
                     }
+                } header: {
+                    Text("Datenquellen")
+                } footer: {
+                    Text("Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt nur die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden.")
                 }
                 if model.healthAvailable {
                     Section {
@@ -55,12 +47,25 @@ struct AccountsView: View {
                         Text("FITgap schreibt Trainings nach Apple Health und liest dort nur Trainings, um Duplikate zu erkennen. Überschneidet sich ein vorhandenes Training (z. B. von Apple Watch, HealthFit oder der Anbieter-App) zeitlich mit einer Aktivität, wird sie übersprungen. Automatisch gesichert werden beim App-Start und nach jedem Abgleich alle Aktivitäten, die nach dem Einschalten beginnen oder geladen werden; ältere sicherst du über „Alle vergangenen Aktivitäten sichern“, in den Details oder per Auswahl.")
                     }
                 }
-                if model.busy && !model.healthExporting { Section { HStack { ProgressView(); Text(model.progress) }; Button("Abbrechen") { model.cancel() } } }
+                // One progress for the whole run: provider import, then the Apple Health export.
+                if model.busy {
+                    Section {
+                        // During the Apple Health export the progress opens its details.
+                        if model.healthExporting {
+                            Button { healthDetails = true } label: {
+                                HStack { ProgressView(); Text(model.progress); Spacer(minLength: 0)
+                                    Image(systemName: "chevron.right").foregroundStyle(.tertiary) }
+                            }
+                            .tint(.primary)
+                            .accessibilityIdentifier("accounts-sync-progress")
+                        } else {
+                            HStack { ProgressView(); Text(model.progress) }
+                        }
+                        Button("Abbrechen") { model.cancel() }
+                    }
+                }
                 if let error = model.errorMessage {
                     Section("Hinweis") { Text(error); Button("OK") { model.errorMessage = nil } }
-                }
-                Section {
-                    Text("Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt nur die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden.")
                 }
                 Section("Datenschutz") {
                     Link(destination: URL(string: String(localized: "https://florianwildt.github.io/fitgap/privacy/"))!) {
@@ -75,17 +80,7 @@ struct AccountsView: View {
             .safeAreaInset(edge: .bottom) { DemoIndicator(enabled: model.isDemo) }
             .navigationTitle("Konten")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } } }
-            .sheet(isPresented: $zwiftLogin) { ZwiftLoginView(model: model) }
-            .modifier(HealthExportStatus(model: model))
-            .confirmationDialog("\(disconnectCandidate?.title ?? String(localized: "Konto")) trennen?",
-                                isPresented: Binding(get: { disconnectCandidate != nil }, set: { if !$0 { disconnectCandidate = nil } }),
-                                titleVisibility: .visible) {
-                Button("Trennen", role: .destructive) {
-                    if let source = disconnectCandidate { model.disconnect(source) }
-                    disconnectCandidate = nil
-                }
-                Button("Abbrechen", role: .cancel) { disconnectCandidate = nil }
-            } message: { Text("Die lokale Sitzung wird entfernt. Deine FIT-Dateien bleiben verfügbar.") }
+            .modifier(HealthExportStatus(model: model, showsProgress: false, details: $healthDetails))
             .alert("\(model.healthPending.count) Aktivitäten in Apple Health sichern?", isPresented: $confirmHealthExport) {
                 Button("Abbrechen", role: .cancel) {}
                 Button("Sichern") { model.exportAllToHealth() }
@@ -96,8 +91,52 @@ struct AccountsView: View {
     }
 }
 
-private struct ZwiftLoginView: View {
+/// Connection details of one data source, so the accounts list keeps a single row per provider.
+private struct SourceAccountView: View {
     @ObservedObject var model: AppModel
+    let source: Source
+    @State private var passwordLogin = false
+    @State private var confirmDisconnect = false
+
+    var body: some View {
+        Form {
+            Section {
+                Label(model.connectionStatus(source),
+                      systemImage: model.isDemo ? "pause.circle" : (model.connected.contains(source) ? "checkmark.circle" : "person.crop.circle"))
+                Button(model.connected.contains(source) ? String(localized: "Erneut verbinden") : String(localized: "Verbinden")) {
+                    if source == .wahoo { model.connectWahoo() } else { passwordLogin = true }
+                }
+                .accessibilityIdentifier("connect-\(source.rawValue)")
+                .disabled(model.busy || !model.storageReady || model.isDemo || model.switchingMode)
+                if model.connected.contains(source) {
+                    Button("Trennen", role: .destructive) { confirmDisconnect = true }
+                        .disabled(model.busy || model.isDemo || model.switchingMode)
+                }
+            } footer: {
+                switch source {
+                case .zwift: Text("Inoffizielle Schnittstelle. Änderungen bei Zwift können die Verbindung unterbrechen.")
+                case .mywhoosh: Text("Inoffizielle Schnittstelle. Änderungen bei MyWhoosh können die Verbindung unterbrechen. Läuft die Sitzung ab, ist eine neue Anmeldung nötig.")
+                default: Text("Anmeldung über Wahoo mit lesendem Zugriff.")
+                }
+            }
+            if model.busy { Section { HStack { ProgressView(); Text(model.progress) }; Button("Abbrechen") { model.cancel() } } }
+            if let error = model.errorMessage {
+                Section("Hinweis") { Text(error); Button("OK") { model.errorMessage = nil } }
+            }
+        }
+        .navigationTitle(source.title)
+        .sheet(isPresented: $passwordLogin) { PasswordLoginView(model: model, source: source) }
+        .confirmationDialog("\(source.title) trennen?", isPresented: $confirmDisconnect, titleVisibility: .visible) {
+            Button("Trennen", role: .destructive) { model.disconnect(source) }
+            Button("Abbrechen", role: .cancel) {}
+        } message: { Text("Die lokale Sitzung wird entfernt. Deine FIT-Dateien bleiben verfügbar.") }
+    }
+}
+
+/// Sign-in for the unofficial interfaces of Zwift and MyWhoosh.
+private struct PasswordLoginView: View {
+    @ObservedObject var model: AppModel
+    let source: Source
     @Environment(\.dismiss) private var dismiss
     @State private var email = ""
     @State private var password = ""
@@ -110,8 +149,10 @@ private struct ZwiftLoginView: View {
                         .keyboardType(.emailAddress).textContentType(.username)
                         .textInputAutocapitalization(.never).autocorrectionDisabled()
                     SecureField("Passwort", text: $password).textContentType(.password)
-                    Button("Zwift verbinden") {
-                        model.connectZwift(username: email.trimmingCharacters(in: .whitespacesAndNewlines), password: password)
+                    Button("\(source.title) verbinden") {
+                        let username = email.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if source == .mywhoosh { model.connectMyWhoosh(username: username, password: password) }
+                        else { model.connectZwift(username: username, password: password) }
                         email = ""; password = ""; dismiss()
                     }
                     .disabled(email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || password.isEmpty || model.busy || model.isDemo || model.switchingMode)
@@ -119,7 +160,7 @@ private struct ZwiftLoginView: View {
                     Text("Nur das eigene Konto verwenden. Das Passwort wird ausschließlich für die Anmeldung verarbeitet und nicht gespeichert.")
                 }
             }
-            .navigationTitle("Zwift verbinden")
+            .navigationTitle("\(source.title) verbinden")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { email = ""; password = ""; dismiss() } } }
         }
     }

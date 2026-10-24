@@ -44,7 +44,8 @@ final class DemoModeTests: XCTestCase {
             config.protocolClasses = hanging ? [DemoHangingRequest.self] : [DemoNetworkTrap.self]
             let session = URLSession(configuration: config)
             return AppModel(library: library, credentials: credentials, defaults: defaults,
-                            wahoo: WahooProbe(session: session), zwift: ZwiftProbe(session: session))
+                            wahoo: WahooProbe(session: session), zwift: ZwiftProbe(session: session),
+                            mywhoosh: MyWhooshProbe(session: session))
         }
         func cleanup() {
             try? FileManager.default.removeItem(at: root)

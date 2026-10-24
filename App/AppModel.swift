@@ -23,6 +23,8 @@ final class AppModel: ObservableObject {
     var healthExporting: Bool { healthSummary?.finished == false }
     /// A finished export keeps its status visible until the user has looked at it.
     @Published private(set) var healthSummarySeen = true
+    /// Names of the activities being written right now, so long ones do not look like a stalled export.
+    @Published private(set) var healthInProgress: [String] = []
 
     func acknowledgeHealthSummary() {
         if healthSummary?.finished == true { healthSummarySeen = true }
@@ -39,6 +41,7 @@ final class AppModel: ObservableObject {
     private let defaults: UserDefaults
     private let wahoo: WahooProbe
     private let zwift: ZwiftProbe
+    private let mywhoosh: MyWhooshProbe
     private let signIn = WahooSignIn()
     private let health = HealthExporter()
     private let continued = ContinuedProcessing()
@@ -60,7 +63,7 @@ final class AppModel: ObservableObject {
     private var cursorFile: URL { library.directory.appendingPathComponent("wahoo-catalog.json") }
 
     init(library: ActivityLibrary? = nil, filesFolder: URL? = nil, credentials: CredentialStore = CredentialStore(), defaults: UserDefaults = .standard,
-         wahoo: WahooProbe = WahooProbe(), zwift: ZwiftProbe = ZwiftProbe()) {
+         wahoo: WahooProbe = WahooProbe(), zwift: ZwiftProbe = ZwiftProbe(), mywhoosh: MyWhooshProbe = MyWhooshProbe()) {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let real = library ?? ActivityLibrary(directory: support.appendingPathComponent("FITgap", isDirectory: true))
         realLibrary = real
@@ -69,7 +72,7 @@ final class AppModel: ObservableObject {
         self.filesFolder = (filesFolder ?? documents).map(FilesFolder.init)
         demo = DemoLibrary(realDirectory: real.directory)
         self.credentials = credentials; self.defaults = defaults
-        self.wahoo = wahoo; self.zwift = zwift
+        self.wahoo = wahoo; self.zwift = zwift; self.mywhoosh = mywhoosh
         healthAutoExportSince = defaults.object(forKey: healthAutoExportKey) as? Date
         let requestedDemo = defaults.bool(forKey: "demoMode")
         do {
@@ -179,6 +182,17 @@ final class AppModel: ObservableObject {
         }
     }
 
+    func connectMyWhoosh(username: String, password: String) {
+        guard !isDemo, !switchingMode else { return }
+        run(label: String(localized: "MyWhoosh wird verbunden …")) {
+            let session = try await self.mywhoosh.authenticate(username: username, password: password)
+            try Task.checkCancellation()
+            try self.credentials.write(session.credentials, for: .mywhoosh)
+            self.accessCache.removeValue(forKey: .mywhoosh)
+            self.connected.insert(.mywhoosh)
+        }
+    }
+
     func connectWahoo() {
         guard !isDemo, !switchingMode else { return }
         run(label: String(localized: "Wahoo-Anmeldung …")) {
@@ -194,7 +208,12 @@ final class AppModel: ObservableObject {
         }
     }
 
-    func disconnect(_ source: Source) {
+    func connectionStatus(_ source: Source) -> String {
+        if isDemo { return String(localized: "Im Demo-Modus pausiert") }
+        return connected.contains(source) ? String(localized: "Verbunden") : String(localized: "Nicht verbunden")
+    }
+
+        func disconnect(_ source: Source) {
         guard !isDemo, !switchingMode, !busy else { return }
         do { try credentials.remove(source); accessCache.removeValue(forKey: source); connected.remove(source) }
         catch { errorMessage = Self.message(error) }
@@ -230,7 +249,7 @@ final class AppModel: ObservableObject {
             // After the provider import, at app start and on every refresh: new activities go to Health.
             // Without a granted write access the automatic export stays silent; manual exports report it.
             if let since = self.healthAutoExportSince, self.health.canWrite {
-                try await self.exportHealth(self.activities.filter { self.isNewForHealth($0, since: since) }.map(\.key))
+                try await self.exportHealth(self.activities.filter { self.isNewForHealth($0, since: since) }.map(\.key), priority: .utility)
             }
         }
     }
@@ -317,18 +336,19 @@ final class AppModel: ObservableObject {
         if let index = healthClaims.firstIndex(of: interval) { healthClaims.remove(at: index) }
     }
 
-    private func exportHealth(_ keys: [ActivityKey], includeOverlaps: Bool = false) async throws {
+    /// User-started exports run at `.userInitiated`; iOS throttles `.utility` heavily when the device is warm or busy.
+    private func exportHealth(_ keys: [ActivityKey], includeOverlaps: Bool = false, priority: TaskPriority = .userInitiated) async throws {
         guard !keys.isEmpty else { return }
         var failure: Error?
         var summary = HealthExportSummary(total: keys.count)
         healthSummary = summary
         healthSummarySeen = false
         healthClaims = []
-        defer { summary.finished = true; healthSummary = summary; healthClaims = [] }
+        defer { summary.finished = true; healthSummary = summary; healthClaims = []; healthInProgress = [] }
         progress = String(localized: "Apple Health: \(0) von \(keys.count)")
         continued.report(0, of: keys.count)
         let library = library, health = health
-        typealias Result = (key: ActivityKey, sha256: String, outcome: Swift.Result<HealthExporter.Outcome, Error>)
+        typealias Result = (key: ActivityKey, sha256: String, name: String, outcome: Swift.Result<HealthExporter.Outcome, Error>)
         let jobs = keys.compactMap { key -> (record: ActivityRecord, sha256: String, name: String)? in
             guard let record = activities.first(where: { $0.key == key && $0.status == .available && $0.health == nil }),
                   let sha256 = record.receipt?.sha256 else { return nil }
@@ -337,32 +357,34 @@ final class AppModel: ObservableObject {
         summary.total = jobs.count
         try await withThrowingTaskGroup(of: Result?.self) { group in
             var pending = jobs[...]
-            func addNext() {
-                if let (record, sha256, name) = pending.popFirst() {
-                    let key = record.key
-                    group.addTask(priority: .utility) {
-                        var claim: DateInterval?
-                        do {
-                            let activity = try library.activity(for: record)
-                            if !includeOverlaps, let start = activity.start, let end = activity.end, end > start {
-                                let interval = DateInterval(start: start, end: end)
-                                guard await self.claimHealthInterval(interval) else { return (key, sha256, .success(.existing("FITgap"))) }
-                                claim = interval
-                            }
-                            let outcome = try await health.export(activity, syncIdentifier: "org.fitgap.\(record.source.rawValue).\(record.remoteID)",
-                                                                  name: name, source: record.source.title, sha256: sha256,
-                                                                  includeOverlaps: includeOverlaps)
-                            return (key, sha256, .success(outcome))
-                        } catch {
-                            if let claim { await self.releaseHealthInterval(claim) }
-                            return (key, sha256, .failure(error))
+            /// Starts the next job and returns its name, or `nil` when none is left.
+            func addNext() -> String? {
+                guard let (record, sha256, name) = pending.popFirst() else { return nil }
+                let key = record.key
+                group.addTask(priority: priority) {
+                    var claim: DateInterval?
+                    do {
+                        let activity = try library.activity(for: record)
+                        if !includeOverlaps, let start = activity.start, let end = activity.end, end > start {
+                            let interval = DateInterval(start: start, end: end)
+                            guard await self.claimHealthInterval(interval) else { return (key, sha256, name, .success(.existing("FITgap"))) }
+                            claim = interval
                         }
+                        let outcome = try await health.export(activity, syncIdentifier: "org.fitgap.\(record.source.rawValue).\(record.remoteID)",
+                                                              name: name, source: record.source.title, sha256: sha256,
+                                                              includeOverlaps: includeOverlaps)
+                        return (key, sha256, name, .success(outcome))
+                    } catch {
+                        if let claim { await self.releaseHealthInterval(claim) }
+                        return (key, sha256, name, .failure(error))
                     }
                 }
+                return name
             }
-            for _ in 0..<Self.healthWorkers { addNext() }
+            for _ in 0..<Self.healthWorkers { if let name = addNext() { healthInProgress.append(name) } }
             while let result = try await group.next() {
                 guard let result else { continue }
+                if let index = healthInProgress.firstIndex(of: result.name) { healthInProgress.remove(at: index) }
                 switch result.outcome {
                 case .failure(let error):
                     if error is CancellationError { throw CancellationError() }
@@ -386,7 +408,7 @@ final class AppModel: ObservableObject {
                 progress = String(localized: "Apple Health: \(summary.done) von \(summary.total)") + "\n" + summary.counts
                 continued.report(summary.done, of: summary.total)
                 try Task.checkCancellation()
-                addNext()
+                if let name = addNext() { healthInProgress.append(name) }
             }
         }
         // Close the progress sheet first so the error alert can be presented.
@@ -396,6 +418,10 @@ final class AppModel: ObservableObject {
     }
 
     private func access(_ source: Source) async throws -> String {
+        try await account(source).accessToken
+    }
+
+    private func account(_ source: Source) async throws -> Credentials {
         try Task.checkCancellation()
         guard !isDemo, !switchingMode, source != .demo else { throw CancellationError() }
         if source == .wahoo, defaults.string(forKey: wahooClientKey) != WahooOAuth.clientID { throw AccountError.reconnect }
@@ -408,22 +434,46 @@ final class AppModel: ObservableObject {
         else { stored = try credentials.read(source) }
         guard var token = stored else { throw AccountError.reconnect }
         if token.needsRefresh {
-            token = try await (source == .zwift ? zwift.refresh(token) : wahoo.refresh(token))
+            switch source {
+            case .zwift: token = try await zwift.refresh(token)
+            case .wahoo: token = try await wahoo.refresh(token)
+            // MyWhoosh has no known refresh route; an expired session needs a new sign-in.
+            case .mywhoosh, .demo: throw AccountError.reconnect
+            }
             try Task.checkCancellation()
             try credentials.write(token, for: source)
         }
         // Keep a running sync independent of repeated Keychain reads when the phone locks.
         // This memory-only cache is cleared when the operation ends; protection stays unchanged.
         accessCache[source] = token
-        return token.accessToken
+        return token
     }
 
     private func sync(_ source: Source) async throws {
         progress = String(localized: "\(source.title): Aktivitäten werden abgerufen …")
         continued.report(0, of: -1)
-        let token = try await access(source)
+        let credentials = try await account(source)
+        let token = credentials.accessToken
         switch source {
         case .demo: throw CancellationError()
+        case .mywhoosh:
+            let session = try MyWhooshSession(credentials)
+            let remote = try await mywhoosh.activities(session: session)
+            try Task.checkCancellation()
+            activities = ActivityLibrary.merging(remote.map(ActivityRecord.init), into: activities)
+            try library.save(activities)
+            let keys = pendingKeys
+            let pending = remote.filter { keys.contains($0.key) }
+            for (offset, activity) in pending.enumerated() {
+                try Task.checkCancellation()
+                progress = String(localized: "MyWhoosh: FIT \(offset + 1) von \(pending.count)")
+                continued.report(offset, of: pending.count)
+                do { try await commit(await mywhoosh.download(activity, session: session, store: library.files).0) }
+                // MyWhoosh delivered no valid FIT: the row shows "no FIT available" and later syncs stop retrying it.
+                // "Download" in the row still tries again; the rejected format is logged under category MyWhoosh.
+                catch ProbeError.invalidFIT { try recordFailure(activity.key, error: ProbeError.noFIT) }
+                catch { try recordFailure(activity.key, error: error); throw error }
+            }
         case .zwift:
             let remote = try await zwift.activities(token: token)
             try Task.checkCancellation()
@@ -553,13 +603,17 @@ final class AppModel: ObservableObject {
         guard record.source != .demo else { return }
         run(label: String(localized: "\(record.source.title): FIT wird geladen …"), resume: { [weak self] in self?.download(record) },
             continuedTitle: String(localized: "FITgap-Abgleich")) {
-            let token = try await self.access(record.source)
+            let credentials = try await self.account(record.source)
             do {
                 let receipt: FITReceipt
-                if record.source == .zwift {
-                    receipt = try await self.zwift.download(id: record.remoteID, token: token, store: self.library.files)
-                } else {
-                    receipt = try await self.wahoo.download(id: record.remoteID, token: token, store: self.library.files)
+                switch record.source {
+                case .zwift:
+                    receipt = try await self.zwift.download(id: record.remoteID, token: credentials.accessToken, store: self.library.files)
+                case .wahoo:
+                    receipt = try await self.wahoo.download(id: record.remoteID, token: credentials.accessToken, store: self.library.files)
+                case .mywhoosh:
+                    receipt = try await self.mywhoosh.download(id: record.remoteID, session: MyWhooshSession(credentials), store: self.library.files)
+                case .demo: throw CancellationError()
                 }
                 try await self.commit(receipt)
             } catch { try self.recordFailure(record.key, error: error); throw error }

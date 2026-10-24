@@ -79,12 +79,14 @@ final class FITgapUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars[german ? "Konten" : "Accounts"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts[german ? "Nicht verbunden" : "Not connected"].firstMatch.exists)
         capture(app, "Accounts-\(language)")
+        app.buttons["source-zwift"].tap()
         app.buttons["connect-zwift"].tap()
         XCTAssertTrue(app.secureTextFields[german ? "Passwort" : "Password"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.textFields[german ? "E-Mail" : "Email"].exists)
         XCTAssertFalse(app.buttons[german ? "Zwift verbinden" : "Connect Zwift"].isEnabled)
         capture(app, "Sign-in-\(language)")
         app.buttons[german ? "Abbrechen" : "Cancel"].tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
         app.buttons[german ? "Fertig" : "Done"].tap()
         let fileOptions = app.buttons["file-options-zwift-900000000001"]
         for _ in 0..<12 where !fileOptions.isHittable { app.swipeDown() }
@@ -102,12 +104,14 @@ final class FITgapUITests: XCTestCase {
         app.buttons["Konten"].tap()
         XCTAssertTrue(app.navigationBars["Konten"].waitForExistence(timeout: 5))
         capture(app, "Konten")
+        app.buttons["source-zwift"].tap()
         app.buttons["connect-zwift"].tap()
         XCTAssertTrue(app.secureTextFields["Passwort"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.textFields["E-Mail"].exists)
         XCTAssertFalse(app.buttons["Zwift verbinden"].isEnabled)
         capture(app, "Zwift-Anmeldung-ohne-Kontodaten")
         app.buttons["Abbrechen"].tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
         app.buttons["Fertig"].tap()
     }
 

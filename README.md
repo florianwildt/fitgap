@@ -4,7 +4,7 @@
 
 ![FITgap – Your original FIT files. Shared directly.](docs/assets/header.png)
 
-FITgap is a small, open-source iPhone app that downloads your **original FIT files** from Wahoo and Zwift and hands them directly to apps like [HealthFit](https://apps.apple.com/app/healthfit/id1202650514) through the native share sheet. Files are never converted or re-encoded.
+FITgap is a small, open-source iPhone app that downloads your **original FIT files** from Wahoo, Zwift and MyWhoosh and hands them directly to apps like [HealthFit](https://apps.apple.com/app/healthfit/id1202650514) through the native share sheet. Files are never converted or re-encoded.
 
 - Requires iOS 17 or later, written in SwiftUI with native controls
 - Light and dark mode, German and English interface (follows the iOS language, English as fallback)
@@ -20,7 +20,7 @@ FITgap is a small, open-source iPhone app that downloads your **original FIT fil
 
 ## Features
 
-- **Wahoo and Zwift:** Connect one or both accounts and load every activity with its original FIT file. Existing files are skipped on later syncs.
+- **Wahoo, Zwift and MyWhoosh:** Connect any of the accounts and load every activity with its original FIT file. Existing files are skipped on later syncs.
 - **Share:** Hand one FIT or a multi-selection to the system share sheet, for example to HealthFit. Shared activities are marked in the list.
 - **Apple Health:** Save activities as workouts with every record sample Health supports (heart rate, power, cadence, speed, running dynamics, distance, energy, swim lengths), laps, pauses, route and the session summary as metadata. Individually, by selection or automatically for new activities. Workouts already in Health, from FITgap or another app, are detected and skipped.
 - **Details:** Distance, duration, average and maximum speed, heart rate, cadence, power, elevation and more, read locally from the FIT session summary.
@@ -48,6 +48,7 @@ The iOS keychain, sync lifecycle and UI tests are part of the Xcode scheme.
 
 - **Wahoo** uses OAuth 2.0 with PKCE (`fitgap://oauth/wahoo`, scopes `user_read workouts_read`) and a public client ID, no client secret. The client ID is defined in `Sources/FITgapCore/WahooOAuth.swift`. If you build your own version, register your own application in the [Wahoo Cloud API](https://cloud-api.wahooligan.com/) portal and use its client ID and redirect URI.
 - **Zwift** has no public API. FITgap uses unofficial interfaces with a public client ID, which Zwift may change or restrict at any time. Your password is only used transiently for sign-in and is never stored.
+- **MyWhoosh** has no public API either. FITgap signs in with your email and password through the unofficial interface of the MyWhoosh apps and stores only the access token and your account ID (`WhooshId`). No token refresh is known, so an expired session requires signing in again. FIT files are fetched through signed download links without the access token. MyWhoosh may change or restrict this interface at any time.
 
 ## Privacy
 
@@ -82,4 +83,4 @@ Licensed under the [Apache License 2.0](LICENSE). The name **FITgap**, the logo 
 
 The App Store version is a convenient, paid build of this same source code. You are free to build the app yourself.
 
-FITgap is an independent project and is not affiliated with or endorsed by Wahoo, Zwift, Garmin or HealthFit.
+FITgap is an independent project and is not affiliated with or endorsed by Wahoo, Zwift, MyWhoosh, Garmin or HealthFit.

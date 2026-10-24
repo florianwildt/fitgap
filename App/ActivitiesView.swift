@@ -39,6 +39,7 @@ struct ActivitiesView: View {
     @State private var editMode = EditMode.inactive
     @State private var picked = Set<ActivityKey>()
     @State private var sharedSelection = false
+    @State private var healthDetails = false
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var columns = NavigationSplitViewVisibility.all
 
@@ -71,7 +72,7 @@ struct ActivitiesView: View {
                 if model.activities.isEmpty {
                     Section {
                         ContentUnavailableView("Noch keine Aktivitäten", systemImage: "figure.outdoor.cycle",
-                            description: Text("Verbinde unter „Konten“ Wahoo oder Zwift und ziehe die Liste nach unten."))
+                            description: Text("Verbinde unter „Konten“ Wahoo, Zwift oder MyWhoosh und ziehe die Liste nach unten."))
                     }
                 } else if matches.isEmpty {
                     ContentUnavailableView.search(text: search)
@@ -170,19 +171,10 @@ struct ActivitiesView: View {
             }
             .safeAreaInset(edge: .bottom) { DemoIndicator(enabled: model.isDemo) }
             .overlay(alignment: .bottom) {
-                if model.busy && !model.healthExporting {
-                    HStack(spacing: 12) {
-                        ProgressView().tint(.white)
-                        Text(model.progress).fixedSize(horizontal: false, vertical: true)
-                        Spacer(minLength: 0)
-                        Button("Abbrechen", role: .cancel) { model.cancel() }
-                            .buttonStyle(.bordered).tint(.white)
-                    }
-                    .font(.subheadline.weight(.medium)).foregroundStyle(.white)
-                    .padding(.horizontal, 16).padding(.vertical, 10)
-                    .background(Color.accentColor, in: Capsule())
-                    .shadow(color: .black.opacity(0.25), radius: 8, y: 2)
-                    .padding(.bottom, 8).padding(.horizontal, 16)
+                // One progress for the whole run: provider import, then the Apple Health export.
+                if model.busy {
+                    SyncProgressCapsule(model: model) { healthDetails = true }
+                        .padding(.bottom, 8).padding(.horizontal, 16)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
@@ -190,7 +182,7 @@ struct ActivitiesView: View {
             .onChange(of: search) { _, _ in limit = Self.pageSize; showJump = false }
             .onChange(of: model.libraryGeneration) { _, _ in search = ""; limit = Self.pageSize; deleteCandidate = nil; share = nil; selected = nil; endSelection() }
             .sheet(isPresented: $accounts) { AccountsView(model: model) }
-            .modifier(HealthExportStatus(model: model))
+            .modifier(HealthExportStatus(model: model, showsProgress: false, details: $healthDetails))
             // Selection mode ends once the share sheet is gone, whether the handoff finished or was cancelled.
             .sheet(item: $share, onDismiss: { if sharedSelection { sharedSelection = false; endSelection() } }) { item in
                 ShareSheet(urls: item.urls) { completed in

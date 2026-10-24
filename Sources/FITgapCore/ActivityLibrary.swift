@@ -66,6 +66,11 @@ public struct ActivityRecord: Codable, Identifiable, Sendable {
                   status: activity.downloadURL == nil ? .unavailable : .pending)
     }
 
+    public init(_ activity: MyWhooshActivity) {
+        self.init(source: .mywhoosh, remoteID: activity.id, name: activity.name, date: activity.start,
+                  duration: activity.duration, status: activity.fileID == nil ? .unavailable : .pending)
+    }
+
     public init(_ workout: WahooWorkout) {
         // A missing provider title stays language-neutral in the stored index.
         self.init(source: .wahoo, remoteID: String(workout.id), name: workout.name ?? "",

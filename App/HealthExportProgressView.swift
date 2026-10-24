@@ -5,15 +5,20 @@ import SwiftUI
 /// and stays open after the end. A finished result keeps its status item until it was opened.
 struct HealthExportStatus: ViewModifier {
     @ObservedObject var model: AppModel
-    @State private var details = false
+    /// False where the sync progress already shows the running export; the result still appears afterwards.
+    var showsProgress = true
+    /// Lets the sync progress open the same details; without it the modifier keeps its own state.
+    var details: Binding<Bool>?
+    @State private var ownDetails = false
+    private var shown: Binding<Bool> { details ?? $ownDetails }
 
     func body(content: Content) -> some View {
         content
             .toolbar {
                 // Shown while the export runs and afterwards until its result was opened.
-                if let summary = model.healthSummary, !summary.finished || !model.healthSummarySeen {
+                if let summary = model.healthSummary, summary.finished ? !model.healthSummarySeen : showsProgress {
                     ToolbarItem(placement: .status) {
-                        Button { details = true } label: {
+                        Button { shown.wrappedValue = true } label: {
                             HStack(spacing: 8) {
                                 if summary.finished {
                                     Image(systemName: summary.failed > 0 ? "exclamationmark.circle" : "checkmark.circle")
@@ -21,7 +26,7 @@ struct HealthExportStatus: ViewModifier {
                                 } else {
                                     ProgressView()
                                 }
-                                Text(summary.finished ? String(localized: "Apple Health: abgeschlossen")
+                                Text(summary.finished ? String(localized: "Health: \(summary.saved) gesichert · \(summary.skipped) übersprungen")
                                                       : String(localized: "Apple Health: \(summary.done) von \(summary.total)"))
                                     .font(.footnote).monospacedDigit()
                             }
@@ -30,7 +35,7 @@ struct HealthExportStatus: ViewModifier {
                     }
                 }
             }
-            .sheet(isPresented: $details, onDismiss: model.acknowledgeHealthSummary) {
+            .sheet(isPresented: shown, onDismiss: model.acknowledgeHealthSummary) {
                 HealthExportProgressView(model: model)
             }
     }
@@ -63,6 +68,16 @@ struct HealthExportProgressView: View {
                     } footer: {
                         if !summary.finished {
                             Text("Der Export läuft weiter, wenn du dieses Fenster schließt. Ein unterbrochener Export wird beim nächsten Öffnen fortgesetzt.")
+                        }
+                    }
+                    if !summary.finished, !model.healthInProgress.isEmpty {
+                        Section("Wird gerade gesichert") {
+                            ForEach(Array(model.healthInProgress.enumerated()), id: \.offset) { _, name in
+                                HStack(spacing: 12) {
+                                    ProgressView()
+                                    Text(name).lineLimit(2)
+                                }
+                            }
                         }
                     }
                     if summary.finished, let error = model.errorMessage {

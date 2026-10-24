@@ -115,11 +115,15 @@ final class DemoUITests: XCTestCase {
         XCTAssertTrue(notice.waitForExistence(timeout: 5))
         XCTAssertTrue(notice.label.contains(german ? "Demo zurückgesetzt" : "Demo reset"))
         app.buttons[german ? "Konten" : "Accounts"].tap()
+        let source = app.buttons["source-zwift"]
+        reveal(source, in: app)
+        source.tap()
         let connect = app.buttons["connect-zwift"]
-        reveal(connect, in: app)
+        XCTAssertTrue(connect.waitForExistence(timeout: 5))
         XCTAssertFalse(connect.isEnabled)
         XCTAssertTrue(indicator.exists)
         capture(app, "Demo-accounts-\(german)")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
         let privacy = app.descendants(matching: .any).matching(identifier: "privacy-policy").firstMatch
         reveal(privacy, in: app)
         XCTAssertTrue(privacy.isEnabled)

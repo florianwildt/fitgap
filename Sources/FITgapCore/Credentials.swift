@@ -2,13 +2,14 @@ import Foundation
 import Security
 
 public enum Source: String, Codable, CaseIterable, Identifiable, Sendable {
-    case zwift, wahoo, demo
-    public static let providers: [Source] = [.zwift, .wahoo]
+    case zwift, wahoo, mywhoosh, demo
+    public static let providers: [Source] = [.zwift, .wahoo, .mywhoosh]
     public var id: String { rawValue }
     public var title: String {
         switch self {
         case .zwift: "Zwift"
         case .wahoo: "Wahoo"
+        case .mywhoosh: "MyWhoosh"
         case .demo: "Demo"
         }
     }
@@ -19,12 +20,15 @@ public struct Credentials: Codable, Sendable {
     public let refreshToken: String?
     public let expiresAt: Date?
     public let pkceVerifier: String?
+    /// Provider account identifier some routes require (MyWhoosh `WhooshId`); not a secret.
+    public let accountID: String?
 
-    public init(accessToken: String, refreshToken: String?, expiresAt: Date?, pkceVerifier: String? = nil) {
+    public init(accessToken: String, refreshToken: String?, expiresAt: Date?, pkceVerifier: String? = nil, accountID: String? = nil) {
         self.accessToken = accessToken
         self.refreshToken = refreshToken
         self.expiresAt = expiresAt
         self.pkceVerifier = pkceVerifier
+        self.accountID = accountID
     }
 
     public var needsRefresh: Bool { expiresAt.map { $0.timeIntervalSinceNow < 60 } ?? false }
