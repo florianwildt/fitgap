@@ -8,6 +8,7 @@
 <meta property="og:title" content="FITgap">
 <meta property="og:description" content="Your original FIT files. Complete in Apple Health.">
 <meta property="og:image" content="assets/header.png">
+<meta name="apple-itunes-app" content="app-id=6825090575">
 <link rel="icon" href="assets/logo.png">
 <style>
 :root{--bg:#fff;--fg:#1d1d1f;--muted:#6e6e73;--card:#f5f5f7;--accent:#0a5cff;--line:#d2d2d7}
@@ -29,6 +30,9 @@ nav .links{display:flex;gap:18px;align-items:center;font-size:15px}
 .btn{display:inline-block;background:var(--accent);color:#fff;padding:12px 24px;border-radius:980px;font-weight:600}
 .btn.alt{background:transparent;color:var(--accent);border:1px solid var(--accent);margin-left:8px}
 .btn:hover{text-decoration:none;opacity:.9}
+.cta{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:12px}
+.badge img{display:block;height:48px;width:auto}
+.cta .btn.alt{margin-left:0}
 .banner{border-radius:24px;overflow:hidden;margin:32px 0}
 .banner img{display:block;width:100%;height:auto}
 .shots{display:flex;gap:20px;overflow-x:auto;padding:8px 20px 28px;margin:0 -20px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
@@ -69,8 +73,11 @@ html[lang=en] span[data-l=en],html[lang=de] span[data-l=de]{display:inline}
   <header class="hero">
     <h1><span data-l="en">Your original FIT files.<br>Complete in Apple Health.</span><span data-l="de">Deine Original-FIT-Dateien.<br>Vollständig in Apple Health.</span></h1>
     <p><span data-l="en">FITgap loads your rides from Wahoo, Zwift and MyWhoosh to your iPhone and saves them to Apple Health with every metric, lap and route – without duplicates. Or hand the untouched FIT file to HealthFit with one tap.</span><span data-l="de">FITgap lädt deine Fahrten von Wahoo, Zwift und MyWhoosh aufs iPhone und sichert sie mit allen Messwerten, Runden und Route in Apple Health – ohne Dubletten. Oder übergib die unveränderte FIT-Datei mit einem Tipp an HealthFit.</span></p>
-    <!-- App Store: Link hier einsetzen, sobald verfügbar -->
-    <a class="btn" href="https://github.com/florianwildt/fitgap"><span data-l="en">View source on GitHub</span><span data-l="de">Quellcode auf GitHub</span></a>
+    <div class="cta">
+      <a class="badge" data-l="en" href="https://apps.apple.com/app/id6825090575"><img src="assets/appstore-badge-en.svg" alt="Download on the App Store" width="120" height="40"></a>
+      <a class="badge" data-l="de" href="https://apps.apple.com/app/id6825090575"><img src="assets/appstore-badge-de.svg" alt="Laden im App Store" width="120" height="40"></a>
+      <a class="btn alt" href="https://github.com/florianwildt/fitgap"><span data-l="en">View source on GitHub</span><span data-l="de">Quellcode auf GitHub</span></a>
+    </div>
   </header>
 
   <div class="banner"><img src="assets/header.png" alt="A FIT file travelling from a ride to your iPhone" width="1600" height="686"></div>
@@ -105,7 +112,7 @@ html[lang=en] span[data-l=en],html[lang=de] span[data-l=de]{display:inline}
 
   <section>
     <h2>Open Source</h2>
-    <p class="oss"><span data-l="en">FITgap is licensed under the Apache License 2.0. Read it, build it yourself or contribute. The App Store version is a convenient way to support development. The name, logo and app icon are not part of the license.</span><span data-l="de">FITgap steht unter der Apache License 2.0. Du kannst den Code lesen, selbst bauen oder mitwirken. Die App-Store-Version ist eine bequeme Möglichkeit, die Entwicklung zu unterstützen. Name, Logo und App-Symbol sind nicht Teil der Lizenz.</span></p>
+    <p class="oss"><span data-l="en">FITgap is licensed under the Apache License 2.0. Read it, build it yourself or contribute. The <a href="https://apps.apple.com/app/id6825090575">App Store version</a> is a convenient way to support development. The name, logo and app icon are not part of the license.</span><span data-l="de">FITgap steht unter der Apache License 2.0. Du kannst den Code lesen, selbst bauen oder mitwirken. Die <a href="https://apps.apple.com/app/id6825090575">App-Store-Version</a> ist eine bequeme Möglichkeit, die Entwicklung zu unterstützen. Name, Logo und App-Symbol sind nicht Teil der Lizenz.</span></p>
     <p style="text-align:center"><a class="btn alt" style="margin:0" href="https://github.com/florianwildt/fitgap"><span data-l="en">Source code</span><span data-l="de">Quellcode</span></a></p>
   </section>
 
