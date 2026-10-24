@@ -12,11 +12,11 @@ FITgap is a small, open-source iPhone app that downloads your **original FIT fil
 - No backend, no tracking, no third-party dependencies
 
 <p>
-  <img src="docs/assets/shot-list.png" width="200" alt="Activity list">
-  <img src="docs/assets/shot-detail.png" width="200" alt="Activity details">
-  <img src="docs/assets/shot-duo-narrow.png" width="200" alt="iPhone Duo folded">
+  <img src="docs/assets/shot-list-en.png" width="200" alt="Activity list">
+  <img src="docs/assets/shot-detail-en.png" width="200" alt="Activity details">
+  <img src="docs/assets/shot-duo-narrow-en.png" width="200" alt="iPhone Duo folded">
 </p>
-<p><img src="docs/assets/shot-duo-split.png" width="620" alt="Two-column layout on the unfolded iPhone Duo"></p>
+<p><img src="docs/assets/shot-duo-split-en.png" width="620" alt="Two-column layout on the unfolded iPhone Duo"></p>
 
 ## Features
 
