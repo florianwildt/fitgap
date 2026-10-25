@@ -85,4 +85,4 @@ Licensed under the [Apache License 2.0](LICENSE). The name **FITgap**, the logo 
 
 The App Store version is a convenient, paid build of this same source code. You are free to build the app yourself.
 
-FITgap is an independent project and is not affiliated with or endorsed by Wahoo, Zwift, MyWhoosh, Garmin or HealthFit.
+FITgap is an independent project and is not affiliated with or endorsed by Wahoo, Zwift, MyWhoosh, Hammerhead, Garmin or HealthFit.
