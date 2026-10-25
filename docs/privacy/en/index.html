@@ -29,7 +29,7 @@ footer a{color:var(--muted);text-decoration:underline}
 <nav><a class="brand" href="../../"><img src="../../assets/logo.png" alt="" width="32" height="32">FITgap</a><span><a href="../">Deutsch</a> · <a href="https://github.com/florianwildt/fitgap">GitHub</a></span></nav>
 <main>
 <h1 id="fitgap">FITgap</h1>
-<p>Back up and share FIT files from Wahoo, Zwift, MyWhoosh, Hammerhead and intervals.icu.</p>
+<p>Back up FIT files from Wahoo, Zwift, MyWhoosh, Hammerhead, Dropbox, intervals.icu and other apps, save them to Apple Health and share them.</p>
 
 <h2 id="support">Support</h2>
 <p>If you have questions or problems, contact <a href="mailto:fitgap@florianwildt.de">fitgap@florianwildt.de</a>.</p>
@@ -51,7 +51,7 @@ Germany</p>
 <p>This policy describes how personal data is processed when you use the iOS app FITgap and this information website.</p>
 
 <h2 id="2-basic-principle-of-the-app">2. Basic principle of the app</h2>
-<p>At your request, FITgap connects to your own Wahoo, Zwift, MyWhoosh, Hammerhead, Dropbox and intervals.icu accounts, downloads activity information and original FIT files, and stores them on your iPhone.</p>
+<p>At your request, FITgap connects to your own Wahoo, Zwift, MyWhoosh, Hammerhead, Dropbox and intervals.icu accounts, downloads activity information and original FIT files, and stores them on your iPhone. You can also import FIT files that you open in FITgap from the Files app, Mail or another app; they are likewise stored only on your device.</p>
 
 <p>FITgap does not operate its own server for storing your accounts or workout data. The developer does not gain access to this data through normal use of the app.</p>
 
@@ -66,6 +66,7 @@ Germany</p>
   <li>Workout metrics such as duration, distance, elevation gain and average speed.</li>
   <li>Original FIT files. Depending on the recording, these may contain further personal data such as location, heart rate or power data.</li>
   <li>Local download, synchronisation and sharing status information, and the Apple Health export status.</li>
+  <li>A local startup log with the app’s launch timings, app version, device model, iOS version and number of stored activities. It contains no workout content or credentials and only leaves the device if you share it yourself under “Accounts” › “Diagnostics”.</li>
 </ul>
 
 <p>The stored data is used to provide the app functions you use.</p>
@@ -101,6 +102,7 @@ Germany</p>
 <p>Activity information, FIT files and calculated metrics are stored in the app’s local storage. FITgap does not offer its own cloud synchronisation. Depending on your Apple and device settings, device backups may contain app data.</p>
 
 <p>When you share via the iOS share sheet, the selected original file is handed to the app or destination you choose, for example HealthFit. A FIT file may also contain sensitive workout and location data. The recipient’s privacy policy applies to any further processing by the recipient.</p>
+<p>If an activity contains location data, FITgap shows its route on a map from Apple (MapKit). To load the map, Apple’s map service receives the displayed map region and technically necessary connection data such as your IP address; FITgap draws the route itself on the device. Apple’s <a href="https://www.apple.com/legal/privacy/data/en/apple-maps/">Apple Maps privacy information</a> applies.</p>
 
 <h2 id="6-apple-health">6. Apple Health</h2>
 <p>Saving to Apple Health is optional and only happens when you trigger it for an activity, a selection or automatically for new activities, and allow access in iOS.</p>
@@ -119,7 +121,7 @@ Germany</p>
 
 <ul>
   <li>“Disconnect” removes the access tokens stored in FITgap for the respective provider. Files already downloaded and activity information are kept.</li>
-  <li>“Disconnect” does not revoke permission granted at the provider. Please also manage it with the provider.</li>
+  <li>“Disconnect” does not revoke permission granted at the provider, except for Hammerhead and Dropbox. Please also manage it with the provider.</li>
   <li>Turning off automatic saving or deleting FITgap does not remove workouts already saved to Apple Health.</li>
   <li>Deleting a FIT file removes the local file. The activity entry and metrics already saved may remain.</li>
   <li>To remove all local app storage, delete the app through iOS. “Offload App”, by contrast, keeps documents and data. Disconnect your accounts beforehand, as keychain data can survive an app deletion.</li>

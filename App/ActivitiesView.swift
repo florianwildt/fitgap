@@ -90,7 +90,7 @@ struct ActivitiesView: View {
                 if model.activities.isEmpty {
                     Section {
                         ContentUnavailableView("Noch keine Aktivitäten", systemImage: "figure.outdoor.cycle",
-                            description: Text("Verbinde unter „Konten“ Wahoo, Zwift oder MyWhoosh und ziehe die Liste nach unten."))
+                            description: Text("Verbinde unter „Konten“ eine Datenquelle und ziehe die Liste nach unten – oder importiere eine FIT-Datei."))
                     }
                 } else if matches.isEmpty {
                     if filter.isActive, search.isEmpty {

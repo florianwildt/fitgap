@@ -4,7 +4,7 @@
 
 ![FITgap – Your rides from Wahoo, Zwift, MyWhoosh, Hammerhead, Dropbox and intervals.icu, straight into Apple Health](docs/assets/header-en.png)
 
-FITgap is a small, open-source iPhone app that downloads your **original FIT files** from Wahoo, Zwift, MyWhoosh, Hammerhead and intervals.icu and hands them directly to apps like [HealthFit](https://apps.apple.com/app/healthfit/id1202650514) through the native share sheet. Files are never converted or re-encoded.
+FITgap is a small, open-source iPhone app that downloads your **original FIT files** from Wahoo, Zwift, MyWhoosh, Hammerhead, Dropbox and intervals.icu, or imports FIT files you open in it. It saves them to Apple Health with every metric, lap and route, without duplicates, or hands them unchanged to apps like [HealthFit](https://apps.apple.com/app/healthfit/id1202650514) through the native share sheet. Files are never converted or re-encoded.
 
 - Requires iOS 17 or later, written in SwiftUI with native controls
 - Light and dark mode, German and English interface (follows the iOS language, English as fallback)
@@ -27,11 +27,13 @@ FITgap is a small, open-source iPhone app that downloads your **original FIT fil
 - **Share:** Hand one FIT or a multi-selection to the system share sheet, for example to HealthFit. Shared activities are marked in the list.
 - **Apple Health:** Save activities as workouts with every record sample Health supports (heart rate, power, cadence, speed, running dynamics, distance, energy, swim lengths), laps, pauses, route and the session summary as metadata. Individually, by selection or automatically for new activities. Workouts already in Health, from FITgap or another app, are detected and skipped.
 - **Details:** Distance, duration, average and maximum speed, heart rate, cadence, power, elevation and more, read locally from the FIT session summary.
-- **Search** across all downloaded activities.
+- **Route map:** Rows and details show the recorded route on an Apple map, coloured by speed (red slow, yellow average, green fast) with start and finish; virtual rides from Zwift or MyWhoosh appear at the coordinates of their game world. Tap the map in the details to open it full screen and zoom in. Activities without positions show no map.
+- **Search and filters** across all downloaded activities: time period (last 7 or 30 days, last 12 months, this or last year), activity type and data source.
 - **Files app:** Every downloaded FIT is also available under *On My iPhone › FITgap*.
 - **Large archives:** Paged syncing with resume, respect for Wahoo and Dropbox rate limits, and cancellable downloads. On iOS 26 and later, a sync or Health export you started keeps running after you leave the app, with progress in the Dynamic Island.
 - **Integrity:** Downloads are stored atomically and verified with SHA-256 before sharing.
-- **Demo mode:** Try the app without an account using three synthetic sample rides, including the Apple Health export. Resetting or ending the demo removes the demo workouts from Health.
+- **Demo mode:** Try the app without an account using three synthetic sample rides with routes, including the Apple Health export. Resetting or ending the demo removes the demo workouts from Health.
+- **Startup log:** *Accounts › Diagnostics › Share Startup Log* hands a local text file with launch timings (app version, device model, iOS version, number of activities) to the share sheet, for example to attach it to a support email. It is only written on the device and never sent automatically.
 
 ## Build and run
 
@@ -61,6 +63,7 @@ The iOS keychain, sync lifecycle and UI tests are part of the Xcode scheme.
 - Access and refresh tokens and the intervals.icu API key are stored only in the local keychain (`WhenUnlockedThisDeviceOnly`, no iCloud sync).
 - Activities and FIT files are stored on the device in `Application Support/FITgap/`. Nothing is sent to a server operated by the project.
 - Apple Health access is optional. FITgap writes workouts and only reads workouts to detect duplicates; no Health data leaves the device through FITgap.
+- Maps are drawn with Apple MapKit. To show the map, Apple's map service receives the visible map region and the usual connection data; the route itself is drawn on the device.
 - Disconnecting removes the local session; the authorisation at the provider remains, except for Hammerhead and Dropbox, where FITgap revokes it. Downloaded files remain.
 
 See the full [Privacy Policy](https://florianwildt.github.io/fitgap/privacy/en/).

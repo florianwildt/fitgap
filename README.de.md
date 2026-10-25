@@ -4,7 +4,7 @@
 
 ![FITgap – Deine Fahrten von Wahoo, Zwift, MyWhoosh, Hammerhead, Dropbox und intervals.icu, direkt in Apple Health](docs/assets/header-de.png)
 
-FITgap ist eine schlanke Open-Source-iPhone-App, die deine **Original-FIT-Dateien** von Wahoo, Zwift, MyWhoosh, Hammerhead und intervals.icu herunterlädt und über das native Share Sheet direkt an Apps wie [HealthFit](https://apps.apple.com/app/healthfit/id1202650514) übergibt. Die Dateien werden weder konvertiert noch neu kodiert.
+FITgap ist eine schlanke Open-Source-iPhone-App, die deine **Original-FIT-Dateien** von Wahoo, Zwift, MyWhoosh, Hammerhead, Dropbox und intervals.icu herunterlädt oder FIT-Dateien importiert, die du darin öffnest. Sie sichert sie mit allen Messwerten, Runden und Route ohne Dubletten in Apple Health oder übergibt sie unverändert über das native Share Sheet an Apps wie [HealthFit](https://apps.apple.com/app/healthfit/id1202650514). Die Dateien werden weder konvertiert noch neu kodiert.
 
 - Ab iOS 17, SwiftUI mit nativen Bedienelementen
 - Hell- und Dunkelmodus, deutsche und englische Oberfläche (nach iOS-Sprache, Englisch als Fallback)
@@ -27,11 +27,13 @@ FITgap ist eine schlanke Open-Source-iPhone-App, die deine **Original-FIT-Dateie
 - **Teilen:** Eine FIT oder eine Mehrfachauswahl ans System-Share-Sheet übergeben, z. B. an HealthFit. Geteilte Aktivitäten werden in der Liste markiert.
 - **Apple Health:** Aktivitäten als Trainings sichern, mit allen Messwerten, für die Health einen Typ hat (Herzfrequenz, Leistung, Trittfrequenz, Geschwindigkeit, Laufdynamik, Strecke, Energie, Schwimmbahnen), Runden, Pausen, Route und der Session-Zusammenfassung als Metadaten. Einzeln, per Auswahl oder automatisch für neue Aktivitäten. Bereits in Health vorhandene Trainings, von FITgap oder einer anderen App, werden erkannt und übersprungen.
 - **Details:** Strecke, Dauer, Durchschnitts- und Höchstgeschwindigkeit, Herzfrequenz, Trittfrequenz, Leistung, Höhenmeter und mehr, lokal aus der FIT-Session gelesen.
-- **Suche** über alle heruntergeladenen Aktivitäten.
+- **Streckenkarte:** Liste und Details zeigen die aufgezeichnete Strecke auf einer Apple-Karte, nach Tempo eingefärbt (rot langsam, gelb mittel, grün schnell) mit Start und Ziel; virtuelle Fahrten aus Zwift oder MyWhoosh liegen an den Koordinaten ihrer Spielwelt. Ein Tipp auf die Karte in den Details öffnet sie bildschirmfüllend zum Hineinzoomen. Aktivitäten ohne Positionen zeigen keine Karte.
+- **Suche und Filter** über alle heruntergeladenen Aktivitäten: Zeitraum (letzte 7 oder 30 Tage, letzte 12 Monate, dieses oder letztes Jahr), Aktivitätstyp und Datenquelle.
 - **Dateien-App:** Jede geladene FIT liegt zusätzlich unter *Auf meinem iPhone › FITgap*.
 - **Große Archive:** Seitenweiser Abgleich mit Fortsetzung, Beachtung der Abruflimits von Wahoo und Dropbox und abbrechbare Downloads. Ab iOS 26 läuft ein selbst gestarteter Abgleich oder Health-Export nach dem Verlassen der App weiter, mit Fortschritt in der Dynamic Island.
 - **Integrität:** Downloads werden atomar gespeichert und vor dem Teilen per SHA-256 geprüft.
-- **Demo-Modus:** App ohne Konto mit drei synthetischen Beispielfahrten ausprobieren, auch den Export nach Apple Health. Zurücksetzen oder Beenden der Demo entfernt die Demo-Trainings wieder aus Health.
+- **Demo-Modus:** App ohne Konto mit drei synthetischen Beispielfahrten samt Strecken ausprobieren, auch den Export nach Apple Health. Zurücksetzen oder Beenden der Demo entfernt die Demo-Trainings wieder aus Health.
+- **Startprotokoll:** *Konten › Diagnose › Startprotokoll teilen* übergibt eine lokale Textdatei mit Startzeiten (App-Version, Gerätemodell, iOS-Version, Anzahl der Aktivitäten) ans Share Sheet, etwa als Anhang einer Support-E-Mail. Sie entsteht nur auf dem Gerät und wird nie automatisch gesendet.
 
 ## Bauen und starten
 
@@ -61,6 +63,7 @@ Schlüsselbund-, Sync-Lebenszyklus- und UI-Tests sind im Xcode-Scheme enthalten.
 - Access- und Refresh-Tokens sowie der intervals.icu-API-Key liegen ausschließlich im lokalen Schlüsselbund (`WhenUnlockedThisDeviceOnly`, ohne iCloud-Synchronisierung).
 - Aktivitäten und FIT-Dateien liegen auf dem Gerät unter `Application Support/FITgap/`. Es werden keine Daten an einen Server des Projekts gesendet.
 - Der Zugriff auf Apple Health ist optional. FITgap schreibt Trainings und liest nur Trainings, um Duplikate zu erkennen; über FITgap verlassen keine Health-Daten das Gerät.
+- Karten zeichnet Apple MapKit. Für die Anzeige erhält Apples Kartendienst den sichtbaren Kartenausschnitt und die üblichen Verbindungsdaten; die Strecke selbst wird auf dem Gerät gezeichnet.
 - Trennen entfernt die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen, nur bei Hammerhead und Dropbox widerruft FITgap sie. Heruntergeladene Dateien bleiben erhalten.
 
 Siehe die vollständige [Datenschutzerklärung](https://florianwildt.github.io/fitgap/privacy/).

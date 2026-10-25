@@ -43,7 +43,7 @@
 "Teilen" = "Share";
 "Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen, nur bei Hammerhead und Dropbox wird sie widerrufen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden." = "Tokens stay in this iPhone’s Keychain. Disconnecting removes the local session; access granted at the provider remains in place, except for Hammerhead and Dropbox, where it is revoked. Saved FIT files are kept and can be deleted individually.";
 "Trennen" = "Disconnect";
-"Verbinde unter „Konten“ Wahoo, Zwift oder MyWhoosh und ziehe die Liste nach unten." = "Connect Wahoo, Zwift or MyWhoosh in “Accounts”, then pull the list down to refresh.";
+"Verbinde unter „Konten“ eine Datenquelle und ziehe die Liste nach unten – oder importiere eine FIT-Datei." = "Connect a data source in “Accounts” and pull the list down to refresh – or import a FIT file.";
 "Verbinden" = "Connect";
 "Verbunden" = "Connected";
 "Wahoo-Anmeldung …" = "Signing in to Wahoo…";
@@ -62,7 +62,7 @@
 "Synthetische Aktivitäten ohne Anbieteranmeldung. Echte Konten und Daten bleiben getrennt; Anbieterzugriffe sind pausiert." = "Synthetic activities without provider sign-in. Real accounts and data stay separate; provider access is paused.";
 "Demo zurücksetzen" = "Reset Demo";
 "Demo beenden" = "End Demo";
-"Kernfunktionen mit synthetischen Aktivitäten und lokalen FIT-Dateien ausprobieren. Kein Konto bei Wahoo, Zwift oder MyWhoosh erforderlich." = "Try core features with synthetic activities and local FIT files. No Wahoo, Zwift or MyWhoosh account required.";
+"Kernfunktionen mit synthetischen Aktivitäten und lokalen FIT-Dateien ausprobieren. Kein Konto bei einer Datenquelle erforderlich." = "Try core features with synthetic activities and local FIT files. No account with any data source required.";
 "Modus wird gewechselt …" = "Switching mode…";
 "Demo zurücksetzen?" = "Reset Demo?";
 "Nur Demo-Dateien, Demo-Kennzahlen, Demo-Markierungen und in Apple Health gesicherte Demo-Trainings werden zurückgesetzt. Echte Daten bleiben erhalten." = "Only demo files, demo metrics, demo marks and demo workouts saved to Apple Health will be reset. Real data is preserved.";

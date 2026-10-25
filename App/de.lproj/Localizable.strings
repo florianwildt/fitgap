@@ -43,7 +43,7 @@
 "Teilen" = "Teilen";
 "Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen, nur bei Hammerhead und Dropbox wird sie widerrufen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden." = "Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen, nur bei Hammerhead und Dropbox wird sie widerrufen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden.";
 "Trennen" = "Trennen";
-"Verbinde unter „Konten“ Wahoo, Zwift oder MyWhoosh und ziehe die Liste nach unten." = "Verbinde unter „Konten“ Wahoo, Zwift oder MyWhoosh und ziehe die Liste nach unten.";
+"Verbinde unter „Konten“ eine Datenquelle und ziehe die Liste nach unten – oder importiere eine FIT-Datei." = "Verbinde unter „Konten“ eine Datenquelle und ziehe die Liste nach unten – oder importiere eine FIT-Datei.";
 "Verbinden" = "Verbinden";
 "Verbunden" = "Verbunden";
 "Wahoo-Anmeldung …" = "Wahoo-Anmeldung …";
@@ -62,7 +62,7 @@
 "Synthetische Aktivitäten ohne Anbieteranmeldung. Echte Konten und Daten bleiben getrennt; Anbieterzugriffe sind pausiert." = "Synthetische Aktivitäten ohne Anbieteranmeldung. Echte Konten und Daten bleiben getrennt; Anbieterzugriffe sind pausiert.";
 "Demo zurücksetzen" = "Demo zurücksetzen";
 "Demo beenden" = "Demo beenden";
-"Kernfunktionen mit synthetischen Aktivitäten und lokalen FIT-Dateien ausprobieren. Kein Konto bei Wahoo, Zwift oder MyWhoosh erforderlich." = "Kernfunktionen mit synthetischen Aktivitäten und lokalen FIT-Dateien ausprobieren. Kein Konto bei Wahoo, Zwift oder MyWhoosh erforderlich.";
+"Kernfunktionen mit synthetischen Aktivitäten und lokalen FIT-Dateien ausprobieren. Kein Konto bei einer Datenquelle erforderlich." = "Kernfunktionen mit synthetischen Aktivitäten und lokalen FIT-Dateien ausprobieren. Kein Konto bei einer Datenquelle erforderlich.";
 "Modus wird gewechselt …" = "Modus wird gewechselt …";
 "Demo zurücksetzen?" = "Demo zurücksetzen?";
 "Nur Demo-Dateien, Demo-Kennzahlen, Demo-Markierungen und in Apple Health gesicherte Demo-Trainings werden zurückgesetzt. Echte Daten bleiben erhalten." = "Nur Demo-Dateien, Demo-Kennzahlen, Demo-Markierungen und in Apple Health gesicherte Demo-Trainings werden zurückgesetzt. Echte Daten bleiben erhalten.";

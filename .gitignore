@@ -17,3 +17,6 @@ Assets/AppStore/Screenshot*.png
 
 # Hammerhead client secret (only local / injected by Xcode Cloud)
 Config/Secrets.xcconfig
+
+# Startup log copied from the device (diagnostics only)
+FITgap-Startprotokoll.txt

@@ -28,7 +28,7 @@ struct DemoSection: View {
                     Button("Demo ausprobieren", systemImage: "play.circle") { Task { await model.setDemo(true) } }
                         .accessibilityIdentifier(identifierPrefix + "try-demo")
                         .disabled(model.switchingMode)
-                    Text("Kernfunktionen mit synthetischen Aktivitäten und lokalen FIT-Dateien ausprobieren. Kein Konto bei Wahoo, Zwift oder MyWhoosh erforderlich.")
+                    Text("Kernfunktionen mit synthetischen Aktivitäten und lokalen FIT-Dateien ausprobieren. Kein Konto bei einer Datenquelle erforderlich.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 if model.switchingMode {

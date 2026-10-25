@@ -29,7 +29,7 @@ footer a{color:var(--muted);text-decoration:underline}
 <nav><a class="brand" href="../"><img src="../assets/logo.png" alt="" width="32" height="32">FITgap</a><span><a href="en/">English</a> · <a href="https://github.com/florianwildt/fitgap">GitHub</a></span></nav>
 <main>
 <h1 id="fitgap">FITgap</h1>
-<p>FIT-Dateien aus Wahoo, Zwift, MyWhoosh, Hammerhead und intervals.icu sichern und teilen.</p>
+<p>FIT-Dateien aus Wahoo, Zwift, MyWhoosh, Hammerhead, Dropbox, intervals.icu und anderen Apps sichern, in Apple Health speichern und teilen.</p>
 
 <h2 id="support">Support</h2>
 <p>Bei Fragen oder Problemen: <a href="mailto:fitgap@florianwildt.de">fitgap@florianwildt.de</a></p>
@@ -50,7 +50,7 @@ Deutschland</p>
 <p>Diese Erklärung beschreibt die Verarbeitung personenbezogener Daten bei der Nutzung der iOS-App FITgap und dieser Informationsseite.</p>
 
 <h2 id="2-grundprinzip-der-app">2. Grundprinzip der App</h2>
-<p>FITgap verbindet sich auf deine Anforderung mit deinen eigenen Konten bei Wahoo, Zwift, MyWhoosh, Hammerhead, Dropbox und intervals.icu, lädt Aktivitätsinformationen und Original-FIT-Dateien herunter und speichert sie auf deinem iPhone.</p>
+<p>FITgap verbindet sich auf deine Anforderung mit deinen eigenen Konten bei Wahoo, Zwift, MyWhoosh, Hammerhead, Dropbox und intervals.icu, lädt Aktivitätsinformationen und Original-FIT-Dateien herunter und speichert sie auf deinem iPhone. Außerdem kannst du FIT-Dateien, die du aus der Dateien-App, Mail oder einer anderen App in FITgap öffnest, importieren; sie werden ebenfalls nur lokal gespeichert.</p>
 
 <p>FITgap betreibt keinen eigenen Server zur Speicherung deiner Konten oder Trainingsdaten. Der Entwickler erhält durch die normale App-Nutzung keinen Zugriff auf diese Daten.</p>
 
@@ -65,6 +65,7 @@ Deutschland</p>
   <li>Trainingskennzahlen, beispielsweise Dauer, Strecke, Höhenmeter und Durchschnittsgeschwindigkeit.</li>
   <li>Original-FIT-Dateien. Diese können je nach Aufzeichnung weitere persönliche Daten enthalten, etwa Positions-, Herzfrequenz- oder Leistungsdaten.</li>
   <li>Lokale Download-, Synchronisierungs- und Teilen-Statusinformationen sowie der Exportstatus für Apple Health.</li>
+  <li>Ein lokales Startprotokoll mit Startzeiten der App, App-Version, Gerätemodell, iOS-Version und Anzahl der gespeicherten Aktivitäten. Es enthält keine Trainingsinhalte und Zugangsdaten und verlässt das Gerät nur, wenn du es unter „Konten“ › „Diagnose“ selbst teilst.</li>
 </ul>
 
 <p>Die gespeicherten Daten dienen der Bereitstellung der von dir genutzten App-Funktionen.</p>
@@ -100,6 +101,7 @@ Deutschland</p>
 <p>Aktivitätsinformationen, FIT-Dateien und berechnete Kennzahlen werden im lokalen App-Speicher abgelegt. Eine eigene Cloud-Synchronisierung bietet FITgap nicht an. Gerätesicherungen können abhängig von deinen Apple- und Geräteeinstellungen App-Daten enthalten.</p>
 
 <p>Beim Teilen über das iOS-Teilen-Menü wird die ausgewählte Originaldatei an die von dir gewählte App oder das gewählte Ziel übergeben, beispielsweise HealthFit. Eine FIT-Datei kann dabei auch sensible Trainings- und Positionsdaten enthalten. Für die weitere Verarbeitung beim Empfänger gelten dessen Datenschutzbestimmungen.</p>
+<p>Enthält eine Aktivität Positionsdaten, zeigt FITgap die Strecke auf einer Karte von Apple (MapKit). Zum Laden der Karte erhält Apples Kartendienst den angezeigten Kartenausschnitt sowie technisch notwendige Verbindungsdaten wie die IP-Adresse; die Strecke selbst zeichnet FITgap auf dem Gerät. Es gilt die <a href="https://www.apple.com/de/legal/privacy/data/de/apple-maps/">Datenschutzinformation zu Apple Karten</a>.</p>
 
 <h2 id="6-apple-health">6. Apple Health</h2>
 <p>Die Sicherung in Apple Health ist optional und erfolgt nur, wenn du sie für eine Aktivität, eine Auswahl oder automatisch für neue Aktivitäten auslöst und den Zugriff in iOS erlaubst.</p>
@@ -118,7 +120,7 @@ Deutschland</p>
 
 <ul>
   <li>„Trennen“ entfernt die in FITgap gespeicherten Zugangstokens des jeweiligen Anbieters. Bereits heruntergeladene Dateien und Aktivitätsinformationen bleiben erhalten.</li>
-  <li>Eine beim Anbieter erteilte Freigabe wird durch „Trennen“ nicht widerrufen. Verwalte sie zusätzlich beim jeweiligen Anbieter.</li>
+  <li>Eine beim Anbieter erteilte Freigabe wird durch „Trennen“ nicht widerrufen, außer bei Hammerhead und Dropbox. Verwalte sie zusätzlich beim jeweiligen Anbieter.</li>
   <li>Das Ausschalten der automatischen Sicherung oder das Löschen von FITgap entfernt keine bereits in Apple Health gesicherten Trainings.</li>
   <li>Das Löschen einer FIT-Datei entfernt die lokale Datei. Der Aktivitätseintrag und bereits gespeicherte Kennzahlen können weiterhin vorhanden sein.</li>
   <li>Zum Entfernen des gesamten lokalen App-Speichers kannst du die App über iOS löschen. „App auslagern“ erhält dagegen Dokumente und Daten. Trenne zuvor die Konten, da Schlüsselbunddaten eine App-Deinstallation überdauern können.</li>

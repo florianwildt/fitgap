@@ -24,8 +24,9 @@ public struct DemoLibrary: Sendable {
         if FileManager.default.fileExists(atPath: library.directory.appendingPathComponent("activities.json").path) {
             var records = try library.load()
             // Bundled demo files are small: replace copies from an older app version and refresh older cached metrics directly.
+            // A file the user deleted stays deleted until restored.
             let outdated = records.indices.filter { index in
-                guard let bundled = try? bytes(id: records[index].remoteID) else { return false }
+                guard records[index].status != .deleted, let bundled = try? bytes(id: records[index].remoteID) else { return false }
                 return records[index].receipt?.sha256 != SHA256.hash(data: bundled).map { String(format: "%02x", $0) }.joined()
             }
             guard !outdated.isEmpty || records.contains(where: \.needsMetrics) else { return records }
