@@ -12,7 +12,7 @@ struct AccountsView: View {
             Form {
                 DemoSection(model: model, identifierPrefix: "accounts-")
                 Section {
-                    ForEach(Source.providers) { source in
+                    ForEach(model.providers) { source in
                         NavigationLink {
                             SourceAccountView(model: model, source: source)
                         } label: {
@@ -23,7 +23,7 @@ struct AccountsView: View {
                 } header: {
                     Text("Datenquellen")
                 } footer: {
-                    Text("Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt nur die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden.")
+                    Text("Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen, nur bei Hammerhead wird sie widerrufen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden.")
                 }
                 if model.healthAvailable {
                     Section {
@@ -108,7 +108,11 @@ private struct SourceAccountView: View {
                 Label(model.connectionStatus(source),
                       systemImage: model.isDemo ? "pause.circle" : (model.connected.contains(source) ? "checkmark.circle" : "person.crop.circle"))
                 Button(model.connected.contains(source) ? String(localized: "Erneut verbinden") : String(localized: "Verbinden")) {
-                    if source == .wahoo { model.connectWahoo() } else { passwordLogin = true }
+                    switch source {
+                    case .wahoo: model.connectWahoo()
+                    case .hammerhead: model.connectHammerhead()
+                    default: passwordLogin = true
+                    }
                 }
                 .accessibilityIdentifier("connect-\(source.rawValue)")
                 .disabled(model.busy || !model.storageReady || model.isDemo || model.switchingMode)
@@ -120,6 +124,7 @@ private struct SourceAccountView: View {
                 switch source {
                 case .zwift: Text("Inoffizielle Schnittstelle. Änderungen bei Zwift können die Verbindung unterbrechen.")
                 case .mywhoosh: Text("Inoffizielle Schnittstelle. Änderungen bei MyWhoosh können die Verbindung unterbrechen. Läuft die Sitzung ab, ist eine neue Anmeldung nötig.")
+                case .hammerhead: Text("Anmeldung über Hammerhead mit lesendem Zugriff auf Aktivitäten. Trennen widerruft auch die Freigabe bei Hammerhead.")
                 default: Text("Anmeldung über Wahoo mit lesendem Zugriff.")
                 }
             }
@@ -133,7 +138,13 @@ private struct SourceAccountView: View {
         .confirmationDialog("\(source.title) trennen?", isPresented: $confirmDisconnect, titleVisibility: .visible) {
             Button("Trennen", role: .destructive) { model.disconnect(source) }
             Button("Abbrechen", role: .cancel) {}
-        } message: { Text("Die lokale Sitzung wird entfernt. Deine FIT-Dateien bleiben verfügbar.") }
+        } message: {
+            if source == .hammerhead {
+                Text("Die lokale Sitzung wird entfernt und die Freigabe bei Hammerhead widerrufen. Deine FIT-Dateien bleiben verfügbar.")
+            } else {
+                Text("Die lokale Sitzung wird entfernt. Deine FIT-Dateien bleiben verfügbar.")
+            }
+        }
     }
 }
 

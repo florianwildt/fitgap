@@ -45,6 +45,7 @@ final class AppModel: ObservableObject {
     private let wahoo: WahooProbe
     private let zwift: ZwiftProbe
     private let mywhoosh: MyWhooshProbe
+    private let hammerhead: HammerheadProbe
     private let signIn = WahooSignIn()
     private let health = HealthExporter()
     private let continued = ContinuedProcessing()
@@ -61,12 +62,14 @@ final class AppModel: ObservableObject {
     private var accessCache: [Source: Credentials] = [:]
     private let cooldownKey = "wahooRetryAfter"
     private let fullScanKey = "wahooLastFullScan"
+    private let hammerheadScanKey = "hammerheadLastFullScan"
     private let fullScanInterval: TimeInterval = 7 * 24 * 3600
     private let wahooClientKey = "wahooClientID"
     private var cursorFile: URL { library.directory.appendingPathComponent("wahoo-catalog.json") }
 
     init(library: ActivityLibrary? = nil, filesFolder: URL? = nil, credentials: CredentialStore = CredentialStore(), defaults: UserDefaults = .standard,
-         wahoo: WahooProbe = WahooProbe(), zwift: ZwiftProbe = ZwiftProbe(), mywhoosh: MyWhooshProbe = MyWhooshProbe()) {
+         wahoo: WahooProbe = WahooProbe(), zwift: ZwiftProbe = ZwiftProbe(), mywhoosh: MyWhooshProbe = MyWhooshProbe(),
+         hammerhead: HammerheadProbe = HammerheadProbe()) {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let real = library ?? ActivityLibrary(directory: support.appendingPathComponent("FITgap", isDirectory: true))
         realLibrary = real
@@ -75,7 +78,7 @@ final class AppModel: ObservableObject {
         self.filesFolder = (filesFolder ?? documents).map(FilesFolder.init)
         demo = DemoLibrary(realDirectory: real.directory)
         self.credentials = credentials; self.defaults = defaults
-        self.wahoo = wahoo; self.zwift = zwift; self.mywhoosh = mywhoosh
+        self.wahoo = wahoo; self.zwift = zwift; self.mywhoosh = mywhoosh; self.hammerhead = hammerhead
         healthAutoExportSince = defaults.object(forKey: healthAutoExportKey) as? Date
         let requestedDemo = defaults.bool(forKey: "demoMode")
         do {
@@ -225,16 +228,54 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// Builds without a Hammerhead client secret (forks, CI) hide Hammerhead unless an account is still connected.
+    var providers: [Source] {
+        Source.providers.filter { $0 != .hammerhead || HammerheadSecret.isAvailable || connected.contains(.hammerhead) }
+    }
+
+    func connectHammerhead() {
+        guard !isDemo, !switchingMode else { return }
+        run(label: String(localized: "Hammerhead-Anmeldung …")) {
+            guard HammerheadSecret.isAvailable else { throw HammerheadError.unavailable }
+            let oauth = try HammerheadOAuth()
+            let callback = try await self.signIn.login(oauth)
+            try Task.checkCancellation()
+            guard let secret = HammerheadSecret.value() else { throw HammerheadError.unavailable }
+            let token = try await self.hammerhead.connect(oauth, callback: callback, secret: secret)
+            try Task.checkCancellation()
+            try self.credentials.write(token, for: .hammerhead)
+            self.accessCache.removeValue(forKey: .hammerhead)
+            self.defaults.removeObject(forKey: self.hammerheadScanKey)
+            self.connected.insert(.hammerhead)
+        }
+    }
+
     func connectionStatus(_ source: Source) -> String {
         if isDemo { return String(localized: "Im Demo-Modus pausiert") }
         return connected.contains(source) ? String(localized: "Verbunden") : String(localized: "Nicht verbunden")
     }
 
-        func disconnect(_ source: Source) {
+    func disconnect(_ source: Source) {
         guard !isDemo, !switchingMode, !busy else { return }
-        do { try credentials.remove(source); accessCache.removeValue(forKey: source); connected.remove(source) }
-        catch { errorMessage = Self.message(error) }
-        // Deliberately local: no server-side deauthorization that could delete provider data.
+        guard source == .hammerhead else {
+            do { try credentials.remove(source); accessCache.removeValue(forKey: source); connected.remove(source) }
+            catch { errorMessage = Self.message(error) }
+            // Deliberately local: no server-side deauthorization that could delete provider data.
+            return
+        }
+        // Hammerhead: also revoke the link, so its refresh token stops working. This deletes only what FITgap
+        // imported into Hammerhead, which is nothing. The local session goes either way.
+        run(label: String(localized: "Hammerhead wird getrennt …")) {
+            var revoked = false
+            if let secret = HammerheadSecret.value(), let account = try? await self.account(.hammerhead) {
+                revoked = (try? await self.hammerhead.deauthorize(account, secret: secret)) != nil
+            }
+            try self.credentials.remove(.hammerhead)
+            self.accessCache.removeValue(forKey: .hammerhead); self.connected.remove(.hammerhead)
+            if !revoked {
+                self.errorMessage = String(localized: "Lokal getrennt. Hammerhead hat den Widerruf nicht bestätigt. Du kannst FITgap im Hammerhead Dashboard unter Konten entfernen.")
+            }
+        }
     }
 
     /// `userInitiated` (pull to refresh) lets the sync continue in the background on iOS 26 with system progress.
@@ -470,6 +511,9 @@ final class AppModel: ObservableObject {
             switch source {
             case .zwift: token = try await zwift.refresh(token)
             case .wahoo: token = try await wahoo.refresh(token)
+            case .hammerhead:
+                guard let secret = HammerheadSecret.value() else { throw HammerheadError.unavailable }
+                token = try await hammerhead.refresh(token, secret: secret)
             // MyWhoosh has no known refresh route; an expired session needs a new sign-in.
             case .mywhoosh, .demo: throw AccountError.reconnect
             }
@@ -549,6 +593,26 @@ final class AppModel: ObservableObject {
                 catch { try recordFailure(record.key, error: error); throw error }
             }
             wahooFiles.removeAll()
+        case .hammerhead:
+            // Weekly full scan; in between only rides from two days before the newest known one.
+            let known = activities.filter { $0.source == .hammerhead }
+            let lastFull = defaults.object(forKey: hammerheadScanKey) as? Date
+            let fullScan = known.isEmpty || lastFull.map { Date().timeIntervalSince($0) > fullScanInterval || $0 > Date() } ?? true
+            let since = fullScan ? nil : known.compactMap(\.date).max()?.addingTimeInterval(-2 * 24 * 3600)
+            let remote = try await hammerhead.activities(token: token, since: since)
+            try Task.checkCancellation()
+            activities = ActivityLibrary.merging(remote.map(ActivityRecord.init), into: activities)
+            try library.save(activities)
+            if fullScan { defaults.set(Date(), forKey: hammerheadScanKey) }
+            let pending = activities.filter { $0.source == .hammerhead && [.pending, .failed].contains($0.status) }
+            for (offset, record) in pending.enumerated() {
+                try Task.checkCancellation()
+                progress = String(localized: "Hammerhead: FIT \(offset + 1) von \(pending.count)")
+                continued.report(offset, of: pending.count)
+                do { try await commit(await hammerhead.download(id: record.remoteID, token: try await access(.hammerhead), store: library.files)) }
+                catch ProbeError.noFIT { try recordFailure(record.key, error: ProbeError.noFIT) }
+                catch { try recordFailure(record.key, error: error); throw error }
+            }
         }
     }
 
@@ -646,6 +710,8 @@ final class AppModel: ObservableObject {
                     receipt = try await self.wahoo.download(id: record.remoteID, token: credentials.accessToken, store: self.library.files)
                 case .mywhoosh:
                     receipt = try await self.mywhoosh.download(id: record.remoteID, session: MyWhooshSession(credentials), store: self.library.files)
+                case .hammerhead:
+                    receipt = try await self.hammerhead.download(id: record.remoteID, token: credentials.accessToken, store: self.library.files)
                 case .demo: throw CancellationError()
                 }
                 try await self.commit(receipt)
@@ -789,6 +855,7 @@ final class AppModel: ObservableObject {
         }
         if let error = error as? AccountError { return error.localizedDescription }
         if let error = error as? WahooError { return error.localizedDescription }
+        if let error = error as? HammerheadError { return error.localizedDescription }
         if let error = error as? WahooRateLimit { return error.localizedDescription }
         if let error = error as? LibraryError { return error.localizedDescription }
         if let error = error as? HealthExportError { return error.localizedDescription }

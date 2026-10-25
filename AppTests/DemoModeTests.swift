@@ -45,7 +45,7 @@ final class DemoModeTests: XCTestCase {
             let session = URLSession(configuration: config)
             return AppModel(library: library, credentials: credentials, defaults: defaults,
                             wahoo: WahooProbe(session: session), zwift: ZwiftProbe(session: session),
-                            mywhoosh: MyWhooshProbe(session: session))
+                            mywhoosh: MyWhooshProbe(session: session), hammerhead: HammerheadProbe(session: session))
         }
         func cleanup() {
             try? FileManager.default.removeItem(at: root)
@@ -237,6 +237,8 @@ final class DemoModeTests: XCTestCase {
             XCTAssertEqual(DemoNetworkTrap.requests.value, requests)
             XCTAssertEqual(try env.credentials.read(source)?.refreshToken, "synthetic-refresh")
             restarted.disconnect(source)
+            // Hammerhead also tries to revoke the link, which runs as an operation (here against the network trap).
+            while restarted.busy { await Task.yield() }
             XCTAssertTrue(restarted.canTryDemo)
             await restarted.setDemo(true)
             XCTAssertTrue(restarted.isDemo)

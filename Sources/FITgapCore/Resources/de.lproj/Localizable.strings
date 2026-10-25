@@ -26,3 +26,5 @@
 "Wahoo hat die Sitzung abgelehnt (%@). Bitte das Konto erneut verbinden; bei erneutem Fehler die App-Konfiguration prüfen." = "Wahoo hat die Sitzung abgelehnt (%@). Bitte das Konto erneut verbinden; bei erneutem Fehler die App-Konfiguration prüfen.";
 "Wahoo hat die benötigten Leseberechtigungen nicht erteilt." = "Wahoo hat die benötigten Leseberechtigungen nicht erteilt.";
 "Zugriff verweigert (HTTP 403). Kontoberechtigung oder Schnittstellenfreigabe prüfen." = "Zugriff verweigert (HTTP 403). Kontoberechtigung oder Schnittstellenfreigabe prüfen.";
+"Hammerhead hat die Sitzung abgelehnt (%@). Bitte das Konto erneut verbinden." = "Hammerhead hat die Sitzung abgelehnt (%@). Bitte das Konto erneut verbinden.";
+"Hammerhead ist in dieser Version nicht verfügbar." = "Hammerhead ist in dieser Version nicht verfügbar.";

@@ -2,6 +2,7 @@ import AuthenticationServices
 import FITgapCore
 import UIKit
 
+/// System sign-in sheet for the OAuth providers (Wahoo, Hammerhead); private browser session, no shared cookies.
 @MainActor
 final class WahooSignIn: NSObject, ASWebAuthenticationPresentationContextProviding {
     private var session: ASWebAuthenticationSession?
@@ -13,20 +14,29 @@ final class WahooSignIn: NSObject, ASWebAuthenticationPresentationContextProvidi
     }
 
     func login(_ oauth: WahooOAuth) async throws -> URL {
+        try await login(url: oauth.authorizationURL, scheme: WahooOAuth.redirect.scheme, denied: WahooError.denied, browser: WahooError.browser)
+    }
+
+    func login(_ oauth: HammerheadOAuth) async throws -> URL {
+        try await login(url: oauth.authorizationURL, scheme: HammerheadOAuth.callback.scheme,
+                        denied: HammerheadError.denied, browser: HammerheadError.browser)
+    }
+
+    private func login(url: URL, scheme: String?, denied: Error, browser: Error) async throws -> URL {
         try await withTaskCancellationHandler {
             try Task.checkCancellation()
             return try await withCheckedThrowingContinuation { continuation in
                 pending = continuation
-                let auth = ASWebAuthenticationSession(url: oauth.authorizationURL, callbackURLScheme: WahooOAuth.redirect.scheme) { url, _ in
+                let auth = ASWebAuthenticationSession(url: url, callbackURLScheme: scheme) { url, _ in
                     Task { @MainActor in
                         if let url { self.finish(.success(url)) }
-                        else { self.finish(.failure(WahooError.denied)) }
+                        else { self.finish(.failure(denied)) }
                     }
                 }
                 auth.presentationContextProvider = self
                 auth.prefersEphemeralWebBrowserSession = true
                 session = auth
-                if !auth.start() { finish(.failure(WahooError.browser)) }
+                if !auth.start() { finish(.failure(browser)) }
             }
         } onCancel: {
             Task { @MainActor in self.session?.cancel(); self.finish(.failure(CancellationError())) }

@@ -40,7 +40,7 @@
 "Passwort" = "Passwort";
 "Strecke: %@, Höhenmeter: %@, Durchschnittsgeschwindigkeit: %@" = "Strecke: %@, Höhenmeter: %@, Durchschnittsgeschwindigkeit: %@";
 "Teilen" = "Teilen";
-"Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt nur die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden." = "Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt nur die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden.";
+"Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen, nur bei Hammerhead wird sie widerrufen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden." = "Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen, nur bei Hammerhead wird sie widerrufen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden.";
 "Trennen" = "Trennen";
 "Verbinde unter „Konten“ Wahoo, Zwift oder MyWhoosh und ziehe die Liste nach unten." = "Verbinde unter „Konten“ Wahoo, Zwift oder MyWhoosh und ziehe die Liste nach unten.";
 "Verbinden" = "Verbinden";
@@ -162,3 +162,9 @@
 "%lld Messreihen" = "%lld Messreihen";
 "Weitere Quellen" = "Weitere Quellen";
 "Dieselbe Aktivität liegt bei mehreren Quellen. FITgap zeigt, teilt und sichert die Datei mit den meisten Messreihen und Kennzahlen; die übrigen bleiben gespeichert." = "Dieselbe Aktivität liegt bei mehreren Quellen. FITgap zeigt, teilt und sichert die Datei mit den meisten Messreihen und Kennzahlen; die übrigen bleiben gespeichert.";
+"Hammerhead-Anmeldung …" = "Hammerhead-Anmeldung …";
+"Hammerhead wird getrennt …" = "Hammerhead wird getrennt …";
+"Hammerhead: FIT %lld von %lld" = "Hammerhead: FIT %lld von %lld";
+"Lokal getrennt. Hammerhead hat den Widerruf nicht bestätigt. Du kannst FITgap im Hammerhead Dashboard unter Konten entfernen." = "Lokal getrennt. Hammerhead hat den Widerruf nicht bestätigt. Du kannst FITgap im Hammerhead Dashboard unter Konten entfernen.";
+"Anmeldung über Hammerhead mit lesendem Zugriff auf Aktivitäten. Trennen widerruft auch die Freigabe bei Hammerhead." = "Anmeldung über Hammerhead mit lesendem Zugriff auf Aktivitäten. Trennen widerruft auch die Freigabe bei Hammerhead.";
+"Die lokale Sitzung wird entfernt und die Freigabe bei Hammerhead widerrufen. Deine FIT-Dateien bleiben verfügbar." = "Die lokale Sitzung wird entfernt und die Freigabe bei Hammerhead widerrufen. Deine FIT-Dateien bleiben verfügbar.";

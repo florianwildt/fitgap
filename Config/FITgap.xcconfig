@@ -1,0 +1,4 @@
+// Shared settings of the FITgap app target.
+// Secrets.xcconfig stays out of the repository (see .gitignore) and holds HAMMERHEAD_CLIENT_SECRET.
+// Without it the app builds normally and hides Hammerhead.
+#include? "Secrets.xcconfig"

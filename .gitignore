@@ -14,3 +14,6 @@ Release Notes/
 Assets/AppStore/AppStore-Texte-*.md
 Assets/AppStore/IMG_*.PNG
 Assets/AppStore/Screenshot*.png
+
+# Hammerhead client secret (only local / injected by Xcode Cloud)
+Config/Secrets.xcconfig

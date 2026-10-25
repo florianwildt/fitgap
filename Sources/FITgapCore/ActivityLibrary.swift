@@ -71,6 +71,12 @@ public struct ActivityRecord: Codable, Identifiable, Sendable {
                   duration: activity.duration, status: activity.fileID == nil ? .unavailable : .pending)
     }
 
+    public init(_ activity: HammerheadActivity) {
+        // Hammerhead lists only recorded rides; whether a FIT exists shows on download.
+        self.init(source: .hammerhead, remoteID: activity.id, name: activity.name ?? "", date: Self.parseDate(activity.createdAt),
+                  duration: activity.duration.flatMap { $0 >= 0 ? $0 / 1000 : nil })
+    }
+
     public init(_ workout: WahooWorkout) {
         // A missing provider title stays language-neutral in the stored index.
         self.init(source: .wahoo, remoteID: String(workout.id), name: workout.name ?? "",

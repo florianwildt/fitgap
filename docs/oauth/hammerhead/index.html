@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-g6ERHGXoki0N7lTQ6vQrTLKTUQlbyVrEzZkYANvPQiU='; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>FITgap</title>
+<!-- Hammerhead only accepts http(s) redirects. This static page hands code and state to the FITgap app
+     (fitgap://oauth/hammerhead) and removes them from the address. It loads nothing else and stores nothing. -->
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 17px -apple-system, system-ui, sans-serif; margin: 0; padding: 48px 16px; text-align: center; }
+</style>
+</head>
+<body>
+<p lang="de">Zurück zu FITgap …</p>
+<p>Returning to FITgap…</p>
+<script>(function () {
+  var query = new URLSearchParams(window.location.search);
+  var target = new URLSearchParams();
+  ["code", "state", "error"].forEach(function (name) {
+    var values = query.getAll(name);
+    if (values.length === 1 && values[0].length <= 2048) { target.set(name, values[0]); }
+  });
+  window.history.replaceState(null, "", window.location.pathname);
+  if (target.has("state")) { window.location.replace("fitgap://oauth/hammerhead?" + target.toString()); }
+})();</script>
+</body>
+</html>
