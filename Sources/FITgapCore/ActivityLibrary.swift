@@ -195,7 +195,9 @@ public struct FilesFolder: Sendable {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd HH.mm"
         let date = record.date.map { formatter.string(from: $0) + " " } ?? ""
-        let id = record.remoteID.map { $0.isLetter || $0.isNumber || $0 == "-" ? $0 : "_" }
+        // Imported files use their checksum as ID; a prefix keeps the name readable.
+        let remoteID = record.source == .imported ? String(record.remoteID.prefix(12)) : record.remoteID
+        let id = remoteID.map { $0.isLetter || $0.isNumber || $0 == "-" ? $0 : "_" }
         return "\(date)\(record.source.title) \(String(id)).fit"
     }
 

@@ -19,6 +19,8 @@ struct FITgapApp: App {
             ActivitiesView(model: model)
                 .task { model.start() }
                 .onChange(of: phase) { _, value in model.phaseChanged(value) }
+                // "Open in FITgap" and sharing a .fit file to FITgap from Files, Mail or another app.
+                .onOpenURL { url in if url.isFileURL { model.importFiles([url]) } }
         }
     }
 }

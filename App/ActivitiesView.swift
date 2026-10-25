@@ -1,6 +1,7 @@
 import FITgapCore
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 /// iOS 26 shows the search field as a toolbar icon that expands on tap.
 private struct MinimizedSearch: ViewModifier {
@@ -41,6 +42,7 @@ struct ActivitiesView: View {
     @State private var picked = Set<ActivityKey>()
     @State private var sharedSelection = false
     @State private var healthDetails = false
+    @State private var importing = false
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var columns = NavigationSplitViewVisibility.all
 
@@ -223,6 +225,11 @@ struct ActivitiesView: View {
                         }
                     }
                     ToolbarItem(placement: .primaryAction) {
+                        Button("FIT importieren", systemImage: "square.and.arrow.down") { importing = true }
+                            .disabled(model.isDemo || !model.storageReady || model.switchingMode)
+                            .accessibilityIdentifier("import-fit")
+                    }
+                    ToolbarItem(placement: .primaryAction) {
                         Button("Auswählen", systemImage: "checkmark.circle") { picked.removeAll(); withAnimation { editMode = .active } }
                             .disabled(model.activities.allSatisfy { $0.status != .available } || model.switchingMode)
                             .accessibilityIdentifier("select-start")
@@ -243,6 +250,12 @@ struct ActivitiesView: View {
             .onChange(of: filter) { _, _ in limit = Self.pageSize; showJump = false }
             .onChange(of: model.libraryGeneration) { _, _ in search = ""; filter = ActivityFilter(); limit = Self.pageSize; deleteCandidate = nil; share = nil; selected = nil; endSelection() }
             .sheet(isPresented: $accounts) { AccountsView(model: model) }
+            .fileImporter(isPresented: $importing, allowedContentTypes: [.fit], allowsMultipleSelection: true) { result in
+                switch result {
+                case .success(let urls): model.importFiles(urls)
+                case .failure(let error): model.errorMessage = AppModel.message(error)
+                }
+            }
             .modifier(HealthExportStatus(model: model, showsProgress: false, details: $healthDetails))
             // Selection mode ends once the share sheet is gone, whether the handoff finished or was cancelled.
             .sheet(item: $share, onDismiss: { if sharedSelection { sharedSelection = false; endSelection() } }) { item in
@@ -279,7 +292,8 @@ struct ActivitiesView: View {
                 }
                 Button("Abbrechen", role: .cancel) { deleteCandidate = nil }
             } message: {
-                if model.isDemo { Text("Nur diese lokale Demo-Datei und ihre Teilen-Markierung werden gelöscht. Mit „Wiederherstellen“ erhältst du die Beispieldatei lokal zurück.") }
+                if deleteCandidate?.source == .imported { Text("Die importierte Datei wird aus FITgap gelöscht. Das Original in der Dateien-App bleibt erhalten, und du kannst es jederzeit erneut importieren.") }
+                else if model.isDemo { Text("Nur diese lokale Demo-Datei und ihre Teilen-Markierung werden gelöscht. Mit „Wiederherstellen“ erhältst du die Beispieldatei lokal zurück.") }
                 else { Text("Die Datei wird nur auf diesem iPhone gelöscht. Die Aktivität beim Anbieter bleibt erhalten. Du kannst die Datei später über „Erneut laden“ herunterladen.") }
             }
     }
@@ -492,4 +506,9 @@ enum ActivityKind: String, CaseIterable, Identifiable {
         case .training: String(localized: "Training")
         }
     }
+}
+
+extension UTType {
+    /// Declared in Info.plist; files from Garmin, Wahoo, Zwift and others use the `.fit` extension.
+    static let fit = UTType(importedAs: "com.garmin.fit")
 }

@@ -533,7 +533,7 @@ final class AppModel: ObservableObject {
 
     private func account(_ source: Source) async throws -> Credentials {
         try Task.checkCancellation()
-        guard !isDemo, !switchingMode, source != .demo else { throw CancellationError() }
+        guard !isDemo, !switchingMode, source != .demo, source != .imported else { throw CancellationError() }
         if source == .wahoo, defaults.string(forKey: wahooClientKey) != WahooOAuth.clientID { throw AccountError.reconnect }
         if source == .wahoo, let until = defaults.object(forKey: cooldownKey) as? Date {
             if until > Date() { throw WahooRateLimit(until: until) }
@@ -552,7 +552,7 @@ final class AppModel: ObservableObject {
                 token = try await hammerhead.refresh(token, secret: secret)
             case .dropbox: token = try await dropbox.refresh(token)
             // MyWhoosh has no known refresh route; an expired session needs a new sign-in.
-            case .mywhoosh, .demo: throw AccountError.reconnect
+            case .mywhoosh, .imported, .demo: throw AccountError.reconnect
             }
             try Task.checkCancellation()
             try credentials.write(token, for: source)
@@ -569,7 +569,7 @@ final class AppModel: ObservableObject {
         let credentials = try await account(source)
         let token = credentials.accessToken
         switch source {
-        case .demo: throw CancellationError()
+        case .demo, .imported: throw CancellationError()
         case .mywhoosh:
             let session = try MyWhooshSession(credentials)
             let remote = try await mywhoosh.activities(session: session)
@@ -805,7 +805,7 @@ final class AppModel: ObservableObject {
             } catch { errorMessage = Self.message(error) }
             return
         }
-        guard record.source != .demo else { return }
+        guard record.source != .demo, record.source != .imported else { return }
         run(label: String(localized: "\(record.source.title): FIT wird geladen …"), resume: { [weak self] in self?.download(record) },
             continuedTitle: String(localized: "FITgap-Abgleich")) {
             let credentials = try await self.account(record.source)
@@ -823,7 +823,7 @@ final class AppModel: ObservableObject {
                 case .dropbox:
                     try await self.downloadDropbox(record)
                     return
-                case .demo: throw CancellationError()
+                case .demo, .imported: throw CancellationError()
                 }
                 try await self.commit(receipt)
             } catch { try self.recordFailure(record.key, error: error); throw error }
@@ -837,8 +837,71 @@ final class AppModel: ObservableObject {
             if isDemo { try demo.removeExport(record) }
             else if let filesFolder { activities[index] = try filesFolder.remove(activities[index]) }
             activities[index] = try library.deletingFile(for: activities[index])
+            // An imported file has no provider to load it again; importing it once more brings it back.
+            if record.source == .imported { activities.remove(at: index) }
             try library.save(activities)
         } catch { errorMessage = Self.message(error) }
+    }
+
+    /// Imports FIT files from the file picker or "Open in FITgap"; works alongside a running sync.
+    func importFiles(_ urls: [URL]) {
+        guard !switchingMode, !urls.isEmpty else { return }
+        guard !isDemo else { errorMessage = Self.message(ImportError.demo); return }
+        guard storageReady else { return }
+        let generation = libraryGeneration
+        let snapshot = activities
+        Task {
+            let library = library
+            // Reading, checksums and metrics run off the main actor; the index is merged and saved on it.
+            let results = await Task.detached(priority: .userInitiated) {
+                urls.map { url -> (name: String, result: Result<ImportResult, Error>) in
+                    let name = url.lastPathComponent
+                    return (name, Result { try library.importFIT(try Self.readImported(url), filename: name, into: snapshot) })
+                }
+            }.value
+            guard !isDemo, !switchingMode, generation == libraryGeneration else { return }
+            var added: [ActivityRecord] = [], notes: [String] = []
+            for (name, result) in results {
+                switch result {
+                case .success(.added(let record)):
+                    if activities.contains(where: { $0.key == record.key }) || added.contains(where: { $0.key == record.key }) {
+                        notes.append(String(localized: "„\(name)“ ist bereits in FITgap."))
+                    } else { added.append(record) }
+                case .success(.existing): notes.append(String(localized: "„\(name)“ ist bereits in FITgap."))
+                case .failure(let error): notes.append(Self.message(error))
+                }
+            }
+            if !added.isEmpty {
+                if let filesFolder { added = added.map { (try? filesFolder.export($0, from: library)) ?? $0 } }
+                activities = ActivityLibrary.merging(added, into: activities)
+                do { try library.save(activities) } catch { notes.append(Self.message(error)) }
+            }
+            if !notes.isEmpty { errorMessage = notes.joined(separator: "\n\n") }
+            // Same rule as after a sync: new activities go to Health when the automatic export is on.
+            // A running sync exports them itself at its end, or the next refresh does.
+            let keys = Set(added.map(\.key))
+            if let since = healthAutoExportSince, health.canWrite, !busy {
+                let pending = visibleActivities.filter { keys.contains($0.key) && isNewForHealth($0, since: since) }.map(\.key)
+                if !pending.isEmpty {
+                    run(label: String(localized: "Apple Health wird vorbereitet …")) {
+                        try await self.exportHealth(pending, priority: .utility)
+                    }
+                }
+            }
+        }
+    }
+
+    /// Opened in place from the Files app or another app: access is security-scoped, and iCloud files may still need to download.
+    nonisolated private static func readImported(_ url: URL) throws -> Data {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        var coordination: NSError?
+        var result: Result<Data, Error> = .failure(ImportError.unreadable(url.lastPathComponent))
+        NSFileCoordinator().coordinate(readingItemAt: url, options: .withoutChanges, error: &coordination) { readable in
+            result = Result { try Data(contentsOf: readable) }
+        }
+        guard coordination == nil, let data = try? result.get() else { throw ImportError.unreadable(url.lastPathComponent) }
+        return data
     }
 
     /// One-time copy of downloads from before the Files folder existed; later downloads are copied in `commit`.
@@ -969,6 +1032,7 @@ final class AppModel: ObservableObject {
         if let error = error as? HammerheadError { return error.localizedDescription }
         if let error = error as? WahooRateLimit { return error.localizedDescription }
         if let error = error as? LibraryError { return error.localizedDescription }
+        if let error = error as? ImportError { return error.localizedDescription }
         if let error = error as? HealthExportError { return error.localizedDescription }
         if error is FITActivity.ReadError { return String(localized: "Die FIT-Datei enthält keine lesbare Aktivität für Apple Health.") }
         if error is HKError { return String(localized: "Apple Health hat das Speichern abgelehnt. Bitte später erneut versuchen.") }
