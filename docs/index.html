@@ -7,7 +7,7 @@
 <meta name="description" content="FITgap downloads your original FIT files from Wahoo, Zwift and MyWhoosh to your iPhone, saves them to Apple Health in full with a duplicate check, or shares them unchanged. Open source, no backend.">
 <meta property="og:title" content="FITgap">
 <meta property="og:description" content="Your original FIT files. Complete in Apple Health.">
-<meta property="og:image" content="assets/header.png">
+<meta property="og:image" content="assets/header-en.png">
 <meta name="apple-itunes-app" content="app-id=6825090575">
 <link rel="icon" href="assets/logo.png">
 <style>
@@ -34,7 +34,7 @@ nav .links{display:flex;gap:18px;align-items:center;font-size:15px}
 .badge img{display:block;height:48px;width:auto}
 .cta .btn.alt{margin-left:0}
 .banner{border-radius:24px;overflow:hidden;margin:32px 0}
-.banner img{display:block;width:100%;height:auto}
+.banner img{display:block;width:100%;height:auto;vertical-align:top}
 .shots{display:flex;gap:20px;overflow-x:auto;padding:8px 20px 28px;margin:0 -20px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
 .shots figure{flex:0 0 min(62vw,260px);margin:0;scroll-snap-align:center}
 .shots img{width:100%;height:auto;display:block;border-radius:28px;border:1px solid var(--line);box-shadow:0 12px 32px rgba(0,0,0,.12)}
@@ -80,7 +80,10 @@ html[lang=en] span[data-l=en],html[lang=de] span[data-l=de]{display:inline}
     </div>
   </header>
 
-  <div class="banner"><img src="assets/header.png" alt="A FIT file travelling from a ride to your iPhone" width="1600" height="686"></div>
+  <div class="banner">
+    <img data-l="en" src="assets/header-en.png" alt="Rides from Wahoo, Zwift, MyWhoosh and Hammerhead go as FIT files straight into Apple Health" width="1600" height="686">
+    <img data-l="de" src="assets/header-de.png" alt="Fahrten von Wahoo, Zwift, MyWhoosh und Hammerhead gelangen als FIT-Dateien direkt in Apple Health" width="1600" height="686">
+  </div>
 
   <div class="shots" id="shots">
     <figure data-l="en"><img src="assets/shot-list-en.png" alt="Activity list with Zwift and Wahoo rides" width="560" height="1217" loading="lazy"><figcaption>Your activities</figcaption></figure>

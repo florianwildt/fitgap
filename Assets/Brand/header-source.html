@@ -1,0 +1,103 @@
+<!doctype html>
+<!--
+  Source for the FITgap header banners (App Store + website).
+  Render with headless Chrome, e.g.:
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --hide-scrollbars \
+    --force-device-scale-factor=2 --window-size=2622,1475 \
+    --screenshot=out.png "file://$PWD/Assets/Brand/header-source.html?lang=en&fit=0.62"
+  Query parameters: lang=en|de, fit = share of the width the composition may use.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html,body{margin:0;height:100%;overflow:hidden}
+  body{
+    background:
+      radial-gradient(ellipse 55% 60% at 50% 52%, rgba(120,160,255,.28), transparent 70%),
+      linear-gradient(180deg,#0A62FF 0%,#0B4FD8 45%,#062F9A 100%);
+    font-family:-apple-system,"SF Pro Display","Helvetica Neue",sans-serif;
+  }
+  svg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);overflow:visible}
+  .h{font-size:50px;font-weight:700;letter-spacing:-.6px;fill:#fff}
+  .src{font-size:27px;font-weight:700;letter-spacing:-.3px;fill:#0B4FD8}
+  .lbl{font-size:26px;font-weight:600;fill:#fff}
+  .fit{font-size:38px;font-weight:800;letter-spacing:-.5px;fill:#0A62FF}
+</style>
+</head>
+<body>
+<svg id="art" viewBox="0 0 1200 600">
+  <defs>
+    <filter id="sh" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#001a5c" flood-opacity=".35"/>
+    </filter>
+  </defs>
+
+  <text id="headline" class="h" x="600" y="92" text-anchor="middle"></text>
+
+  <!-- connectors from each source into the FIT file -->
+  <g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".75">
+    <path d="M420 255 C500 255 510 362 576 366"/>
+    <path d="M420 335 C490 335 520 364 576 368"/>
+    <path d="M420 415 C490 415 520 374 576 372"/>
+    <path d="M420 495 C500 495 510 380 576 374"/>
+  </g>
+
+  <!-- sources -->
+  <g filter="url(#sh)">
+    <rect x="160" y="223" width="260" height="64" rx="32" fill="#fff"/>
+    <rect x="160" y="303" width="260" height="64" rx="32" fill="#fff"/>
+    <rect x="160" y="383" width="260" height="64" rx="32" fill="#fff"/>
+    <rect x="160" y="463" width="260" height="64" rx="32" fill="#fff"/>
+  </g>
+  <text class="src" x="290" y="265" text-anchor="middle">Wahoo</text>
+  <text class="src" x="290" y="345" text-anchor="middle">Zwift</text>
+  <text class="src" x="290" y="425" text-anchor="middle">MyWhoosh</text>
+  <text class="src" x="290" y="505" text-anchor="middle">Hammerhead</text>
+
+  <!-- FIT file -->
+  <g filter="url(#sh)">
+    <path d="M580 290 H668 L700 322 V450 H580 Z" fill="#fff"/>
+  </g>
+  <path d="M668 290 V322 H700 Z" fill="#CFDDFB"/>
+  <rect x="602" y="335" width="52" height="8" rx="4" fill="#C3D5FB"/>
+  <rect x="602" y="355" width="76" height="8" rx="4" fill="#C3D5FB"/>
+  <text class="fit" x="640" y="414" text-anchor="middle">.FIT</text>
+
+  <!-- dotted hop to Health -->
+  <g id="dots" fill="#fff"></g>
+
+  <!-- Apple Health -->
+  <circle cx="960" cy="370" r="82" fill="#fff" filter="url(#sh)"/>
+  <path transform="translate(960 374) scale(1.15)" fill="#FF375F"
+        d="M0 34 C-6 29 -48 2 -48 -20 C-48 -36 -36 -44 -24 -44 C-12 -44 -4 -36 0 -28 C4 -36 12 -44 24 -44 C36 -44 48 -36 48 -20 C48 2 6 29 0 34 Z"/>
+  <text class="lbl" x="960" y="505" text-anchor="middle">Apple Health</text>
+</svg>
+<script>
+  var q = new URLSearchParams(location.search);
+  var lang = q.get('lang') === 'de' ? 'de' : 'en';
+  var fit = parseFloat(q.get('fit') || '0.9');
+  document.getElementById('headline').textContent = lang === 'de'
+    ? 'Deine Fahrten. Direkt in Apple Health.'
+    : 'Your rides. Straight into Apple Health.';
+
+  // dotted arc between file and Health circle
+  var g = document.getElementById('dots'), n = 11;
+  for (var i = 0; i < n; i++) {
+    var t = i / (n - 1), x = 718 + t * 140, y = 372 - Math.sin(Math.PI * t) * 82;
+    var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', 5.5);
+    g.appendChild(c);
+  }
+
+  function size() {
+    var W = innerWidth, H = innerHeight;
+    var s = Math.min(W * fit / 1200, H * 0.92 / 600);
+    var svg = document.getElementById('art');
+    svg.setAttribute('width', 1200 * s);
+    svg.setAttribute('height', 600 * s);
+  }
+  size(); addEventListener('resize', size);
+</script>
+</body>
+</html>
