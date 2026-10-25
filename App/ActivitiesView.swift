@@ -29,6 +29,7 @@ private struct ChromeToolbar: ViewModifier {
 struct ActivitiesView: View {
     @ObservedObject var model: AppModel
     @State private var search = ""
+    @State private var filter = ActivityFilter()
     @State private var accounts = false
     @State private var deleteCandidate: ActivityRecord?
     @State private var share: SharedFiles?
@@ -47,7 +48,22 @@ struct ActivitiesView: View {
     private var wide: Bool { sizeClass == .regular }
 
     private var matches: [ActivityRecord] {
-        model.visibleActivities.filter { search.isEmpty || $0.displayName.localizedStandardContains(search) || $0.source.title.localizedStandardContains(search) }
+        model.visibleActivities.filter { activity in
+            filter.matches(activity, now: .now)
+                && (search.isEmpty || activity.displayName.localizedStandardContains(search) || activity.source.title.localizedStandardContains(search))
+        }
+    }
+
+    /// Sources that appear in the list, in the order the accounts are listed.
+    private var listedSources: [Source] {
+        let present = Set(model.visibleActivities.map(\.source))
+        return Source.allCases.filter(present.contains)
+    }
+
+    /// Activity types read from downloaded FITs; files not yet downloaded have no type yet.
+    private var listedKinds: [ActivityKind] {
+        let present = Set(model.visibleActivities.compactMap { ActivityKind($0.metrics) })
+        return ActivityKind.allCases.filter(present.contains)
     }
 
     private static let jumpThreshold = 6
@@ -75,7 +91,15 @@ struct ActivitiesView: View {
                             description: Text("Verbinde unter „Konten“ Wahoo, Zwift oder MyWhoosh und ziehe die Liste nach unten."))
                     }
                 } else if matches.isEmpty {
-                    ContentUnavailableView.search(text: search)
+                    if filter.isActive, search.isEmpty {
+                        ContentUnavailableView {
+                            Label("Keine passenden Aktivitäten", systemImage: "line.3.horizontal.decrease.circle")
+                        } description: {
+                            Text("Für die gewählten Filter gibt es keine Aktivitäten.")
+                        } actions: {
+                            Button("Filter zurücksetzen") { filter = ActivityFilter() }
+                        }
+                    } else { ContentUnavailableView.search(text: search) }
                 }
                 let all = matches
                 let visible = Array(all.prefix(limit))
@@ -131,6 +155,7 @@ struct ActivitiesView: View {
             }
             .animation(.default, value: showJump)
             .transaction(value: search) { $0.animation = nil }
+            .transaction(value: filter) { $0.animation = nil }
             .refreshable { await model.refreshAndWait() }
             .environment(\.editMode, $editMode)
             .navigationTitle(selecting ? String(localized: "\(picked.count) ausgewählt") : "FITgap")
@@ -162,6 +187,41 @@ struct ActivitiesView: View {
                         }
                     }
                 } else {
+                    if !model.visibleActivities.isEmpty {
+                        ToolbarItem(placement: .primaryAction) {
+                            Menu {
+                                // Each picker opens as a submenu that shows its current choice.
+                                Picker("Zeitraum", systemImage: "calendar", selection: $filter.period) {
+                                    Text("Gesamter Zeitraum").tag(ActivityFilter.Period?.none)
+                                    ForEach(ActivityFilter.Period.allCases) { period in Text(period.title).tag(Optional(period)) }
+                                }
+                                .pickerStyle(.menu)
+                                if listedKinds.count > 1 || filter.kind != nil {
+                                    Picker("Aktivitätstyp", systemImage: "figure.mixed.cardio", selection: $filter.kind) {
+                                        Text("Alle Typen").tag(ActivityKind?.none)
+                                        ForEach(listedKinds) { kind in Text(kind.title).tag(Optional(kind)) }
+                                    }
+                                    .pickerStyle(.menu)
+                                }
+                                if listedSources.count > 1 || filter.source != nil {
+                                    Picker("Datenquelle", systemImage: "tray.full", selection: $filter.source) {
+                                        Text("Alle Quellen").tag(Source?.none)
+                                        ForEach(listedSources) { source in Text(source.title).tag(Optional(source)) }
+                                    }
+                                    .pickerStyle(.menu)
+                                }
+                                if filter.isActive {
+                                    Section {
+                                        Button("Filter zurücksetzen", systemImage: "xmark.circle") { filter = ActivityFilter() }
+                                    }
+                                }
+                            } label: {
+                                Label("Filtern", systemImage: filter.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                            }
+                            .accessibilityValue(filter.summary)
+                            .accessibilityIdentifier("activity-filter")
+                        }
+                    }
                     ToolbarItem(placement: .primaryAction) {
                         Button("Auswählen", systemImage: "checkmark.circle") { picked.removeAll(); withAnimation { editMode = .active } }
                             .disabled(model.activities.allSatisfy { $0.status != .available } || model.switchingMode)
@@ -180,7 +240,8 @@ struct ActivitiesView: View {
             }
             .animation(.default, value: model.busy)
             .onChange(of: search) { _, _ in limit = Self.pageSize; showJump = false }
-            .onChange(of: model.libraryGeneration) { _, _ in search = ""; limit = Self.pageSize; deleteCandidate = nil; share = nil; selected = nil; endSelection() }
+            .onChange(of: filter) { _, _ in limit = Self.pageSize; showJump = false }
+            .onChange(of: model.libraryGeneration) { _, _ in search = ""; filter = ActivityFilter(); limit = Self.pageSize; deleteCandidate = nil; share = nil; selected = nil; endSelection() }
             .sheet(isPresented: $accounts) { AccountsView(model: model) }
             .modifier(HealthExportStatus(model: model, showsProgress: false, details: $healthDetails))
             // Selection mode ends once the share sheet is gone, whether the handoff finished or was cancelled.
@@ -346,4 +407,89 @@ private struct ShareSheet: UIViewControllerRepresentable {
         return controller
     }
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+/// Narrows the list by time, activity type and data source; an unset criterion lets every activity through.
+struct ActivityFilter: Equatable {
+    enum Period: String, CaseIterable, Identifiable {
+        case week, month, twelveMonths, thisYear, lastYear
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .week: String(localized: "Letzte 7 Tage")
+            case .month: String(localized: "Letzte 30 Tage")
+            case .twelveMonths: String(localized: "Letzte 12 Monate")
+            case .thisYear: String(localized: "Dieses Jahr")
+            case .lastYear: String(localized: "Letztes Jahr")
+            }
+        }
+
+        func contains(_ date: Date, now: Date, calendar: Calendar = .current) -> Bool {
+            let today = calendar.startOfDay(for: now)
+            let year = calendar.dateInterval(of: .year, for: now)!
+            switch self {
+            case .week: return date >= calendar.date(byAdding: .day, value: -6, to: today)!
+            case .month: return date >= calendar.date(byAdding: .day, value: -29, to: today)!
+            case .twelveMonths: return date >= calendar.date(byAdding: .month, value: -12, to: today)!
+            case .thisYear: return year.contains(date)
+            case .lastYear: return calendar.dateInterval(of: .year, for: calendar.date(byAdding: .year, value: -1, to: now)!)!.contains(date)
+            }
+        }
+    }
+
+    var period: Period?
+    var kind: ActivityKind?
+    var source: Source?
+
+    var isActive: Bool { period != nil || kind != nil || source != nil }
+
+    /// Activities without a date or a readable type drop out once that criterion is set.
+    func matches(_ activity: ActivityRecord, now: Date) -> Bool {
+        if let source, activity.source != source { return false }
+        if let kind, ActivityKind(activity.metrics) != kind { return false }
+        if let period { guard let date = activity.date, period.contains(date, now: now) else { return false } }
+        return true
+    }
+
+    var summary: String {
+        let parts = [period?.title, kind?.title, source?.title].compactMap { $0 }
+        return parts.isEmpty ? String(localized: "Kein Filter") : parts.formatted(.list(type: .and, width: .narrow))
+    }
+}
+
+/// FIT `sport`/`sub_sport` values (Garmin FIT Global Profile); unknown values have no type.
+enum ActivityKind: String, CaseIterable, Identifiable {
+    case cycling, virtualCycling, indoorCycling, running, swimming, walking, hiking, rowing, fitnessEquipment, training
+    var id: String { rawValue }
+
+    init?(_ metrics: ActivityMetrics?) {
+        switch (metrics?.sport, metrics?.subSport) {
+        case (2, 6): self = .indoorCycling
+        case (2, 58): self = .virtualCycling
+        case (2, _): self = .cycling
+        case (1, _): self = .running
+        case (5, _): self = .swimming
+        case (11, _): self = .walking
+        case (17, _): self = .hiking
+        case (15, _): self = .rowing
+        case (4, _): self = .fitnessEquipment
+        case (10, _): self = .training
+        default: return nil
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .indoorCycling: String(localized: "Indoor-Radfahren")
+        case .virtualCycling: String(localized: "Virtuelles Radfahren")
+        case .cycling: String(localized: "Radfahren")
+        case .running: String(localized: "Laufen")
+        case .swimming: String(localized: "Schwimmen")
+        case .walking: String(localized: "Gehen")
+        case .hiking: String(localized: "Wandern")
+        case .rowing: String(localized: "Rudern")
+        case .fitnessEquipment: String(localized: "Fitnessgerät")
+        case .training: String(localized: "Training")
+        }
+    }
 }

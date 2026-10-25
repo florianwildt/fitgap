@@ -168,3 +168,21 @@
 "Lokal getrennt. Hammerhead hat den Widerruf nicht bestätigt. Du kannst FITgap im Hammerhead Dashboard unter Konten entfernen." = "Disconnected locally. Hammerhead did not confirm the revocation. You can remove FITgap in the Hammerhead Dashboard under Accounts.";
 "Anmeldung über Hammerhead mit lesendem Zugriff auf Aktivitäten. Trennen widerruft auch die Freigabe bei Hammerhead." = "Sign in through Hammerhead with read-only access to activities. Disconnecting also revokes access at Hammerhead.";
 "Die lokale Sitzung wird entfernt und die Freigabe bei Hammerhead widerrufen. Deine FIT-Dateien bleiben verfügbar." = "The local session will be removed and access at Hammerhead revoked. Your FIT files will remain available.";
+
+/* Activity filters */
+"Datenquelle" = "Data Source";
+"Alle Quellen" = "All Sources";
+"Filtern" = "Filter";
+"Keine passenden Aktivitäten" = "No Matching Activities";
+"Für die gewählten Filter gibt es keine Aktivitäten." = "No activities match the selected filters.";
+"Filter zurücksetzen" = "Reset Filters";
+"Zeitraum" = "Time Period";
+"Gesamter Zeitraum" = "All Time";
+"Aktivitätstyp" = "Activity Type";
+"Alle Typen" = "All Types";
+"Letzte 7 Tage" = "Last 7 Days";
+"Letzte 30 Tage" = "Last 30 Days";
+"Letzte 12 Monate" = "Last 12 Months";
+"Dieses Jahr" = "This Year";
+"Letztes Jahr" = "Last Year";
+"Kein Filter" = "No filter";

@@ -113,22 +113,8 @@ struct ActivityDetailView: View {
     private func heartRate(_ value: Double) -> String { String(localized: "\(Int(value.rounded())) S/min") }
     private func cadence(_ value: Double) -> String { String(localized: "\(Int(value.rounded())) U/min") }
 
-    /// FIT `sport`/`sub_sport` values (Garmin FIT Global Profile); unknown values stay hidden.
-    private var sport: String? {
-        switch (metrics?.sport, metrics?.subSport) {
-        case (2, 6): String(localized: "Indoor-Radfahren")
-        case (2, 58): String(localized: "Virtuelles Radfahren")
-        case (2, _): String(localized: "Radfahren")
-        case (1, _): String(localized: "Laufen")
-        case (5, _): String(localized: "Schwimmen")
-        case (11, _): String(localized: "Gehen")
-        case (17, _): String(localized: "Wandern")
-        case (15, _): String(localized: "Rudern")
-        case (4, _): String(localized: "Fitnessgerät")
-        case (10, _): String(localized: "Training")
-        default: nil
-        }
-    }
+    /// Unknown sport values stay hidden.
+    private var sport: String? { ActivityKind(metrics)?.title }
 }
 
 /// Another source's copy of the shown activity, with what its file holds or a way to load it.
