@@ -37,24 +37,24 @@ private func json(_ request: URLRequest) -> [String: Any] {
     let items = Dictionary(uniqueKeysWithValues: (parts.queryItems ?? []).map { ($0.name, $0.value ?? "") })
     #expect(parts.host == "www.dropbox.com" && parts.path == "/oauth2/authorize")
     #expect(items["token_access_type"] == "offline" && items["code_challenge_method"] == "S256")
-    #expect(items["scope"] == "files.metadata.read files.content.read" && items["redirect_uri"] == "fitgap://oauth/dropbox")
+    #expect(items["scope"] == "files.metadata.read files.content.read" && items["redirect_uri"] == "db-c0xaawzhxso8j9e://2/token")
     #expect(items["state"] == "synthetic-state" && items["code_challenge"] != oauth.verifier)
     #expect(items["client_secret"] == nil)
 }
 
 @Test func dropboxTokenRequestCarriesVerifierAndNoSecret() throws {
-    let request = try oauth.tokenRequest(callback: URL(string: "fitgap://oauth/dropbox?code=c%2B1&state=synthetic-state")!)
+    let request = try oauth.tokenRequest(callback: URL(string: "db-c0xaawzhxso8j9e://2/token?code=c%2B1&state=synthetic-state")!)
     #expect(request.url == URL(string: "https://api.dropboxapi.com/oauth2/token") && request.httpMethod == "POST")
     #expect(form(request) == ["grant_type": "authorization_code", "client_id": DropboxOAuth.clientID, "code": "c+1",
-                              "code_verifier": oauth.verifier, "redirect_uri": "fitgap://oauth/dropbox"])
+                              "code_verifier": oauth.verifier, "redirect_uri": "db-c0xaawzhxso8j9e://2/token"])
 }
 
 @Test(arguments: [
-    "fitgap://oauth/dropbox?code=c&state=other",
-    "fitgap://oauth/dropbox?code=c",
-    "fitgap://oauth/dropbox?state=synthetic-state",
+    "db-c0xaawzhxso8j9e://2/token?code=c&state=other",
+    "db-c0xaawzhxso8j9e://2/token?code=c",
+    "db-c0xaawzhxso8j9e://2/token?state=synthetic-state",
     "fitgap://oauth/wahoo?code=c&state=synthetic-state",
-    "fitgap://oauth/dropbox?code=c&state=synthetic-state#x"
+    "db-c0xaawzhxso8j9e://2/token?code=c&state=synthetic-state#x"
 ])
 func dropboxRejectsForeignCallbacks(_ callback: String) {
     #expect(throws: DropboxError.self) { try oauth.tokenRequest(callback: URL(string: callback)!) }
@@ -183,7 +183,7 @@ private func mockClient() -> DropboxProbe {
     @Test func signInListsOnlyFITsWithCursorAndVerifiesDownloads() async throws {
         let client = mockClient()
         defer { client.close() }
-        let credentials = try await client.connect(oauth, callback: URL(string: "fitgap://oauth/dropbox?code=valid&state=synthetic-state")!)
+        let credentials = try await client.connect(oauth, callback: URL(string: "db-c0xaawzhxso8j9e://2/token?code=valid&state=synthetic-state")!)
         #expect(credentials.accessToken == "token" && credentials.refreshToken == "refresh" && credentials.accountID == "dbid:synthetic")
         #expect(!credentials.needsRefresh)
 
@@ -243,7 +243,7 @@ private func mockClient() -> DropboxProbe {
             try await client.refresh(Credentials(accessToken: "old", refreshToken: nil, expiresAt: .distantPast))
         }
         await #expect(throws: DropboxError.self) {
-            try await client.connect(oauth, callback: URL(string: "fitgap://oauth/dropbox?code=narrow&state=synthetic-state")!)
+            try await client.connect(oauth, callback: URL(string: "db-c0xaawzhxso8j9e://2/token?code=narrow&state=synthetic-state")!)
         }
         await #expect(throws: DropboxExpiredToken.self) { try await client.catalog(token: "expired", cursor: nil) { _, _ in } }
         // A short Retry-After is waited out once; a long one stops with the time to resume.

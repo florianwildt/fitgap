@@ -21,11 +21,12 @@ public enum DropboxError: Error, LocalizedError {
 /// Official Dropbox API v2 (docs.dropboxapi.com). Public client with PKCE: no client secret exists in the app;
 /// `token_access_type=offline` returns a refresh token that renews with the app key alone.
 public struct DropboxOAuth: Sendable {
-    // PLATZHALTER: App key der in der Dropbox App Console registrierten FITgap-App eintragen
-    // (öffentliche Kennung, kein Secret). Solange er leer ist, blendet die App Dropbox aus.
-    public static let clientID = ""
+    // Public app key of the FITgap app in the Dropbox App Console, never a client secret.
+    // Builds with an empty key hide Dropbox.
+    public static let clientID = "c0xaawzhxso8j9e"
     public static var isConfigured: Bool { !clientID.isEmpty }
-    public static let redirect = URL(string: "fitgap://oauth/dropbox")!
+    /// Dropbox accepts only https redirects in the App Console; mobile apps use the scheme `db-<app key>` instead.
+    public static let redirect = URL(string: "db-\(clientID)://2/token")!
     /// Read-only: list files and download their content. Writing or sharing is never requested.
     public static let scopes = ["files.metadata.read", "files.content.read"]
     static let tokenURL = URL(string: "https://api.dropboxapi.com/oauth2/token")!
