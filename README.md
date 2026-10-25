@@ -2,7 +2,7 @@
 
 [Deutsch](README.de.md) · [Website](https://florianwildt.github.io/fitgap/) · [Privacy Policy](https://florianwildt.github.io/fitgap/privacy/en/)
 
-![FITgap – Your rides from Wahoo, Zwift, MyWhoosh and Hammerhead, straight into Apple Health](docs/assets/header-en.png)
+![FITgap – Your rides from Wahoo, Zwift, MyWhoosh, Hammerhead, Dropbox and intervals.icu, straight into Apple Health](docs/assets/header-en.png)
 
 FITgap is a small, open-source iPhone app that downloads your **original FIT files** from Wahoo, Zwift, MyWhoosh, Hammerhead and intervals.icu and hands them directly to apps like [HealthFit](https://apps.apple.com/app/healthfit/id1202650514) through the native share sheet. Files are never converted or re-encoded.
 

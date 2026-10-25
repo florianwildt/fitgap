@@ -20,7 +20,7 @@
   }
   svg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);overflow:visible}
   .h{font-size:50px;font-weight:700;letter-spacing:-.6px;fill:#fff}
-  .src{font-size:27px;font-weight:700;letter-spacing:-.3px;fill:#0B4FD8}
+  .src{font-size:25px;font-weight:700;letter-spacing:-.3px;fill:#0B4FD8}
   .lbl{font-size:26px;font-weight:600;fill:#fff}
   .fit{font-size:38px;font-weight:800;letter-spacing:-.5px;fill:#0A62FF}
 </style>
@@ -35,25 +35,10 @@
 
   <text id="headline" class="h" x="600" y="92" text-anchor="middle"></text>
 
-  <!-- connectors from each source into the FIT file -->
-  <g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".75">
-    <path d="M420 255 C500 255 510 362 576 366"/>
-    <path d="M420 335 C490 335 520 364 576 368"/>
-    <path d="M420 415 C490 415 520 374 576 372"/>
-    <path d="M420 495 C500 495 510 380 576 374"/>
-  </g>
-
-  <!-- sources -->
-  <g filter="url(#sh)">
-    <rect x="160" y="223" width="260" height="64" rx="32" fill="#fff"/>
-    <rect x="160" y="303" width="260" height="64" rx="32" fill="#fff"/>
-    <rect x="160" y="383" width="260" height="64" rx="32" fill="#fff"/>
-    <rect x="160" y="463" width="260" height="64" rx="32" fill="#fff"/>
-  </g>
-  <text class="src" x="290" y="265" text-anchor="middle">Wahoo</text>
-  <text class="src" x="290" y="345" text-anchor="middle">Zwift</text>
-  <text class="src" x="290" y="425" text-anchor="middle">MyWhoosh</text>
-  <text class="src" x="290" y="505" text-anchor="middle">Hammerhead</text>
+  <!-- sources and their connectors into the FIT file, drawn by the script below -->
+  <g id="links" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".75"></g>
+  <g id="pills" filter="url(#sh)"></g>
+  <g id="names"></g>
 
   <!-- FIT file -->
   <g filter="url(#sh)">
@@ -80,6 +65,22 @@
   document.getElementById('headline').textContent = lang === 'de'
     ? 'Deine Fahrten. Direkt in Apple Health.'
     : 'Your rides. Straight into Apple Health.';
+
+  // Six sources stacked around the file's vertical centre.
+  var sources = ['Wahoo', 'Zwift', 'MyWhoosh', 'Hammerhead', 'Dropbox', 'intervals.icu'];
+  var ns = 'http://www.w3.org/2000/svg', step = 62, pill = 52, first = 370 - (sources.length - 1) * step / 2;
+  function add(parent, name, attrs, text) {
+    var e = document.createElementNS(ns, name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text) e.textContent = text;
+    document.getElementById(parent).appendChild(e);
+  }
+  sources.forEach(function (name, i) {
+    var y = first + i * step, end = 364 + i * 12 / (sources.length - 1);
+    add('pills', 'rect', {x: 160, y: y - pill / 2, width: 260, height: pill, rx: pill / 2, fill: '#fff'});
+    add('names', 'text', {class: 'src', x: 290, y: y + 9, 'text-anchor': 'middle'}, name);
+    add('links', 'path', {d: 'M420 ' + y + ' C500 ' + y + ' 510 ' + end + ' 576 ' + end});
+  });
 
   // dotted arc between file and Health circle
   var g = document.getElementById('dots'), n = 11;
