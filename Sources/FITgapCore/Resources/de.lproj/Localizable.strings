@@ -28,3 +28,4 @@
 "Zugriff verweigert (HTTP 403). Kontoberechtigung oder Schnittstellenfreigabe prüfen." = "Zugriff verweigert (HTTP 403). Kontoberechtigung oder Schnittstellenfreigabe prüfen.";
 "Hammerhead hat die Sitzung abgelehnt (%@). Bitte das Konto erneut verbinden." = "Hammerhead hat die Sitzung abgelehnt (%@). Bitte das Konto erneut verbinden.";
 "Hammerhead ist in dieser Version nicht verfügbar." = "Hammerhead ist in dieser Version nicht verfügbar.";
+"intervals.icu hat Athleten-ID oder API-Key abgelehnt. Bitte beides in den Developer Settings prüfen." = "intervals.icu hat Athleten-ID oder API-Key abgelehnt. Bitte beides in den Developer Settings prüfen.";

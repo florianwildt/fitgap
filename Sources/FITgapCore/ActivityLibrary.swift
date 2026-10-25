@@ -77,6 +77,12 @@ public struct ActivityRecord: Codable, Identifiable, Sendable {
                   duration: activity.duration.flatMap { $0 >= 0 ? $0 / 1000 : nil })
     }
 
+    public init(_ activity: IntervalsActivity) {
+        // The list is already limited to FIT originals; elapsed time covers pauses like the FIT itself.
+        self.init(source: .intervals, remoteID: activity.id, name: activity.name ?? "", date: Self.parseDate(activity.start_date),
+                  duration: (activity.elapsed_time ?? activity.moving_time).flatMap { $0 >= 0 ? $0 : nil })
+    }
+
     public init(_ workout: WahooWorkout) {
         // A missing provider title stays language-neutral in the stored index.
         self.init(source: .wahoo, remoteID: String(workout.id), name: workout.name ?? "",

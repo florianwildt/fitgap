@@ -29,7 +29,7 @@ footer a{color:var(--muted);text-decoration:underline}
 <nav><a class="brand" href="../"><img src="../assets/logo.png" alt="" width="32" height="32">FITgap</a><span><a href="en/">English</a> · <a href="https://github.com/florianwildt/fitgap">GitHub</a></span></nav>
 <main>
 <h1 id="fitgap">FITgap</h1>
-<p>FIT-Dateien aus Wahoo, Zwift, MyWhoosh und Hammerhead sichern und teilen.</p>
+<p>FIT-Dateien aus Wahoo, Zwift, MyWhoosh, Hammerhead und intervals.icu sichern und teilen.</p>
 
 <h2 id="support">Support</h2>
 <p>Bei Fragen oder Problemen: <a href="mailto:fitgap@florianwildt.de">fitgap@florianwildt.de</a></p>
@@ -37,7 +37,7 @@ footer a{color:var(--muted);text-decoration:underline}
 <p>Bitte sende keine Passwörter, Zugangstokens oder vollständigen Trainingsdateien ohne vorherige Abstimmung.</p>
 
 <h1 id="datenschutzerklärung">Datenschutzerklärung</h1>
-<p>Stand: 24. Oktober 2026</p>
+<p>Stand: 25. Oktober 2026</p>
 
 <h2 id="1-verantwortlicher">1. Verantwortlicher</h2>
 <p>Florian Wildt<br />
@@ -50,7 +50,7 @@ Deutschland</p>
 <p>Diese Erklärung beschreibt die Verarbeitung personenbezogener Daten bei der Nutzung der iOS-App FITgap und dieser Informationsseite.</p>
 
 <h2 id="2-grundprinzip-der-app">2. Grundprinzip der App</h2>
-<p>FITgap verbindet sich auf deine Anforderung mit deinen eigenen Konten bei Wahoo, Zwift, MyWhoosh und Hammerhead, lädt Aktivitätsinformationen und Original-FIT-Dateien herunter und speichert sie auf deinem iPhone.</p>
+<p>FITgap verbindet sich auf deine Anforderung mit deinen eigenen Konten bei Wahoo, Zwift, MyWhoosh, Hammerhead und intervals.icu, lädt Aktivitätsinformationen und Original-FIT-Dateien herunter und speichert sie auf deinem iPhone.</p>
 
 <p>FITgap betreibt keinen eigenen Server zur Speicherung deiner Konten oder Trainingsdaten. Der Entwickler erhält durch die normale App-Nutzung keinen Zugriff auf diese Daten.</p>
 
@@ -60,7 +60,7 @@ Deutschland</p>
 <p>FITgap verarbeitet die für Anmeldung, Abruf, Speicherung und Teilen erforderlichen Daten:</p>
 
 <ul>
-  <li>Zugangstokens und gegebenenfalls Tokens zur Erneuerung der Anmeldung.</li>
+  <li>Zugangstokens, gegebenenfalls Tokens zur Erneuerung der Anmeldung sowie bei intervals.icu dein persönlicher API-Key und deine Athleten-ID.</li>
   <li>Anbieter- und Aktivitätskennungen sowie Namen und Zeitpunkte deiner Aktivitäten.</li>
   <li>Trainingskennzahlen, beispielsweise Dauer, Strecke, Höhenmeter und Durchschnittsgeschwindigkeit.</li>
   <li>Original-FIT-Dateien. Diese können je nach Aufzeichnung weitere persönliche Daten enthalten, etwa Positions-, Herzfrequenz- oder Leistungsdaten.</li>
@@ -78,7 +78,9 @@ Deutschland</p>
 
 <p>Bei Hammerhead erfolgt die Anmeldung über eine System-Webanmeldung beim Anbieter. FITgap erhält nach deiner Freigabe Zugangstokens für den lesenden Zugriff auf deine Aktivitäten. Nach der Freigabe leitet Hammerhead den einmalig gültigen Anmeldecode über eine statische Seite dieser Website (GitHub Pages) an die App weiter; die Seite lädt keine weiteren Inhalte und speichert nichts, technisch bedingt erhält GitHub dabei die Anfragedaten. Beim Trennen widerruft FITgap die Freigabe bei Hammerhead.</p>
 
-<p>Zugangstokens werden im Schlüsselbund dieses iPhones gespeichert und durch FITgap nicht über den iCloud-Schlüsselbund synchronisiert.</p>
+<p>Bei intervals.icu gibst du deine Athleten-ID und deinen persönlichen API-Key aus den Developer Settings in der App ein. FITgap nutzt die offizielle Schnittstelle von intervals.icu, sendet den API-Key verschlüsselt mit jeder Anfrage an intervals.icu und speichert beides im Schlüsselbund. Abgerufen werden die Aktivitätsliste und die Originaldateien von Aktivitäten, die als FIT hochgeladen wurden. Trennen entfernt den API-Key aus FITgap; bei intervals.icu bleibt er gültig, bis du ihn dort neu erzeugst.</p>
+
+<p>Zugangstokens und API-Keys werden im Schlüsselbund dieses iPhones gespeichert und durch FITgap nicht über den iCloud-Schlüsselbund synchronisiert.</p>
 
 <p>Bei Verbindungen zu den Anbietern und ihren Downloadservern werden technisch notwendige Informationen wie IP-Adresse und Anfragedaten übertragen. Die Verarbeitung bei den Anbietern richtet sich nach deren Datenschutzbestimmungen:</p>
 
@@ -87,6 +89,7 @@ Deutschland</p>
   <li><a href="https://support.zwift.com/privacy-policy-HJbPL8Rl8">Zwift-Datenschutzerklärung</a></li>
   <li><a href="https://mywhoosh.com/privacy-policy/">MyWhoosh-Datenschutzerklärung</a></li>
   <li><a href="https://www.sram.com/en/company/legal/global-privacy-policy">Hammerhead-Datenschutzerklärung (SRAM)</a></li>
+  <li><a href="https://www.intervals.icu/privacy-policy/">intervals.icu-Datenschutzerklärung</a></li>
   <li><a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement">GitHub-Datenschutzerklärung</a></li>
 </ul>
 

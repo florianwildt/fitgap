@@ -186,3 +186,9 @@
 "Dieses Jahr" = "This Year";
 "Letztes Jahr" = "Last Year";
 "Kein Filter" = "No filter";
+"intervals.icu wird verbunden …" = "Connecting intervals.icu…";
+"intervals.icu: FIT %lld von %lld" = "intervals.icu: FIT %lld of %lld";
+"Offizielle Schnittstelle mit deinem persönlichen API-Key. Geladen werden Aktivitäten, deren Originaldatei eine FIT ist, z. B. von Garmin, COROS, Suunto oder Polar; von Strava importierte Aktivitäten sowie GPX und TCX nicht." = "Official interface with your personal API key. FITgap loads activities whose original file is a FIT, for example from Garmin, COROS, Suunto or Polar; activities imported from Strava and GPX or TCX files are skipped.";
+"Athleten-ID (z. B. i12345)" = "Athlete ID (e.g. i12345)";
+"API-Key" = "API key";
+"Athleten-ID und API-Key findest du auf intervals.icu unter Settings › Developer Settings. Beides bleibt nur im Schlüsselbund dieses iPhones." = "You’ll find your athlete ID and API key on intervals.icu under Settings › Developer Settings. Both stay only in this iPhone’s keychain.";

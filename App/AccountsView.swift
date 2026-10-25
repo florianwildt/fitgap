@@ -125,6 +125,7 @@ private struct SourceAccountView: View {
                 case .zwift: Text("Inoffizielle Schnittstelle. Änderungen bei Zwift können die Verbindung unterbrechen.")
                 case .mywhoosh: Text("Inoffizielle Schnittstelle. Änderungen bei MyWhoosh können die Verbindung unterbrechen. Läuft die Sitzung ab, ist eine neue Anmeldung nötig.")
                 case .hammerhead: Text("Anmeldung über Hammerhead mit lesendem Zugriff auf Aktivitäten. Trennen widerruft auch die Freigabe bei Hammerhead.")
+                case .intervals: Text("Offizielle Schnittstelle mit deinem persönlichen API-Key. Geladen werden Aktivitäten, deren Originaldatei eine FIT ist, z. B. von Garmin, COROS, Suunto oder Polar; von Strava importierte Aktivitäten sowie GPX und TCX nicht.")
                 default: Text("Anmeldung über Wahoo mit lesendem Zugriff.")
                 }
             }
@@ -148,7 +149,7 @@ private struct SourceAccountView: View {
     }
 }
 
-/// Sign-in for the unofficial interfaces of Zwift and MyWhoosh.
+/// Sign-in for the unofficial interfaces of Zwift and MyWhoosh, and with athlete ID and API key for intervals.icu.
 private struct PasswordLoginView: View {
     @ObservedObject var model: AppModel
     let source: Source
@@ -160,19 +161,34 @@ private struct PasswordLoginView: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("E-Mail", text: $email)
-                        .keyboardType(.emailAddress).textContentType(.username)
-                        .textInputAutocapitalization(.never).autocorrectionDisabled()
-                    SecureField("Passwort", text: $password).textContentType(.password)
+                    if source == .intervals {
+                        // `email` holds the athlete ID and `password` the API key.
+                        TextField("Athleten-ID (z. B. i12345)", text: $email)
+                            .textContentType(.username)
+                            .textInputAutocapitalization(.never).autocorrectionDisabled()
+                        SecureField("API-Key", text: $password).textContentType(.password)
+                    } else {
+                        TextField("E-Mail", text: $email)
+                            .keyboardType(.emailAddress).textContentType(.username)
+                            .textInputAutocapitalization(.never).autocorrectionDisabled()
+                        SecureField("Passwort", text: $password).textContentType(.password)
+                    }
                     Button("\(source.title) verbinden") {
                         let username = email.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if source == .mywhoosh { model.connectMyWhoosh(username: username, password: password) }
-                        else { model.connectZwift(username: username, password: password) }
+                        switch source {
+                        case .mywhoosh: model.connectMyWhoosh(username: username, password: password)
+                        case .intervals: model.connectIntervals(athleteID: username, apiKey: password)
+                        default: model.connectZwift(username: username, password: password)
+                        }
                         email = ""; password = ""; dismiss()
                     }
                     .disabled(email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || password.isEmpty || model.busy || model.isDemo || model.switchingMode)
                 } footer: {
-                    Text("Nur das eigene Konto verwenden. Das Passwort wird ausschließlich für die Anmeldung verarbeitet und nicht gespeichert.")
+                    if source == .intervals {
+                        Text("Athleten-ID und API-Key findest du auf intervals.icu unter Settings › Developer Settings. Beides bleibt nur im Schlüsselbund dieses iPhones.")
+                    } else {
+                        Text("Nur das eigene Konto verwenden. Das Passwort wird ausschließlich für die Anmeldung verarbeitet und nicht gespeichert.")
+                    }
                 }
             }
             .navigationTitle("\(source.title) verbinden")

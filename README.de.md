@@ -4,7 +4,7 @@
 
 ![FITgap – Deine Fahrten von Wahoo, Zwift, MyWhoosh und Hammerhead, direkt in Apple Health](docs/assets/header-de.png)
 
-FITgap ist eine schlanke Open-Source-iPhone-App, die deine **Original-FIT-Dateien** von Wahoo, Zwift, MyWhoosh und Hammerhead herunterlädt und über das native Share Sheet direkt an Apps wie [HealthFit](https://apps.apple.com/app/healthfit/id1202650514) übergibt. Die Dateien werden weder konvertiert noch neu kodiert.
+FITgap ist eine schlanke Open-Source-iPhone-App, die deine **Original-FIT-Dateien** von Wahoo, Zwift, MyWhoosh, Hammerhead und intervals.icu herunterlädt und über das native Share Sheet direkt an Apps wie [HealthFit](https://apps.apple.com/app/healthfit/id1202650514) übergibt. Die Dateien werden weder konvertiert noch neu kodiert.
 
 - Ab iOS 17, SwiftUI mit nativen Bedienelementen
 - Hell- und Dunkelmodus, deutsche und englische Oberfläche (nach iOS-Sprache, Englisch als Fallback)
@@ -20,7 +20,7 @@ FITgap ist eine schlanke Open-Source-iPhone-App, die deine **Original-FIT-Dateie
 
 ## Funktionen
 
-- **Wahoo, Zwift, MyWhoosh und Hammerhead:** Beliebige dieser Konten verbinden und alle Aktivitäten samt Original-FIT laden. Vorhandene Dateien werden bei späteren Abgleichen übersprungen.
+- **Wahoo, Zwift, MyWhoosh, Hammerhead und intervals.icu:** Beliebige dieser Konten verbinden und alle Aktivitäten samt Original-FIT laden. Vorhandene Dateien werden bei späteren Abgleichen übersprungen. Über intervals.icu sind auch Fahrten von Garmin, COROS, Suunto, Polar und anderen Geräten abgedeckt.
 - **Dubletten:** Liefern mehrere Quellen dasselbe Training, zeigt die Liste nur die Kopie mit den meisten Messreihen und Kennzahlen; sie wird geteilt und in Health gesichert. Die übrigen Kopien bleiben gespeichert und stehen in den Details.
 - **Teilen:** Eine FIT oder eine Mehrfachauswahl ans System-Share-Sheet übergeben, z. B. an HealthFit. Geteilte Aktivitäten werden in der Liste markiert.
 - **Apple Health:** Aktivitäten als Trainings sichern, mit allen Messwerten, für die Health einen Typ hat (Herzfrequenz, Leistung, Trittfrequenz, Geschwindigkeit, Laufdynamik, Strecke, Energie, Schwimmbahnen), Runden, Pausen, Route und der Session-Zusammenfassung als Metadaten. Einzeln, per Auswahl oder automatisch für neue Aktivitäten. Bereits in Health vorhandene Trainings, von FITgap oder einer anderen App, werden erkannt und übersprungen.
@@ -51,10 +51,11 @@ Schlüsselbund-, Sync-Lebenszyklus- und UI-Tests sind im Xcode-Scheme enthalten.
 - **Zwift** bietet keine öffentliche API. FITgap nutzt inoffizielle Schnittstellen mit einer öffentlichen Client-ID, die Zwift jederzeit ändern oder einschränken kann. Das Passwort wird nur vorübergehend zur Anmeldung verwendet und nie gespeichert.
 - **MyWhoosh** bietet ebenfalls keine öffentliche API. FITgap meldet sich mit E-Mail und Passwort über die inoffizielle Schnittstelle der MyWhoosh-Apps an und speichert nur das Zugangstoken und die Kontokennung (`WhooshId`). Eine Token-Erneuerung ist nicht bekannt; nach Ablauf der Sitzung ist eine neue Anmeldung nötig. FIT-Dateien werden über signierte Downloadlinks ohne Zugangstoken geladen. MyWhoosh kann diese Schnittstelle jederzeit ändern oder einschränken.
 - **Hammerhead** nutzt die offizielle API mit OAuth 2.0 (Scope `activity:read`). Hammerhead verlangt bei jeder Token-Anfrage ein Client-Secret und bietet kein PKCE, deshalb muss die App das Secret enthalten. Es kommt nie ins Repository: Es gehört in `Config/Secrets.xcconfig` (Vorlage `Config/Secrets.example.xcconfig`; Xcode Cloud schreibt die Datei in `ci_scripts/ci_post_clone.sh` aus der geheimen Umgebungsvariable `HAMMERHEAD_CLIENT_SECRET`). Beim Bauen maskiert `scripts/hammerhead-secret.sh` es mit einem pro Build neuen Zufallsschlüssel; das erschwert das Auslesen aus der App nur. Ohne Secret baut die App normal und blendet Hammerhead aus. Hammerhead akzeptiert nur http(s)-Rücksprungadressen, deshalb ist die statische Seite `docs/oauth/hammerhead/` auf GitHub Pages registriert; sie reicht Code und State an `fitgap://oauth/hammerhead` weiter und lädt nichts nach. Für eine eigene Version im Hammerhead Dashboard einen eigenen API-Client anlegen, diese Seite (oder eine eigene Kopie) als Rücksprungadresse eintragen und die Client-ID in `Sources/FITgapCore/HammerheadOAuth.swift` ändern.
+- **intervals.icu** nutzt die [offizielle API](https://intervals.icu/api-docs.html) mit deinem persönlichen API-Key (HTTP Basic Auth, Benutzer `API_KEY`) und deiner Athleten-ID, beides unter Settings › Developer Settings. Es gibt keine App-Registrierung und kein Client-Secret. FITgap lädt nur die Originaldatei (`/api/v1/activity/{id}/file`, gzip-komprimiert) und nur, wenn sie eine FIT ist; von Strava importierte Aktivitäten sowie GPX- und TCX-Originale werden übersprungen. Der Key läuft nicht ab; wird er bei intervals.icu neu erzeugt, endet der Zugriff von FITgap.
 
 ## Datenschutz
 
-- Access- und Refresh-Tokens liegen ausschließlich im lokalen Schlüsselbund (`WhenUnlockedThisDeviceOnly`, ohne iCloud-Synchronisierung).
+- Access- und Refresh-Tokens sowie der intervals.icu-API-Key liegen ausschließlich im lokalen Schlüsselbund (`WhenUnlockedThisDeviceOnly`, ohne iCloud-Synchronisierung).
 - Aktivitäten und FIT-Dateien liegen auf dem Gerät unter `Application Support/FITgap/`. Es werden keine Daten an einen Server des Projekts gesendet.
 - Der Zugriff auf Apple Health ist optional. FITgap schreibt Trainings und liest nur Trainings, um Duplikate zu erkennen; über FITgap verlassen keine Health-Daten das Gerät.
 - Trennen entfernt die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen, nur bei Hammerhead widerruft FITgap sie. Heruntergeladene Dateien bleiben erhalten.
@@ -85,4 +86,4 @@ Lizenziert unter der [Apache License 2.0](LICENSE). Der Name **FITgap**, das Log
 
 Die App-Store-Version ist eine bequeme, kostenpflichtige Fassung desselben Quellcodes. Du kannst die App jederzeit selbst bauen.
 
-FITgap ist ein unabhängiges Projekt und steht in keiner Verbindung zu Wahoo, Zwift, MyWhoosh, Garmin oder HealthFit und wird von diesen nicht empfohlen.
+FITgap ist ein unabhängiges Projekt und steht in keiner Verbindung zu Wahoo, Zwift, MyWhoosh, Hammerhead, intervals.icu, Garmin oder HealthFit und wird von diesen nicht empfohlen.

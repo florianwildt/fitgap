@@ -46,6 +46,7 @@ final class AppModel: ObservableObject {
     private let zwift: ZwiftProbe
     private let mywhoosh: MyWhooshProbe
     private let hammerhead: HammerheadProbe
+    private let intervals: IntervalsProbe
     private let signIn = WahooSignIn()
     private let health = HealthExporter()
     private let continued = ContinuedProcessing()
@@ -63,13 +64,14 @@ final class AppModel: ObservableObject {
     private let cooldownKey = "wahooRetryAfter"
     private let fullScanKey = "wahooLastFullScan"
     private let hammerheadScanKey = "hammerheadLastFullScan"
+    private let intervalsScanKey = "intervalsLastFullScan"
     private let fullScanInterval: TimeInterval = 7 * 24 * 3600
     private let wahooClientKey = "wahooClientID"
     private var cursorFile: URL { library.directory.appendingPathComponent("wahoo-catalog.json") }
 
     init(library: ActivityLibrary? = nil, filesFolder: URL? = nil, credentials: CredentialStore = CredentialStore(), defaults: UserDefaults = .standard,
          wahoo: WahooProbe = WahooProbe(), zwift: ZwiftProbe = ZwiftProbe(), mywhoosh: MyWhooshProbe = MyWhooshProbe(),
-         hammerhead: HammerheadProbe = HammerheadProbe()) {
+         hammerhead: HammerheadProbe = HammerheadProbe(), intervals: IntervalsProbe = IntervalsProbe()) {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let real = library ?? ActivityLibrary(directory: support.appendingPathComponent("FITgap", isDirectory: true))
         realLibrary = real
@@ -79,6 +81,7 @@ final class AppModel: ObservableObject {
         demo = DemoLibrary(realDirectory: real.directory)
         self.credentials = credentials; self.defaults = defaults
         self.wahoo = wahoo; self.zwift = zwift; self.mywhoosh = mywhoosh; self.hammerhead = hammerhead
+        self.intervals = intervals
         healthAutoExportSince = defaults.object(forKey: healthAutoExportKey) as? Date
         let requestedDemo = defaults.bool(forKey: "demoMode")
         do {
@@ -210,6 +213,19 @@ final class AppModel: ObservableObject {
             try self.credentials.write(session.credentials, for: .mywhoosh)
             self.accessCache.removeValue(forKey: .mywhoosh)
             self.connected.insert(.mywhoosh)
+        }
+    }
+
+    func connectIntervals(athleteID: String, apiKey: String) {
+        guard !isDemo, !switchingMode else { return }
+        run(label: String(localized: "intervals.icu wird verbunden …")) {
+            let account = try IntervalsAccount(athleteID: athleteID, apiKey: apiKey)
+            try await self.intervals.verify(account)
+            try Task.checkCancellation()
+            try self.credentials.write(account.credentials, for: .intervals)
+            self.accessCache.removeValue(forKey: .intervals)
+            self.defaults.removeObject(forKey: self.intervalsScanKey)
+            self.connected.insert(.intervals)
         }
     }
 
@@ -515,7 +531,8 @@ final class AppModel: ObservableObject {
                 guard let secret = HammerheadSecret.value() else { throw HammerheadError.unavailable }
                 token = try await hammerhead.refresh(token, secret: secret)
             // MyWhoosh has no known refresh route; an expired session needs a new sign-in.
-            case .mywhoosh, .demo: throw AccountError.reconnect
+            // intervals.icu API keys carry no expiry and never get here.
+            case .mywhoosh, .intervals, .demo: throw AccountError.reconnect
             }
             try Task.checkCancellation()
             try credentials.write(token, for: source)
@@ -610,6 +627,27 @@ final class AppModel: ObservableObject {
                 progress = String(localized: "Hammerhead: FIT \(offset + 1) von \(pending.count)")
                 continued.report(offset, of: pending.count)
                 do { try await commit(await hammerhead.download(id: record.remoteID, token: try await access(.hammerhead), store: library.files)) }
+                catch ProbeError.noFIT { try recordFailure(record.key, error: ProbeError.noFIT) }
+                catch { try recordFailure(record.key, error: error); throw error }
+            }
+        case .intervals:
+            // Same rhythm as Hammerhead: weekly full scan, otherwise from two days before the newest known start.
+            let account = try IntervalsAccount(credentials)
+            let known = activities.filter { $0.source == .intervals }
+            let lastFull = defaults.object(forKey: intervalsScanKey) as? Date
+            let fullScan = known.isEmpty || lastFull.map { Date().timeIntervalSince($0) > fullScanInterval || $0 > Date() } ?? true
+            let since = fullScan ? nil : known.compactMap(\.date).max()?.addingTimeInterval(-2 * 24 * 3600)
+            let remote = try await intervals.activities(account, since: since)
+            try Task.checkCancellation()
+            activities = ActivityLibrary.merging(remote.map(ActivityRecord.init), into: activities)
+            try library.save(activities)
+            if fullScan { defaults.set(Date(), forKey: intervalsScanKey) }
+            let pending = activities.filter { $0.source == .intervals && [.pending, .failed].contains($0.status) }
+            for (offset, record) in pending.enumerated() {
+                try Task.checkCancellation()
+                progress = String(localized: "intervals.icu: FIT \(offset + 1) von \(pending.count)")
+                continued.report(offset, of: pending.count)
+                do { try await commit(await intervals.download(id: record.remoteID, account: account, store: library.files)) }
                 catch ProbeError.noFIT { try recordFailure(record.key, error: ProbeError.noFIT) }
                 catch { try recordFailure(record.key, error: error); throw error }
             }
@@ -712,6 +750,8 @@ final class AppModel: ObservableObject {
                     receipt = try await self.mywhoosh.download(id: record.remoteID, session: MyWhooshSession(credentials), store: self.library.files)
                 case .hammerhead:
                     receipt = try await self.hammerhead.download(id: record.remoteID, token: credentials.accessToken, store: self.library.files)
+                case .intervals:
+                    receipt = try await self.intervals.download(id: record.remoteID, account: IntervalsAccount(credentials), store: self.library.files)
                 case .demo: throw CancellationError()
                 }
                 try await self.commit(receipt)
@@ -856,6 +896,7 @@ final class AppModel: ObservableObject {
         if let error = error as? AccountError { return error.localizedDescription }
         if let error = error as? WahooError { return error.localizedDescription }
         if let error = error as? HammerheadError { return error.localizedDescription }
+        if let error = error as? IntervalsError { return error.localizedDescription }
         if let error = error as? WahooRateLimit { return error.localizedDescription }
         if let error = error as? LibraryError { return error.localizedDescription }
         if let error = error as? HealthExportError { return error.localizedDescription }

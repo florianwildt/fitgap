@@ -45,7 +45,8 @@ final class DemoModeTests: XCTestCase {
             let session = URLSession(configuration: config)
             return AppModel(library: library, credentials: credentials, defaults: defaults,
                             wahoo: WahooProbe(session: session), zwift: ZwiftProbe(session: session),
-                            mywhoosh: MyWhooshProbe(session: session), hammerhead: HammerheadProbe(session: session))
+                            mywhoosh: MyWhooshProbe(session: session), hammerhead: HammerheadProbe(session: session),
+                            intervals: IntervalsProbe(session: session))
         }
         func cleanup() {
             try? FileManager.default.removeItem(at: root)
