@@ -6,6 +6,8 @@ struct ActivityDetailView: View {
     @ObservedObject var model: AppModel
     let initial: ActivityRecord
     @State private var confirmOverlap = false
+    @State private var route: [FITActivity.Coordinate] = []
+    @State private var routeRead = false
 
     // Follow the live record so recalculated metrics or a new sharing mark appear immediately.
     private var activity: ActivityRecord { model.activities.first { $0.key == initial.key } ?? initial }
@@ -13,6 +15,7 @@ struct ActivityDetailView: View {
 
     var body: some View {
         List {
+            RouteSection(activity: activity, route: route, read: routeRead)
             Section {
                 row("Sportart", sport)
                 row("Start", activity.date?.formatted(.dateTime.day().month(.abbreviated).year().hour().minute()))
@@ -102,6 +105,19 @@ struct ActivityDetailView: View {
             Text("In Apple Health liegt bereits ein Training von \(activity.health?.existingSource ?? "") für diesen Zeitraum. Es entsteht ein zweites Training; Aktivitätsringe und Statistiken können doppelt zählen.")
         }
         .modifier(HealthExportStatus(model: model))
+        .task(id: RouteSection.loadID(activity, model: model)) {
+            // Side by side the details view stays while the selection changes, so the last route is cleared.
+            route = []
+            routeRead = false
+            // The list's stored preview shows at once; the full route then replaces it for zooming in.
+            if let preview = await RouteThumbnails.shared.route(activity, library: model.library), !Task.isCancelled {
+                route = preview
+            }
+            let full = await RouteSection.load(activity, model: model)
+            guard !Task.isCancelled else { return }
+            if full.count > 1 { route = full }
+            routeRead = true
+        }
         .navigationTitle(activity.displayName)
         .navigationBarTitleDisplayMode(.inline)
     }

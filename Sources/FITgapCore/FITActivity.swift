@@ -99,6 +99,48 @@ public struct FITActivity: Sendable {
     public var start: Date? { sessions.map(\.start).min() }
     public var end: Date? { sessions.map(\.end).max() }
 
+    public struct Coordinate: Codable, Sendable, Equatable {
+        public let latitude: Double
+        public let longitude: Double
+        /// Average speed in m/s since the previous returned position; nil for the first one or without elapsed time.
+        public var speed: Double?
+    }
+
+    /// Recorded positions in order for a map preview, thinned evenly to at most `limit` points;
+    /// first and last position are always kept. Virtual worlds (e.g. Zwift) are kept like real GPS.
+    public func route(limit: Int = 2000) -> [Coordinate] {
+        let all = records.filter { record in
+            guard let latitude = record.latitude, let longitude = record.longitude else { return false }
+            return latitude != 0 || longitude != 0
+        }
+        let count = max(limit, 2)
+        let picked = all.count > count
+            ? (0..<count).map { all[Int((Double($0) * Double(all.count - 1) / Double(count - 1)).rounded())] } : all
+        var result: [Coordinate] = []
+        for (index, record) in picked.enumerated() {
+            var coordinate = Coordinate(latitude: record.latitude!, longitude: record.longitude!)
+            if index > 0 {
+                let previous = picked[index - 1]
+                let seconds = record.date.timeIntervalSince(previous.date)
+                // The recorded distance follows the real path; the straight line is only the fallback.
+                let meters = record.distanceMeters.flatMap { end in previous.distanceMeters.map { end - $0 } }
+                    ?? Self.meters(from: result[index - 1], to: coordinate)
+                if seconds > 0, meters >= 0 { coordinate.speed = meters / seconds }
+            }
+            result.append(coordinate)
+        }
+        return result
+    }
+
+    /// Great-circle distance (haversine, mean earth radius).
+    static func meters(from a: Coordinate, to b: Coordinate) -> Double {
+        let radians = Double.pi / 180
+        let dLat = (b.latitude - a.latitude) * radians, dLon = (b.longitude - a.longitude) * radians
+        let h = sin(dLat / 2) * sin(dLat / 2)
+            + cos(a.latitude * radians) * cos(b.latitude * radians) * sin(dLon / 2) * sin(dLon / 2)
+        return 2 * 6_371_000 * asin(min(1, sqrt(h)))
+    }
+
     public enum ReadError: Error { case invalid }
 
     public static func read(_ data: Data) throws -> FITActivity {

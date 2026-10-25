@@ -14,11 +14,22 @@ struct FITgapApp: App {
     @UIApplicationDelegateAdaptor(OrientationDelegate.self) private var delegate
     @StateObject private var model = AppModel()
     @Environment(\.scenePhase) private var phase
+
+    init() {
+        StartupLog.beginLaunch()
+        StartupLog.mark("App init")
+        StartupLog.watchMainThread()
+    }
+
     var body: some Scene {
         WindowGroup {
             ActivitiesView(model: model)
-                .task { model.start() }
-                .onChange(of: phase) { _, value in model.phaseChanged(value) }
+                .onAppear { StartupLog.mark("first view appeared", once: true) }
+                .task { StartupLog.measure("AppModel.start") { model.start() } }
+                .onChange(of: phase) { _, value in
+                    StartupLog.mark("scene \(value)", once: value == .active)
+                    model.phaseChanged(value)
+                }
                 // "Open in FITgap" and sharing a .fit file to FITgap from Files, Mail or another app.
                 .onOpenURL { url in if url.isFileURL { model.importFiles([url]) } }
         }

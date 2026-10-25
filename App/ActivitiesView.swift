@@ -105,13 +105,14 @@ struct ActivitiesView: View {
                 }
                 let all = matches
                 let visible = Array(all.prefix(limit))
-                Section {
-                    ForEach(Array(visible.enumerated()), id: \.element.id) { index, activity in
+                ForEach(Array(visible.enumerated()), id: \.element.id) { index, activity in
+                    // Each activity is its own inset card, like workouts in HealthFit or Fitness.
+                    Section {
                         // Row buttons stay borderless and keep their own taps; the rest of the row opens the details.
-                        NavigationLink(value: activity.key) {
-                            ActivityRow(activity: activity, connected: model.isDemo || model.connected.contains(activity.source), busy: model.busy || model.switchingMode,
-                                        share: { prepareShare(activity) }, download: { model.download(activity) })
-                        }
+                        ActivityRow(activity: activity, library: model.library, urgent: index < 3, connected: model.isDemo || model.connected.contains(activity.source), busy: model.busy || model.switchingMode,
+                                    share: { prepareShare(activity) }, download: { model.download(activity) })
+                        // The tag drives the list selection that opens the details; unlike a NavigationLink it shows no chevron.
+                        .tag(activity.key)
                         .accessibilityIdentifier("activity-\(activity.source.rawValue)-\(activity.remoteID)")
                         .selectionDisabled(selecting && activity.status != .available)
                         .onAppear {
@@ -134,6 +135,8 @@ struct ActivitiesView: View {
                             }
                         }
                     }
+                }
+                Section {
                 } footer: {
                     if model.isDemo {
                         Text("Demo-Dateien bleiben offline verfügbar. Aktualisieren liest nur den lokalen Demo-Bestand. Gelöschte Dateien lassen sich lokal wiederherstellen. Beim Teilen HealthFit wählen, sofern installiert. „Geteilt“ bestätigt nur die Dateiübergabe, keinen Import und keine Anbieteranbindung.")
@@ -155,6 +158,7 @@ struct ActivitiesView: View {
                     .transition(.scale.combined(with: .opacity))
                 }
             }
+            .listSectionSpacing(.compact)
             .animation(.default, value: showJump)
             .transaction(value: search) { $0.animation = nil }
             .transaction(value: filter) { $0.animation = nil }
@@ -328,57 +332,76 @@ struct ActivitiesView: View {
 
 private struct ActivityRow: View {
     let activity: ActivityRecord
+    let library: ActivityLibrary
+    let urgent: Bool
     let connected: Bool
     let busy: Bool
     let share: () -> Void
     let download: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(activity.source.title).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-            Text(activityName).font(.headline)
-            if let date = activity.date { Text(date, format: .dateTime.day().month(.abbreviated).year().hour().minute()).font(.subheadline) }
-            else { Text("Datum unbekannt").font(.subheadline) }
-            Text("Dauer: \(duration)").font(.subheadline).foregroundStyle(.secondary)
-            Text("\(distance) · ↑ \(ascent) · Ø \(averageSpeed)")
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(activityName).font(.headline)
+                Spacer(minLength: 0)
+                status
+            }
+            Text(subtitle).font(.subheadline).foregroundStyle(.secondary)
+            Text("\(distance) · \(duration) · ↑ \(ascent)")
                 .font(.subheadline).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-                .accessibilityLabel("Strecke: \(distance), Höhenmeter: \(ascent), Durchschnittsgeschwindigkeit: \(averageSpeed)")
+                .accessibilityLabel("Strecke: \(distance), Dauer: \(duration), Höhenmeter: \(ascent)")
             if activity.status != .available {
-                Label(activity.status.title, systemImage: "arrow.down.circle")
-                    .font(.subheadline).foregroundStyle(.secondary)
-            }
-            if let date = activity.sharedAt {
-                HStack(spacing: 6) {
-                    Text("Zuletzt geteilt: \(date.formatted(date: .abbreviated, time: .shortened))")
-                        .font(.caption).foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Image(systemName: "checkmark.circle")
-                        .font(.caption).foregroundStyle(.tint)
-                        .accessibilityLabel("Geteilt")
-                        .accessibilityIdentifier("shared-status-\(activity.source.rawValue)-\(activity.remoteID)")
+                HStack {
+                    Label(activity.status.title, systemImage: "arrow.down.circle")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                    if connected {
+                        Button(activity.source == .demo ? String(localized: "Wiederherstellen") : (activity.status == .deleted ? String(localized: "Erneut laden") : String(localized: "Laden")), systemImage: "arrow.down", action: download)
+                            .buttonStyle(.borderless)
+                            .frame(minHeight: 44).disabled(busy)
+                    }
                 }
             }
-            if activity.health != nil {
-                // Saved by FITgap or already present from another app: either way the workout is in Health.
-                Label("In Health gespeichert", systemImage: "heart.fill")
-                    .font(.caption).foregroundStyle(.secondary)
-                    .accessibilityIdentifier("health-status-\(activity.source.rawValue)-\(activity.remoteID)")
+            if RouteThumbnail.hasRoute(activity) {
+                RouteThumbnail(activity: activity, library: library, urgent: urgent).padding(.top, 8)
             }
-            HStack {
-                if activity.status == .available {
-                    Button("Teilen", systemImage: "square.and.arrow.up", action: share)
-                        .accessibilityIdentifier("share-\(activity.source.rawValue)-\(activity.remoteID)")
-                        .frame(minHeight: 44).disabled(busy)
-                } else if connected {
-                    Button(activity.source == .demo ? String(localized: "Wiederherstellen") : (activity.status == .deleted ? String(localized: "Erneut laden") : String(localized: "Laden")), systemImage: "arrow.down", action: download)
-                        .frame(minHeight: 44).disabled(busy)
-                }
-            }
-            .buttonStyle(.borderless)
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .contain)
+    }
+
+    /// Shared and Health marks as small symbols, then the share button; the details list the dates.
+    private var status: some View {
+        HStack(spacing: 12) {
+            if activity.sharedAt != nil {
+                Image(systemName: "checkmark.circle")
+                    .foregroundStyle(.tint)
+                    .accessibilityLabel("Geteilt")
+                    .accessibilityIdentifier("shared-status-\(activity.source.rawValue)-\(activity.remoteID)")
+            }
+            if activity.health != nil {
+                // Saved by FITgap or already present from another app: either way the workout is in Health.
+                Image(systemName: "heart.fill")
+                    .foregroundStyle(.pink)
+                    .accessibilityLabel("In Health gespeichert")
+                    .accessibilityIdentifier("health-status-\(activity.source.rawValue)-\(activity.remoteID)")
+            }
+            if activity.status == .available {
+                Button("Teilen", systemImage: "square.and.arrow.up", action: share)
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.borderless)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .accessibilityIdentifier("share-\(activity.source.rawValue)-\(activity.remoteID)")
+                    .disabled(busy)
+            }
+        }
+        .font(.subheadline)
+    }
+
+    private var subtitle: String {
+        let date = activity.date?.formatted(.dateTime.day().month(.abbreviated).year().hour().minute()) ?? String(localized: "Datum unbekannt")
+        return "\(date) · \(activity.source.title)"
     }
 
     private static let durationFormatter: DateComponentsFormatter = {
@@ -399,7 +422,6 @@ private struct ActivityRow: View {
 
     private var distance: String { ActivityFormat.distance(activity.metrics?.distanceMeters) ?? "— km" }
     private var ascent: String { activity.metrics?.ascentMeters.map(ActivityFormat.meters) ?? "— m" }
-    private var averageSpeed: String { ActivityFormat.speed(activity.metrics?.averageSpeedMetersPerSecond) ?? "— km/h" }
 }
 
 private struct SharedFiles: Identifiable {

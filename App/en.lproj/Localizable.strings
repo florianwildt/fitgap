@@ -14,8 +14,9 @@
 "Dateioptionen für %@" = "File options for %@";
 "Datum unbekannt" = "Unknown date";
 "Datenschutz" = "Privacy";
+"Diagnose" = "Diagnostics";
+"Startprotokoll teilen" = "Share Startup Log";
 "Datenschutzerklärung" = "Privacy Policy";
-"Dauer: %@" = "Duration: %@";
 "Die Datei wird nur auf diesem iPhone gelöscht. Die Aktivität beim Anbieter bleibt erhalten. Du kannst die Datei später über „Erneut laden“ herunterladen." = "The file will only be deleted on this iPhone. The activity at the provider will be kept. You can download the file again later using “Download again”.";
 "Die lokale Sitzung wird entfernt. Deine FIT-Dateien bleiben verfügbar." = "The local session will be removed. Your FIT files will remain available.";
 "E-Mail" = "Email";
@@ -38,7 +39,7 @@
 "Nur das eigene Konto verwenden. Das Passwort wird ausschließlich für die Anmeldung verarbeitet und nicht gespeichert." = "Only use your own account. Your password is used solely to sign in and is not stored.";
 "OK" = "OK";
 "Passwort" = "Password";
-"Strecke: %@, Höhenmeter: %@, Durchschnittsgeschwindigkeit: %@" = "Distance: %@, Elevation gain: %@, Average speed: %@";
+"Strecke: %@, Dauer: %@, Höhenmeter: %@" = "Distance: %@, Duration: %@, Elevation gain: %@";
 "Teilen" = "Share";
 "Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen, nur bei Hammerhead und Dropbox wird sie widerrufen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden." = "Tokens stay in this iPhone’s Keychain. Disconnecting removes the local session; access granted at the provider remains in place, except for Hammerhead and Dropbox, where it is revoked. Saved FIT files are kept and can be deleted individually.";
 "Trennen" = "Disconnect";
@@ -48,7 +49,6 @@
 "Wahoo-Anmeldung …" = "Signing in to Wahoo…";
 "Wahoo: FIT %lld von %lld" = "Wahoo: FIT %lld of %lld";
 "Wahoo: Seite %lld, %lld Aktivitäten" = "Wahoo: Page %lld, %lld activities";
-"Zuletzt geteilt: %@" = "Last shared: %@";
 "%@ verbinden" = "Connect %@";
 "Zwift wird verbunden …" = "Connecting Zwift…";
 "Zwift: FIT %lld von %lld" = "Zwift: FIT %lld of %lld";
@@ -201,3 +201,9 @@
 "Athleten-ID (z. B. i12345)" = "Athlete ID (e.g. i12345)";
 "API-Key" = "API key";
 "Athleten-ID und API-Key findest du auf intervals.icu unter Settings › Developer Settings. Beides bleibt nur im Schlüsselbund dieses iPhones." = "You’ll find your athlete ID and API key on intervals.icu under Settings › Developer Settings. Both stay only in this iPhone’s keychain.";
+"Virtuelle Strecke auf der Karte" = "Virtual route on the map";
+"Strecke auf der Karte" = "Route on the map";
+"Öffnet die Karte" = "Opens the map";
+"Virtuelle Strecke: Die Koordinaten gehören zur Spielwelt und liegen oft abseits echter Straßen." = "Virtual route: the coordinates belong to the game world and often lie away from real roads.";
+"Ziel" = "Finish";
+"Karte" = "Map";

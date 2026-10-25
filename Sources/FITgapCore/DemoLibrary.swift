@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 /// Owns only the sibling demo directory. No provider IDs, credentials or network access.
@@ -22,8 +23,18 @@ public struct DemoLibrary: Sendable {
     public func load() throws -> [ActivityRecord] {
         if FileManager.default.fileExists(atPath: library.directory.appendingPathComponent("activities.json").path) {
             var records = try library.load()
-            // Bundled demo files are small: refresh older cached metrics directly.
-            guard records.contains(where: \.needsMetrics) else { return records }
+            // Bundled demo files are small: replace copies from an older app version and refresh older cached metrics directly.
+            let outdated = records.indices.filter { index in
+                guard let bundled = try? bytes(id: records[index].remoteID) else { return false }
+                return records[index].receipt?.sha256 != SHA256.hash(data: bundled).map { String(format: "%02x", $0) }.joined()
+            }
+            guard !outdated.isEmpty || records.contains(where: \.needsMetrics) else { return records }
+            for index in outdated {
+                // The store never overwrites a saved original, so the outdated copy is removed first.
+                var refreshed = try restoring(library.deletingFile(for: records[index]))
+                refreshed.sharedAt = records[index].sharedAt
+                records[index] = refreshed
+            }
             for index in records.indices where records[index].needsMetrics {
                 if let metrics = try? library.metrics(for: records[index]) { records[index].metrics = metrics }
             }

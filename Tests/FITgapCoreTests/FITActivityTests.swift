@@ -45,3 +45,21 @@ private func fit(_ body: [UInt8]) -> Data {
         #expect(activity.records.allSatisfy { ($0.date >= activity.start!) && $0.date <= activity.end!.addingTimeInterval(1) })
     }
 }
+
+@Test func routeSkipsMissingPositionsAndThinsEvenly() {
+    var activity = FITActivity()
+    let start = Date(timeIntervalSince1970: 0)
+    activity.records = (0..<101).map {
+        FITActivity.Record(date: start.addingTimeInterval(Double($0)), latitude: $0 == 50 ? nil : Double($0) / 1000,
+                           longitude: 1)
+    }
+    activity.records.append(FITActivity.Record(date: start.addingTimeInterval(200), latitude: 0, longitude: 0))
+    #expect(activity.route().count == 100)
+    let thinned = activity.route(limit: 10)
+    #expect(thinned.count == 10)
+    #expect(thinned.first?.latitude == 0)
+    #expect(thinned.last?.latitude == 0.1)
+    #expect(thinned.first?.speed == nil)
+    // Without recorded distance the speed follows the straight line: 0.011° latitude in 11 s ≈ 111 m/s.
+    #expect(abs((thinned[1].speed ?? 0) - 111.2) < 0.5)
+}

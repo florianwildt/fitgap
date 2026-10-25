@@ -77,7 +77,7 @@ Siehe die vollständige [Datenschutzerklärung](https://florianwildt.github.io/f
 | `Assets/` | Marken- und App-Store-Grafiken |
 | `docs/` | Projektwebsite (GitHub Pages) |
 
-Die mitgelieferten Demo-FITs enthalten keine GPS-Koordinaten oder persönlichen Daten. Sie wurden synthetisch mit Garmins offiziellem Python-FIT-SDK erzeugt, das nur ein Entwicklungswerkzeug und keine App-Abhängigkeit ist.
+Die mitgelieferten Demo-FITs enthalten keine persönlichen Daten und keine echten GPS-Positionen; es sind virtuelle Fahrten auf erfundenen Runden im offenen Südpazifik. Sie wurden synthetisch mit Garmins offiziellem Python-FIT-SDK erzeugt, das nur ein Entwicklungswerkzeug und keine App-Abhängigkeit ist.
 
 ## Mitwirken
 

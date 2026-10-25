@@ -76,6 +76,8 @@ final class AppModel: ObservableObject {
          wahoo: WahooProbe = WahooProbe(), zwift: ZwiftProbe = ZwiftProbe(), mywhoosh: MyWhooshProbe = MyWhooshProbe(),
          hammerhead: HammerheadProbe = HammerheadProbe(), dropbox: DropboxProbe = DropboxProbe(),
          intervals: IntervalsProbe = IntervalsProbe()) {
+        StartupLog.mark("AppModel init begins")
+        defer { StartupLog.mark("AppModel init ends") }
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let real = library ?? ActivityLibrary(directory: support.appendingPathComponent("FITgap", isDirectory: true))
         realLibrary = real
@@ -90,23 +92,24 @@ final class AppModel: ObservableObject {
         let requestedDemo = defaults.bool(forKey: "demoMode")
         do {
             // Determine local connection state without provider requests or token renewal.
-            try readConnections(clearMismatchedCooldown: !requestedDemo)
+            try StartupLog.measure("read connections") { try readConnections(clearMismatchedCooldown: !requestedDemo) }
             accountsReady = true
             isDemo = requestedDemo && connected.isEmpty
             if requestedDemo && !isDemo { defaults.set(false, forKey: "demoMode") }
         } catch { errorMessage = Self.message(error) }
         do {
             // Cached real FITs remain readable even when the Keychain is temporarily unavailable.
-            activities = try isDemo ? demo.load() : real.load()
+            activities = try StartupLog.measure(isDemo ? "load demo library" : "load library") { try isDemo ? demo.load() : real.load() }
+            StartupLog.mark("\(activities.count) activities loaded")
             // Observers do not run for assignments in the initializer.
-            duplicates = DuplicateGroups(activities)
+            duplicates = StartupLog.measure("find duplicates") { DuplicateGroups(activities) }
             storageReady = accountsReady
         } catch { errorMessage = Self.message(error) }
     }
 
     private func readConnections(clearMismatchedCooldown: Bool = false) throws {
         connected.removeAll()
-        for source in Source.providers where try credentials.read(source) != nil {
+        for source in Source.providers where try StartupLog.measure("Keychain \(source.title)", { try credentials.read(source) }) != nil {
             if source == .wahoo, defaults.string(forKey: wahooClientKey) != WahooOAuth.clientID {
                 if clearMismatchedCooldown { defaults.removeObject(forKey: cooldownKey) }
                 continue
@@ -181,8 +184,8 @@ final class AppModel: ObservableObject {
     func start() {
         guard !started else { return }
         started = true
-        exportMissingFiles()
-        refresh()
+        StartupLog.measure("exportMissingFiles") { exportMissingFiles() }
+        StartupLog.measure("refresh") { refresh() }
     }
 
     func refreshAndWait() async {
@@ -344,10 +347,10 @@ final class AppModel: ObservableObject {
         guard !connected.isEmpty || activities.contains(where: \.needsMetrics) else { return }
         run(label: String(localized: "Aktivitäten werden abgerufen …"), resume: { [weak self] in self?.refresh() },
             continuedTitle: userInitiated ? String(localized: "FITgap-Abgleich") : nil) {
-            try await self.fillMissingMetrics()
+            try await StartupLog.measure("fill missing metrics") { try await self.fillMissingMetrics() }
             var failures: [String] = []
             for source in Source.providers where self.connected.contains(source) {
-                do { try await self.sync(source) }
+                do { try await StartupLog.measure("sync \(source.title)") { try await self.sync(source) } }
                 catch is CancellationError { throw CancellationError() }
                 catch {
                     try Task.checkCancellation()
@@ -360,7 +363,8 @@ final class AppModel: ObservableObject {
             // After the provider import, at app start and on every refresh: new activities go to Health.
             // Without a granted write access the automatic export stays silent; manual exports report it.
             if let since = self.healthAutoExportSince, self.health.canWrite {
-                try await self.exportHealth(self.visibleActivities.filter { self.isNewForHealth($0, since: since) }.map(\.key), priority: .utility)
+                let keys = StartupLog.measure("select new for Health") { self.visibleActivities.filter { self.isNewForHealth($0, since: since) }.map(\.key) }
+                try await StartupLog.measure("Health auto export") { try await self.exportHealth(keys, priority: .utility) }
             }
         }
     }
@@ -878,6 +882,7 @@ final class AppModel: ObservableObject {
             if isDemo { try demo.removeExport(record) }
             else if let filesFolder { activities[index] = try filesFolder.remove(activities[index]) }
             activities[index] = try library.deletingFile(for: activities[index])
+            RouteThumbnails.shared.remove(record)
             // An imported file has no provider to load it again; importing it once more brings it back.
             if record.source == .imported { activities.remove(at: index) }
             try library.save(activities)

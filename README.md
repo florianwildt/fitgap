@@ -77,7 +77,7 @@ See the full [Privacy Policy](https://florianwildt.github.io/fitgap/privacy/en/)
 | `Assets/` | Brand and App Store artwork |
 | `docs/` | Project website (GitHub Pages) |
 
-The bundled demo FITs contain no GPS coordinates or personal data. They were generated synthetically with Garmin's official Python FIT SDK, which is only a development tool and not an app dependency.
+The bundled demo FITs contain no personal data or real GPS positions; they are virtual rides on made-up loops in the open South Pacific. They were generated synthetically with Garmin's official Python FIT SDK, which is only a development tool and not an app dependency.
 
 ## Contributing
 

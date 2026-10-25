@@ -80,6 +80,10 @@ struct AccountsView: View {
                     .tint(.blue)
                     .accessibilityIdentifier("privacy-policy")
                 }
+                Section("Diagnose") {
+                    ShareLink(item: StartupLog.file) { Label("Startprotokoll teilen", systemImage: "doc.text.magnifyingglass") }
+                        .accessibilityIdentifier("share-startup-log")
+                }
             }
             .safeAreaInset(edge: .bottom) { DemoIndicator(enabled: model.isDemo) }
             .navigationTitle("Konten")

@@ -32,8 +32,15 @@
 			</array>
 		</dict>
 	</array>
-	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+	</dict>
+	<key>UIFileSharingEnabled</key>
 	<true/>
+	<key>UILaunchScreen</key>
+	<dict/>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
 		<dict>
@@ -58,14 +65,5 @@
 			</dict>
 		</dict>
 	</array>
-	<key>UIApplicationSceneManifest</key>
-	<dict>
-		<key>UIApplicationSupportsMultipleScenes</key>
-		<false/>
-	</dict>
-	<key>UIFileSharingEnabled</key>
-	<true/>
-	<key>UILaunchScreen</key>
-	<dict/>
 </dict>
 </plist>

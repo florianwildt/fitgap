@@ -179,9 +179,26 @@ public struct ActivityLibrary: Sendable {
         try FITActivity.read(verifiedData(for: record))
     }
 
+    /// Thinned route for list previews, kept beside the original so it is read without parsing the FIT again.
+    /// The stored copy is used only while its checksum matches the verified original.
+    public func routePreview(for record: ActivityRecord) throws -> [FITActivity.Coordinate] {
+        struct Stored: Codable { let sha256: String; let points: [FITActivity.Coordinate] }
+        let file = files.directory.appendingPathComponent(record.key.filename).appendingPathExtension("route")
+        if let sha256 = record.receipt?.sha256, let data = try? Data(contentsOf: file),
+           let stored = try? JSONDecoder().decode(Stored.self, from: data), stored.sha256 == sha256 {
+            return stored.points
+        }
+        let data = try verifiedData(for: record)
+        let points = try FITActivity.read(data).route(limit: 400)
+        if let sha256 = record.receipt?.sha256, let encoded = try? JSONEncoder().encode(Stored(sha256: sha256, points: points)) {
+            try? encoded.write(to: file, options: .atomic)
+        }
+        return points
+    }
+
     public func deletingFile(for record: ActivityRecord) throws -> ActivityRecord {
         let file = files.directory.appendingPathComponent(record.key.filename)
-        for url in [file, file.appendingPathExtension("json")] where FileManager.default.fileExists(atPath: url.path) {
+        for url in [file, file.appendingPathExtension("json"), file.appendingPathExtension("route")] where FileManager.default.fileExists(atPath: url.path) {
             try FileManager.default.removeItem(at: url)
         }
         var record = record

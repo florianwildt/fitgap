@@ -67,7 +67,7 @@ final class DemoUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars[german ? "Demo: Lockere Morgenfahrt" : "Demo: Easy Morning Ride"].waitForExistence(timeout: 5))
         capture(app, "Demo-details-\(german)")
         // Rows below the fold are created lazily, e.g. with the largest accessibility text size.
-        for value in ["0:30:00", german ? "120 S/min" : "120 bpm", german ? "Indoor-Radfahren" : "Indoor cycling"] {
+        for value in ["0:30:00", german ? "120 S/min" : "120 bpm", german ? "Virtuelles Radfahren" : "Virtual cycling"] {
             let row = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", value)).firstMatch
             reveal(row, in: app)
             XCTAssertTrue(row.exists, app.debugDescription)

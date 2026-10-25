@@ -67,8 +67,6 @@ final class FITgapUITests: XCTestCase {
         XCTAssertTrue(app.buttons["share-zwift-900000000001"].waitForExistence(timeout: 5), app.debugDescription)
         XCTAssertEqual(app.buttons["share-zwift-900000000001"].label, german ? "Teilen" : "Share")
         XCTAssertEqual(app.images["shared-status-zwift-900000000001"].label, german ? "Geteilt" : "Shared")
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", german ? "Dauer:" : "Duration:")).firstMatch.exists)
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", german ? "Zuletzt geteilt:" : "Last shared:")).firstMatch.exists)
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", german ? "Strecke:" : "Distance:")).firstMatch.exists)
         capture(app, "Library-\(language)")
         let footer = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", german ? "FITs bleiben offline verfügbar." : "FIT files remain available offline.")).firstMatch
