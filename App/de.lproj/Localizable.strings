@@ -40,7 +40,7 @@
 "Passwort" = "Passwort";
 "Strecke: %@, Höhenmeter: %@, Durchschnittsgeschwindigkeit: %@" = "Strecke: %@, Höhenmeter: %@, Durchschnittsgeschwindigkeit: %@";
 "Teilen" = "Teilen";
-"Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen, nur bei Hammerhead wird sie widerrufen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden." = "Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen, nur bei Hammerhead wird sie widerrufen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden.";
+"Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen, nur bei Hammerhead und Dropbox wird sie widerrufen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden." = "Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen, nur bei Hammerhead und Dropbox wird sie widerrufen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden.";
 "Trennen" = "Trennen";
 "Verbinde unter „Konten“ Wahoo, Zwift oder MyWhoosh und ziehe die Liste nach unten." = "Verbinde unter „Konten“ Wahoo, Zwift oder MyWhoosh und ziehe die Liste nach unten.";
 "Verbinden" = "Verbinden";
@@ -186,6 +186,15 @@
 "Dieses Jahr" = "Dieses Jahr";
 "Letztes Jahr" = "Letztes Jahr";
 "Kein Filter" = "Kein Filter";
+"Dropbox-Anmeldung …" = "Dropbox-Anmeldung …";
+"Dropbox wird getrennt …" = "Dropbox wird getrennt …";
+"Dropbox: FIT %lld von %lld" = "Dropbox: FIT %lld von %lld";
+"Lokal getrennt. Dropbox hat den Widerruf nicht bestätigt. Du kannst FITgap in den Dropbox-Einstellungen unter „Verbundene Apps“ entfernen." = "Lokal getrennt. Dropbox hat den Widerruf nicht bestätigt. Du kannst FITgap in den Dropbox-Einstellungen unter „Verbundene Apps“ entfernen.";
+"Anmeldung über Dropbox mit nur lesendem Zugriff. FITgap lädt FIT-Dateien aus dem Ordner „Apps“, in den Dienste wie Zwift, Wahoo, Karoo oder TrainerRoad exportieren. Trennen widerruft auch die Freigabe bei Dropbox." = "Anmeldung über Dropbox mit nur lesendem Zugriff. FITgap lädt FIT-Dateien aus dem Ordner „Apps“, in den Dienste wie Zwift, Wahoo, Karoo oder TrainerRoad exportieren. Trennen widerruft auch die Freigabe bei Dropbox.";
+"Die lokale Sitzung wird entfernt und die Freigabe bei Dropbox widerrufen. Deine Dateien in Dropbox und in FITgap bleiben erhalten." = "Die lokale Sitzung wird entfernt und die Freigabe bei Dropbox widerrufen. Deine Dateien in Dropbox und in FITgap bleiben erhalten.";
+"FIT importieren" = "FIT importieren";
+"„%@“ ist bereits in FITgap." = "„%@“ ist bereits in FITgap.";
+"Die importierte Datei wird aus FITgap gelöscht. Das Original in der Dateien-App bleibt erhalten, und du kannst es jederzeit erneut importieren." = "Die importierte Datei wird aus FITgap gelöscht. Das Original in der Dateien-App bleibt erhalten, und du kannst es jederzeit erneut importieren.";
 "intervals.icu wird verbunden …" = "intervals.icu wird verbunden …";
 "intervals.icu: FIT %lld von %lld" = "intervals.icu: FIT %lld von %lld";
 "Offizielle Schnittstelle mit deinem persönlichen API-Key. Geladen werden Aktivitäten, deren Originaldatei eine FIT ist, z. B. von Garmin, COROS, Suunto oder Polar; von Strava importierte Aktivitäten sowie GPX und TCX nicht." = "Offizielle Schnittstelle mit deinem persönlichen API-Key. Geladen werden Aktivitäten, deren Originaldatei eine FIT ist, z. B. von Garmin, COROS, Suunto oder Polar; von Strava importierte Aktivitäten sowie GPX und TCX nicht.";

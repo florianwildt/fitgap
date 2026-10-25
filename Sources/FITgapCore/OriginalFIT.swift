@@ -53,15 +53,18 @@ public struct OriginalFITStore: Sendable {
 
     public init(directory: URL) { self.directory = directory }
 
-    public func save(_ data: Data, key: ActivityKey) throws -> FITReceipt {
-        try Task.checkCancellation()
-        // Only inspect the header and declared length; never decode/re-encode FIT records.
-        guard data.count >= 14 else { throw ProbeError.invalidFIT }
+    /// Only inspects the header and declared length; never decodes or re-encodes FIT records.
+    public static func isComplete(_ data: Data) -> Bool {
+        guard data.count >= 14 else { return false }
         let bytes = [UInt8](data.prefix(12))
         let header = Int(bytes[0])
         let body = Int(bytes[4]) | Int(bytes[5]) << 8 | Int(bytes[6]) << 16 | Int(bytes[7]) << 24
-        guard [12, 14].contains(header), Array(bytes[8..<12]) == Array(".FIT".utf8),
-              data.count == header + body + 2 else { throw ProbeError.invalidFIT }
+        return [12, 14].contains(header) && Array(bytes[8..<12]) == Array(".FIT".utf8) && data.count == header + body + 2
+    }
+
+    public func save(_ data: Data, key: ActivityKey) throws -> FITReceipt {
+        try Task.checkCancellation()
+        guard Self.isComplete(data) else { throw ProbeError.invalidFIT }
         let receipt = FITReceipt(
             key: key, sha256: SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined(),
             byteCount: data.count, checkedAt: Date()

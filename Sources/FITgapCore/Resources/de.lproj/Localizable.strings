@@ -28,4 +28,12 @@
 "Zugriff verweigert (HTTP 403). Kontoberechtigung oder Schnittstellenfreigabe prüfen." = "Zugriff verweigert (HTTP 403). Kontoberechtigung oder Schnittstellenfreigabe prüfen.";
 "Hammerhead hat die Sitzung abgelehnt (%@). Bitte das Konto erneut verbinden." = "Hammerhead hat die Sitzung abgelehnt (%@). Bitte das Konto erneut verbinden.";
 "Hammerhead ist in dieser Version nicht verfügbar." = "Hammerhead ist in dieser Version nicht verfügbar.";
+"Dropbox hat die Sitzung abgelehnt (%@). Bitte das Konto erneut verbinden." = "Dropbox hat die Sitzung abgelehnt (%@). Bitte das Konto erneut verbinden.";
+"Dropbox hat die benötigten Leseberechtigungen nicht erteilt." = "Dropbox hat die benötigten Leseberechtigungen nicht erteilt.";
+"Dropbox ist in dieser Version nicht verfügbar." = "Dropbox ist in dieser Version nicht verfügbar.";
+"Abruflimit erreicht. Dropbox pausiert bis %@." = "Abruflimit erreicht. Dropbox pausiert bis %@.";
+"Importiert" = "Importiert";
+"„%@“ ist keine vollständige FIT-Datei. Es wurde nichts importiert." = "„%@“ ist keine vollständige FIT-Datei. Es wurde nichts importiert.";
+"„%@“ konnte nicht gelesen werden. Es wurde nichts importiert." = "„%@“ konnte nicht gelesen werden. Es wurde nichts importiert.";
+"Im Demo-Modus können keine Dateien importiert werden. Beende zuerst die Demo." = "Im Demo-Modus können keine Dateien importiert werden. Beende zuerst die Demo.";
 "intervals.icu hat Athleten-ID oder API-Key abgelehnt. Bitte beides in den Developer Settings prüfen." = "intervals.icu hat Athleten-ID oder API-Key abgelehnt. Bitte beides in den Developer Settings prüfen.";

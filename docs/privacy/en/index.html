@@ -51,7 +51,7 @@ Germany</p>
 <p>This policy describes how personal data is processed when you use the iOS app FITgap and this information website.</p>
 
 <h2 id="2-basic-principle-of-the-app">2. Basic principle of the app</h2>
-<p>At your request, FITgap connects to your own Wahoo, Zwift, MyWhoosh, Hammerhead and intervals.icu accounts, downloads activity information and original FIT files, and stores them on your iPhone.</p>
+<p>At your request, FITgap connects to your own Wahoo, Zwift, MyWhoosh, Hammerhead, Dropbox and intervals.icu accounts, downloads activity information and original FIT files, and stores them on your iPhone.</p>
 
 <p>FITgap does not operate its own server for storing your accounts or workout data. The developer does not gain access to this data through normal use of the app.</p>
 
@@ -79,6 +79,8 @@ Germany</p>
 
 <p>For Hammerhead, you sign in through a system web sign-in at the provider. After you grant permission, FITgap receives access tokens for read-only access to your activities. After you grant permission, Hammerhead passes the single-use sign-in code to the app through a static page on this website (GitHub Pages); the page loads no other content and stores nothing, but for technical reasons GitHub receives the request data. When you disconnect, FITgap revokes the permission at Hammerhead.</p>
 
+<p>For Dropbox, you sign in through a system web sign-in at the provider. After you grant permission, FITgap receives access tokens for read-only access to files (file list and file contents); FITgap cannot change, delete or share anything in your Dropbox. FITgap searches the “Apps” folder, where other services place their exports, and downloads only files ending in “.fit”. To recognise the FIT files, FITgap processes file and folder names, file identifiers, modification dates and checksums of this folder locally on your iPhone. When you disconnect, FITgap revokes the permission at Dropbox; your files in Dropbox remain unchanged.</p>
+
 <p>For intervals.icu, you enter your athlete ID and your personal API key from the Developer Settings in the app. FITgap uses the official intervals.icu interface, sends the API key in encrypted form with each request to intervals.icu and stores both in the keychain. FITgap retrieves the activity list and the original files of activities that were uploaded as FIT. Disconnecting removes the API key from FITgap; at intervals.icu it stays valid until you regenerate it there.</p>
 
 <p>Access tokens and API keys are stored in this iPhone’s keychain and are not synchronised by FITgap through iCloud Keychain.</p>
@@ -90,6 +92,7 @@ Germany</p>
   <li><a href="https://support.zwift.com/privacy-policy-HJbPL8Rl8">Zwift privacy policy</a></li>
   <li><a href="https://mywhoosh.com/privacy-policy/">MyWhoosh privacy policy</a></li>
   <li><a href="https://www.sram.com/en/company/legal/global-privacy-policy">Hammerhead privacy policy (SRAM)</a></li>
+  <li><a href="https://www.dropbox.com/privacy">Dropbox privacy policy</a></li>
   <li><a href="https://www.intervals.icu/privacy-policy/">intervals.icu privacy policy</a></li>
   <li><a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub privacy statement</a></li>
 </ul>

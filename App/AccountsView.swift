@@ -23,7 +23,7 @@ struct AccountsView: View {
                 } header: {
                     Text("Datenquellen")
                 } footer: {
-                    Text("Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen, nur bei Hammerhead wird sie widerrufen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden.")
+                    Text("Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen, nur bei Hammerhead und Dropbox wird sie widerrufen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden.")
                 }
                 if model.healthAvailable {
                     Section {
@@ -111,6 +111,7 @@ private struct SourceAccountView: View {
                     switch source {
                     case .wahoo: model.connectWahoo()
                     case .hammerhead: model.connectHammerhead()
+                    case .dropbox: model.connectDropbox()
                     default: passwordLogin = true
                     }
                 }
@@ -125,6 +126,7 @@ private struct SourceAccountView: View {
                 case .zwift: Text("Inoffizielle Schnittstelle. Änderungen bei Zwift können die Verbindung unterbrechen.")
                 case .mywhoosh: Text("Inoffizielle Schnittstelle. Änderungen bei MyWhoosh können die Verbindung unterbrechen. Läuft die Sitzung ab, ist eine neue Anmeldung nötig.")
                 case .hammerhead: Text("Anmeldung über Hammerhead mit lesendem Zugriff auf Aktivitäten. Trennen widerruft auch die Freigabe bei Hammerhead.")
+                case .dropbox: Text("Anmeldung über Dropbox mit nur lesendem Zugriff. FITgap lädt FIT-Dateien aus dem Ordner „Apps“, in den Dienste wie Zwift, Wahoo, Karoo oder TrainerRoad exportieren. Trennen widerruft auch die Freigabe bei Dropbox.")
                 case .intervals: Text("Offizielle Schnittstelle mit deinem persönlichen API-Key. Geladen werden Aktivitäten, deren Originaldatei eine FIT ist, z. B. von Garmin, COROS, Suunto oder Polar; von Strava importierte Aktivitäten sowie GPX und TCX nicht.")
                 default: Text("Anmeldung über Wahoo mit lesendem Zugriff.")
                 }
@@ -142,6 +144,8 @@ private struct SourceAccountView: View {
         } message: {
             if source == .hammerhead {
                 Text("Die lokale Sitzung wird entfernt und die Freigabe bei Hammerhead widerrufen. Deine FIT-Dateien bleiben verfügbar.")
+            } else if source == .dropbox {
+                Text("Die lokale Sitzung wird entfernt und die Freigabe bei Dropbox widerrufen. Deine Dateien in Dropbox und in FITgap bleiben erhalten.")
             } else {
                 Text("Die lokale Sitzung wird entfernt. Deine FIT-Dateien bleiben verfügbar.")
             }

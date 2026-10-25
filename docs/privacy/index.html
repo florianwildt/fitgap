@@ -50,7 +50,7 @@ Deutschland</p>
 <p>Diese Erklärung beschreibt die Verarbeitung personenbezogener Daten bei der Nutzung der iOS-App FITgap und dieser Informationsseite.</p>
 
 <h2 id="2-grundprinzip-der-app">2. Grundprinzip der App</h2>
-<p>FITgap verbindet sich auf deine Anforderung mit deinen eigenen Konten bei Wahoo, Zwift, MyWhoosh, Hammerhead und intervals.icu, lädt Aktivitätsinformationen und Original-FIT-Dateien herunter und speichert sie auf deinem iPhone.</p>
+<p>FITgap verbindet sich auf deine Anforderung mit deinen eigenen Konten bei Wahoo, Zwift, MyWhoosh, Hammerhead, Dropbox und intervals.icu, lädt Aktivitätsinformationen und Original-FIT-Dateien herunter und speichert sie auf deinem iPhone.</p>
 
 <p>FITgap betreibt keinen eigenen Server zur Speicherung deiner Konten oder Trainingsdaten. Der Entwickler erhält durch die normale App-Nutzung keinen Zugriff auf diese Daten.</p>
 
@@ -78,6 +78,8 @@ Deutschland</p>
 
 <p>Bei Hammerhead erfolgt die Anmeldung über eine System-Webanmeldung beim Anbieter. FITgap erhält nach deiner Freigabe Zugangstokens für den lesenden Zugriff auf deine Aktivitäten. Nach der Freigabe leitet Hammerhead den einmalig gültigen Anmeldecode über eine statische Seite dieser Website (GitHub Pages) an die App weiter; die Seite lädt keine weiteren Inhalte und speichert nichts, technisch bedingt erhält GitHub dabei die Anfragedaten. Beim Trennen widerruft FITgap die Freigabe bei Hammerhead.</p>
 
+<p>Bei Dropbox erfolgt die Anmeldung über eine System-Webanmeldung beim Anbieter. FITgap erhält nach deiner Freigabe Zugangstokens nur für den lesenden Zugriff auf Dateien (Dateiliste und Dateiinhalte); FITgap kann in deiner Dropbox nichts ändern, löschen oder teilen. FITgap durchsucht den Ordner „Apps“, in den andere Dienste ihre Exporte ablegen, und lädt nur Dateien mit der Endung „.fit“. Dabei verarbeitet FITgap Datei- und Ordnernamen, Dateikennungen, Änderungsdaten und Prüfsummen dieses Ordners lokal auf deinem iPhone, um die FIT-Dateien zu erkennen. Beim Trennen widerruft FITgap die Freigabe bei Dropbox; deine Dateien in Dropbox bleiben unverändert.</p>
+
 <p>Bei intervals.icu gibst du deine Athleten-ID und deinen persönlichen API-Key aus den Developer Settings in der App ein. FITgap nutzt die offizielle Schnittstelle von intervals.icu, sendet den API-Key verschlüsselt mit jeder Anfrage an intervals.icu und speichert beides im Schlüsselbund. Abgerufen werden die Aktivitätsliste und die Originaldateien von Aktivitäten, die als FIT hochgeladen wurden. Trennen entfernt den API-Key aus FITgap; bei intervals.icu bleibt er gültig, bis du ihn dort neu erzeugst.</p>
 
 <p>Zugangstokens und API-Keys werden im Schlüsselbund dieses iPhones gespeichert und durch FITgap nicht über den iCloud-Schlüsselbund synchronisiert.</p>
@@ -89,6 +91,7 @@ Deutschland</p>
   <li><a href="https://support.zwift.com/privacy-policy-HJbPL8Rl8">Zwift-Datenschutzerklärung</a></li>
   <li><a href="https://mywhoosh.com/privacy-policy/">MyWhoosh-Datenschutzerklärung</a></li>
   <li><a href="https://www.sram.com/en/company/legal/global-privacy-policy">Hammerhead-Datenschutzerklärung (SRAM)</a></li>
+  <li><a href="https://www.dropbox.com/privacy">Dropbox-Datenschutzerklärung</a></li>
   <li><a href="https://www.intervals.icu/privacy-policy/">intervals.icu-Datenschutzerklärung</a></li>
   <li><a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement">GitHub-Datenschutzerklärung</a></li>
 </ul>

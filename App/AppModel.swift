@@ -46,6 +46,7 @@ final class AppModel: ObservableObject {
     private let zwift: ZwiftProbe
     private let mywhoosh: MyWhooshProbe
     private let hammerhead: HammerheadProbe
+    private let dropbox: DropboxProbe
     private let intervals: IntervalsProbe
     private let signIn = WahooSignIn()
     private let health = HealthExporter()
@@ -60,6 +61,7 @@ final class AppModel: ObservableObject {
     private var started = false
     private var manuallyCancelled = false
     private var wahooFiles: [ActivityKey: WahooWorkout] = [:]
+    private var dropboxFiles: [ActivityKey: DropboxFile] = [:]
     private var accessCache: [Source: Credentials] = [:]
     private let cooldownKey = "wahooRetryAfter"
     private let fullScanKey = "wahooLastFullScan"
@@ -68,10 +70,12 @@ final class AppModel: ObservableObject {
     private let fullScanInterval: TimeInterval = 7 * 24 * 3600
     private let wahooClientKey = "wahooClientID"
     private var cursorFile: URL { library.directory.appendingPathComponent("wahoo-catalog.json") }
+    private var dropboxCursorFile: URL { library.directory.appendingPathComponent("dropbox-cursor.json") }
 
     init(library: ActivityLibrary? = nil, filesFolder: URL? = nil, credentials: CredentialStore = CredentialStore(), defaults: UserDefaults = .standard,
          wahoo: WahooProbe = WahooProbe(), zwift: ZwiftProbe = ZwiftProbe(), mywhoosh: MyWhooshProbe = MyWhooshProbe(),
-         hammerhead: HammerheadProbe = HammerheadProbe(), intervals: IntervalsProbe = IntervalsProbe()) {
+         hammerhead: HammerheadProbe = HammerheadProbe(), dropbox: DropboxProbe = DropboxProbe(),
+         intervals: IntervalsProbe = IntervalsProbe()) {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let real = library ?? ActivityLibrary(directory: support.appendingPathComponent("FITgap", isDirectory: true))
         realLibrary = real
@@ -80,7 +84,7 @@ final class AppModel: ObservableObject {
         self.filesFolder = (filesFolder ?? documents).map(FilesFolder.init)
         demo = DemoLibrary(realDirectory: real.directory)
         self.credentials = credentials; self.defaults = defaults
-        self.wahoo = wahoo; self.zwift = zwift; self.mywhoosh = mywhoosh; self.hammerhead = hammerhead
+        self.wahoo = wahoo; self.zwift = zwift; self.mywhoosh = mywhoosh; self.hammerhead = hammerhead; self.dropbox = dropbox
         self.intervals = intervals
         healthAutoExportSince = defaults.object(forKey: healthAutoExportKey) as? Date
         let requestedDemo = defaults.bool(forKey: "demoMode")
@@ -244,9 +248,28 @@ final class AppModel: ObservableObject {
         }
     }
 
-    /// Builds without a Hammerhead client secret (forks, CI) hide Hammerhead unless an account is still connected.
+    /// Builds without a Hammerhead client secret (forks, CI) hide Hammerhead unless an account is still connected;
+    /// the same applies to Dropbox until its app key is set.
     var providers: [Source] {
         Source.providers.filter { $0 != .hammerhead || HammerheadSecret.isAvailable || connected.contains(.hammerhead) }
+            .filter { $0 != .dropbox || DropboxOAuth.isConfigured || connected.contains(.dropbox) }
+    }
+
+    func connectDropbox() {
+        guard !isDemo, !switchingMode else { return }
+        run(label: String(localized: "Dropbox-Anmeldung …")) {
+            guard DropboxOAuth.isConfigured else { throw DropboxError.unavailable }
+            let oauth = try DropboxOAuth()
+            let callback = try await self.signIn.login(oauth)
+            try Task.checkCancellation()
+            let token = try await self.dropbox.connect(oauth, callback: callback)
+            try Task.checkCancellation()
+            try self.credentials.write(token, for: .dropbox)
+            self.accessCache.removeValue(forKey: .dropbox)
+            // Another account may be signed in now; its listing starts from the beginning.
+            try? FileManager.default.removeItem(at: self.dropboxCursorFile)
+            self.connected.insert(.dropbox)
+        }
     }
 
     func connectHammerhead() {
@@ -273,6 +296,20 @@ final class AppModel: ObservableObject {
 
     func disconnect(_ source: Source) {
         guard !isDemo, !switchingMode, !busy else { return }
+        if source == .dropbox {
+            // Dropbox: revoke the token, which also ends the refresh token. Files in Dropbox stay untouched.
+            run(label: String(localized: "Dropbox wird getrennt …")) {
+                var revoked = false
+                if let account = try? await self.account(.dropbox) { revoked = (try? await self.dropbox.revoke(account)) != nil }
+                try self.credentials.remove(.dropbox)
+                try? FileManager.default.removeItem(at: self.dropboxCursorFile)
+                self.accessCache.removeValue(forKey: .dropbox); self.connected.remove(.dropbox)
+                if !revoked {
+                    self.errorMessage = String(localized: "Lokal getrennt. Dropbox hat den Widerruf nicht bestätigt. Du kannst FITgap in den Dropbox-Einstellungen unter „Verbundene Apps“ entfernen.")
+                }
+            }
+            return
+        }
         guard source == .hammerhead else {
             do { try credentials.remove(source); accessCache.removeValue(forKey: source); connected.remove(source) }
             catch { errorMessage = Self.message(error) }
@@ -513,7 +550,7 @@ final class AppModel: ObservableObject {
 
     private func account(_ source: Source) async throws -> Credentials {
         try Task.checkCancellation()
-        guard !isDemo, !switchingMode, source != .demo else { throw CancellationError() }
+        guard !isDemo, !switchingMode, source != .demo, source != .imported else { throw CancellationError() }
         if source == .wahoo, defaults.string(forKey: wahooClientKey) != WahooOAuth.clientID { throw AccountError.reconnect }
         if source == .wahoo, let until = defaults.object(forKey: cooldownKey) as? Date {
             if until > Date() { throw WahooRateLimit(until: until) }
@@ -530,9 +567,10 @@ final class AppModel: ObservableObject {
             case .hammerhead:
                 guard let secret = HammerheadSecret.value() else { throw HammerheadError.unavailable }
                 token = try await hammerhead.refresh(token, secret: secret)
+            case .dropbox: token = try await dropbox.refresh(token)
             // MyWhoosh has no known refresh route; an expired session needs a new sign-in.
             // intervals.icu API keys carry no expiry and never get here.
-            case .mywhoosh, .intervals, .demo: throw AccountError.reconnect
+            case .mywhoosh, .intervals, .imported, .demo: throw AccountError.reconnect
             }
             try Task.checkCancellation()
             try credentials.write(token, for: source)
@@ -549,7 +587,7 @@ final class AppModel: ObservableObject {
         let credentials = try await account(source)
         let token = credentials.accessToken
         switch source {
-        case .demo: throw CancellationError()
+        case .demo, .imported: throw CancellationError()
         case .mywhoosh:
             let session = try MyWhooshSession(credentials)
             let remote = try await mywhoosh.activities(session: session)
@@ -630,6 +668,28 @@ final class AppModel: ObservableObject {
                 catch ProbeError.noFIT { try recordFailure(record.key, error: ProbeError.noFIT) }
                 catch { try recordFailure(record.key, error: error); throw error }
             }
+        case .dropbox:
+            dropboxFiles.removeAll(keepingCapacity: true)
+            try await withDropbox { token in
+                // Read on every attempt: a renewed token continues after the last saved page.
+                let cursor = try? JSONDecoder().decode(DropboxCursor.self, from: Data(contentsOf: self.dropboxCursorFile))
+                try await self.dropbox.catalog(token: token, cursor: cursor) { files, next in
+                    try await self.saveDropboxPage(files, cursor: next)
+                }
+            }
+            let pending = activities.filter { $0.source == .dropbox && [.pending, .failed].contains($0.status) }
+            for (offset, record) in pending.enumerated() {
+                try Task.checkCancellation()
+                progress = String(localized: "Dropbox: FIT \(offset + 1) von \(pending.count)")
+                continued.report(offset, of: pending.count)
+                do { try await downloadDropbox(record) }
+                // A `.fit` name without valid FIT content is not retried on every sync; "Download" still tries again.
+                catch ProbeError.noFIT, ProbeError.invalidFIT { try recordFailure(record.key, error: ProbeError.noFIT) }
+                // Rewritten in Dropbox after FITgap stored it: the saved original stays, the other files continue.
+                catch ProbeError.changedFile { try recordFailure(record.key, error: ProbeError.changedFile) }
+                catch { try recordFailure(record.key, error: error); throw error }
+            }
+            dropboxFiles.removeAll()
         case .intervals:
             // Same rhythm as Hammerhead: weekly full scan, otherwise from two days before the newest known start.
             let account = try IntervalsAccount(credentials)
@@ -652,6 +712,55 @@ final class AppModel: ObservableObject {
                 catch { try recordFailure(record.key, error: error); throw error }
             }
         }
+    }
+
+    /// Dropbox can end a session before `expires_in`; the token is renewed once and the call repeated.
+    private func withDropbox<T>(_ body: (String) async throws -> T) async throws -> T {
+        do { return try await body(access(.dropbox)) }
+        catch is DropboxExpiredToken {
+            let stale = try await account(.dropbox)
+            accessCache[.dropbox] = Credentials(accessToken: stale.accessToken, refreshToken: stale.refreshToken, expiresAt: .distantPast,
+                                                accountID: stale.accountID)
+            do { return try await body(access(.dropbox)) }
+            catch is DropboxExpiredToken { throw AccountError.reconnect }
+        }
+    }
+
+    /// Downloads one Dropbox FIT and takes the ride's start and length from it; the listing only knows file dates.
+    private func downloadDropbox(_ record: ActivityRecord) async throws {
+        let receipt = try await withDropbox { token in
+            if let file = self.dropboxFiles[record.key] { return try await self.dropbox.download(file, token: token, store: self.library.files) }
+            return try await self.dropbox.download(id: record.remoteID, token: token, store: self.library.files)
+        }
+        var downloaded = record
+        downloaded.receipt = receipt
+        let times = await Task.detached(priority: .utility) { [library, downloaded] () -> (Date, TimeInterval?)? in
+            guard let fit = try? library.activity(for: downloaded), let start = fit.start else { return nil }
+            return (start, fit.end.map { $0.timeIntervalSince(start) })
+        }.value
+        try Task.checkCancellation()
+        if let times, let index = activities.firstIndex(where: { $0.key == record.key }) {
+            activities[index].date = times.0; activities[index].duration = times.1
+        }
+        // Saves the index and the Files copy, now named after the ride's start.
+        try await commit(receipt)
+    }
+
+    private func saveDropboxPage(_ files: [DropboxFile], cursor: DropboxCursor) throws {
+        try Task.checkCancellation()
+        // Times read from a downloaded FIT (only those have a duration) are kept over the file date.
+        let adopted = Dictionary(activities.filter { $0.source == .dropbox && $0.duration != nil }.map { ($0.key, $0) },
+                                 uniquingKeysWith: { first, _ in first })
+        let incoming = files.map { file in
+            var record = ActivityRecord(file)
+            if let previous = adopted[record.key] { record.date = previous.date; record.duration = previous.duration }
+            return record
+        }
+        activities = ActivityLibrary.merging(incoming, into: activities)
+        try library.save(activities)
+        // Save the cursor after the index: repeating a page is safe if either write is interrupted.
+        try JSONEncoder().encode(cursor).write(to: dropboxCursorFile, options: .atomic)
+        for file in files { dropboxFiles[file.key] = file }
     }
 
     private func saveWahooPage(_ page: WahooPage, cursor: WahooCatalogCursor) throws {
@@ -735,7 +844,7 @@ final class AppModel: ObservableObject {
             } catch { errorMessage = Self.message(error) }
             return
         }
-        guard record.source != .demo else { return }
+        guard record.source != .demo, record.source != .imported else { return }
         run(label: String(localized: "\(record.source.title): FIT wird geladen …"), resume: { [weak self] in self?.download(record) },
             continuedTitle: String(localized: "FITgap-Abgleich")) {
             let credentials = try await self.account(record.source)
@@ -752,7 +861,10 @@ final class AppModel: ObservableObject {
                     receipt = try await self.hammerhead.download(id: record.remoteID, token: credentials.accessToken, store: self.library.files)
                 case .intervals:
                     receipt = try await self.intervals.download(id: record.remoteID, account: IntervalsAccount(credentials), store: self.library.files)
-                case .demo: throw CancellationError()
+                case .dropbox:
+                    try await self.downloadDropbox(record)
+                    return
+                case .demo, .imported: throw CancellationError()
                 }
                 try await self.commit(receipt)
             } catch { try self.recordFailure(record.key, error: error); throw error }
@@ -766,8 +878,71 @@ final class AppModel: ObservableObject {
             if isDemo { try demo.removeExport(record) }
             else if let filesFolder { activities[index] = try filesFolder.remove(activities[index]) }
             activities[index] = try library.deletingFile(for: activities[index])
+            // An imported file has no provider to load it again; importing it once more brings it back.
+            if record.source == .imported { activities.remove(at: index) }
             try library.save(activities)
         } catch { errorMessage = Self.message(error) }
+    }
+
+    /// Imports FIT files from the file picker or "Open in FITgap"; works alongside a running sync.
+    func importFiles(_ urls: [URL]) {
+        guard !switchingMode, !urls.isEmpty else { return }
+        guard !isDemo else { errorMessage = Self.message(ImportError.demo); return }
+        guard storageReady else { return }
+        let generation = libraryGeneration
+        let snapshot = activities
+        Task {
+            let library = library
+            // Reading, checksums and metrics run off the main actor; the index is merged and saved on it.
+            let results = await Task.detached(priority: .userInitiated) {
+                urls.map { url -> (name: String, result: Result<ImportResult, Error>) in
+                    let name = url.lastPathComponent
+                    return (name, Result { try library.importFIT(try Self.readImported(url), filename: name, into: snapshot) })
+                }
+            }.value
+            guard !isDemo, !switchingMode, generation == libraryGeneration else { return }
+            var added: [ActivityRecord] = [], notes: [String] = []
+            for (name, result) in results {
+                switch result {
+                case .success(.added(let record)):
+                    if activities.contains(where: { $0.key == record.key }) || added.contains(where: { $0.key == record.key }) {
+                        notes.append(String(localized: "„\(name)“ ist bereits in FITgap."))
+                    } else { added.append(record) }
+                case .success(.existing): notes.append(String(localized: "„\(name)“ ist bereits in FITgap."))
+                case .failure(let error): notes.append(Self.message(error))
+                }
+            }
+            if !added.isEmpty {
+                if let filesFolder { added = added.map { (try? filesFolder.export($0, from: library)) ?? $0 } }
+                activities = ActivityLibrary.merging(added, into: activities)
+                do { try library.save(activities) } catch { notes.append(Self.message(error)) }
+            }
+            if !notes.isEmpty { errorMessage = notes.joined(separator: "\n\n") }
+            // Same rule as after a sync: new activities go to Health when the automatic export is on.
+            // A running sync exports them itself at its end, or the next refresh does.
+            let keys = Set(added.map(\.key))
+            if let since = healthAutoExportSince, health.canWrite, !busy {
+                let pending = visibleActivities.filter { keys.contains($0.key) && isNewForHealth($0, since: since) }.map(\.key)
+                if !pending.isEmpty {
+                    run(label: String(localized: "Apple Health wird vorbereitet …")) {
+                        try await self.exportHealth(pending, priority: .utility)
+                    }
+                }
+            }
+        }
+    }
+
+    /// Opened in place from the Files app or another app: access is security-scoped, and iCloud files may still need to download.
+    nonisolated private static func readImported(_ url: URL) throws -> Data {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        var coordination: NSError?
+        var result: Result<Data, Error> = .failure(ImportError.unreadable(url.lastPathComponent))
+        NSFileCoordinator().coordinate(readingItemAt: url, options: .withoutChanges, error: &coordination) { readable in
+            result = Result { try Data(contentsOf: readable) }
+        }
+        guard coordination == nil, let data = try? result.get() else { throw ImportError.unreadable(url.lastPathComponent) }
+        return data
     }
 
     /// One-time copy of downloads from before the Files folder existed; later downloads are copied in `commit`.
@@ -899,6 +1074,7 @@ final class AppModel: ObservableObject {
         if let error = error as? IntervalsError { return error.localizedDescription }
         if let error = error as? WahooRateLimit { return error.localizedDescription }
         if let error = error as? LibraryError { return error.localizedDescription }
+        if let error = error as? ImportError { return error.localizedDescription }
         if let error = error as? HealthExportError { return error.localizedDescription }
         if error is FITActivity.ReadError { return String(localized: "Die FIT-Datei enthält keine lesbare Aktivität für Apple Health.") }
         if error is HKError { return String(localized: "Apple Health hat das Speichern abgelehnt. Bitte später erneut versuchen.") }

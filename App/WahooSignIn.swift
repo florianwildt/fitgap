@@ -2,7 +2,7 @@ import AuthenticationServices
 import FITgapCore
 import UIKit
 
-/// System sign-in sheet for the OAuth providers (Wahoo, Hammerhead); private browser session, no shared cookies.
+/// System sign-in sheet for the OAuth providers (Wahoo, Hammerhead, Dropbox); private browser session, no shared cookies.
 @MainActor
 final class WahooSignIn: NSObject, ASWebAuthenticationPresentationContextProviding {
     private var session: ASWebAuthenticationSession?
@@ -20,6 +20,10 @@ final class WahooSignIn: NSObject, ASWebAuthenticationPresentationContextProvidi
     func login(_ oauth: HammerheadOAuth) async throws -> URL {
         try await login(url: oauth.authorizationURL, scheme: HammerheadOAuth.callback.scheme,
                         denied: HammerheadError.denied, browser: HammerheadError.browser)
+    }
+
+    func login(_ oauth: DropboxOAuth) async throws -> URL {
+        try await login(url: oauth.authorizationURL, scheme: DropboxOAuth.redirect.scheme, denied: DropboxError.denied, browser: DropboxError.browser)
     }
 
     private func login(url: URL, scheme: String?, denied: Error, browser: Error) async throws -> URL {
