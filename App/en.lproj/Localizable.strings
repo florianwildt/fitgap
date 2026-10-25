@@ -186,3 +186,6 @@
 "Dieses Jahr" = "This Year";
 "Letztes Jahr" = "Last Year";
 "Kein Filter" = "No filter";
+"FIT importieren" = "Import FIT";
+"„%@“ ist bereits in FITgap." = "“%@” is already in FITgap.";
+"Die importierte Datei wird aus FITgap gelöscht. Das Original in der Dateien-App bleibt erhalten, und du kannst es jederzeit erneut importieren." = "The imported file will be deleted from FITgap. The original in the Files app is kept, and you can import it again at any time.";

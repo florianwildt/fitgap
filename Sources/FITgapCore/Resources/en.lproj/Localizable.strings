@@ -28,3 +28,7 @@
 "Zugriff verweigert (HTTP 403). Kontoberechtigung oder Schnittstellenfreigabe prüfen." = "Access denied (HTTP 403). Check your account permissions or API access.";
 "Hammerhead hat die Sitzung abgelehnt (%@). Bitte das Konto erneut verbinden." = "Hammerhead rejected the session (%@). Please reconnect your account.";
 "Hammerhead ist in dieser Version nicht verfügbar." = "Hammerhead is not available in this version.";
+"Importiert" = "Imported";
+"„%@“ ist keine vollständige FIT-Datei. Es wurde nichts importiert." = "“%@” is not a complete FIT file. Nothing was imported.";
+"„%@“ konnte nicht gelesen werden. Es wurde nichts importiert." = "“%@” could not be read. Nothing was imported.";
+"Im Demo-Modus können keine Dateien importiert werden. Beende zuerst die Demo." = "Files can’t be imported in demo mode. End the demo first.";

@@ -2,7 +2,8 @@ import Foundation
 import Security
 
 public enum Source: String, Codable, CaseIterable, Identifiable, Sendable {
-    case zwift, wahoo, mywhoosh, hammerhead, demo
+    case zwift, wahoo, mywhoosh, hammerhead, imported, demo
+    /// Sources that need an account; `.imported` holds files the user opened in FITgap.
     public static let providers: [Source] = [.zwift, .wahoo, .mywhoosh, .hammerhead]
     public var id: String { rawValue }
     public var title: String {
@@ -11,6 +12,7 @@ public enum Source: String, Codable, CaseIterable, Identifiable, Sendable {
         case .wahoo: "Wahoo"
         case .mywhoosh: "MyWhoosh"
         case .hammerhead: "Hammerhead"
+        case .imported: String(localized: "Importiert", bundle: .module)
         case .demo: "Demo"
         }
     }
