@@ -28,3 +28,7 @@
 "Zugriff verweigert (HTTP 403). Kontoberechtigung oder Schnittstellenfreigabe prüfen." = "Zugriff verweigert (HTTP 403). Kontoberechtigung oder Schnittstellenfreigabe prüfen.";
 "Hammerhead hat die Sitzung abgelehnt (%@). Bitte das Konto erneut verbinden." = "Hammerhead hat die Sitzung abgelehnt (%@). Bitte das Konto erneut verbinden.";
 "Hammerhead ist in dieser Version nicht verfügbar." = "Hammerhead ist in dieser Version nicht verfügbar.";
+"Dropbox hat die Sitzung abgelehnt (%@). Bitte das Konto erneut verbinden." = "Dropbox hat die Sitzung abgelehnt (%@). Bitte das Konto erneut verbinden.";
+"Dropbox hat die benötigten Leseberechtigungen nicht erteilt." = "Dropbox hat die benötigten Leseberechtigungen nicht erteilt.";
+"Dropbox ist in dieser Version nicht verfügbar." = "Dropbox ist in dieser Version nicht verfügbar.";
+"Abruflimit erreicht. Dropbox pausiert bis %@." = "Abruflimit erreicht. Dropbox pausiert bis %@.";

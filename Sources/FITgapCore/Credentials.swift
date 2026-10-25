@@ -2,8 +2,8 @@ import Foundation
 import Security
 
 public enum Source: String, Codable, CaseIterable, Identifiable, Sendable {
-    case zwift, wahoo, mywhoosh, hammerhead, demo
-    public static let providers: [Source] = [.zwift, .wahoo, .mywhoosh, .hammerhead]
+    case zwift, wahoo, mywhoosh, hammerhead, dropbox, demo
+    public static let providers: [Source] = [.zwift, .wahoo, .mywhoosh, .hammerhead, .dropbox]
     public var id: String { rawValue }
     public var title: String {
         switch self {
@@ -11,6 +11,7 @@ public enum Source: String, Codable, CaseIterable, Identifiable, Sendable {
         case .wahoo: "Wahoo"
         case .mywhoosh: "MyWhoosh"
         case .hammerhead: "Hammerhead"
+        case .dropbox: "Dropbox"
         case .demo: "Demo"
         }
     }

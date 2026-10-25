@@ -21,13 +21,14 @@ FITgap ist eine schlanke Open-Source-iPhone-App, die deine **Original-FIT-Dateie
 ## Funktionen
 
 - **Wahoo, Zwift, MyWhoosh und Hammerhead:** Beliebige dieser Konten verbinden und alle Aktivitäten samt Original-FIT laden. Vorhandene Dateien werden bei späteren Abgleichen übersprungen.
+- **Dropbox:** Lädt die FIT-Dateien, die Dienste wie Zwift, Wahoo ELEMNT, Karoo, Rouvy oder TrainerRoad automatisch nach `/Apps` in deiner Dropbox exportieren. Spätere Abgleiche holen nur Änderungen.
 - **Dubletten:** Liefern mehrere Quellen dasselbe Training, zeigt die Liste nur die Kopie mit den meisten Messreihen und Kennzahlen; sie wird geteilt und in Health gesichert. Die übrigen Kopien bleiben gespeichert und stehen in den Details.
 - **Teilen:** Eine FIT oder eine Mehrfachauswahl ans System-Share-Sheet übergeben, z. B. an HealthFit. Geteilte Aktivitäten werden in der Liste markiert.
 - **Apple Health:** Aktivitäten als Trainings sichern, mit allen Messwerten, für die Health einen Typ hat (Herzfrequenz, Leistung, Trittfrequenz, Geschwindigkeit, Laufdynamik, Strecke, Energie, Schwimmbahnen), Runden, Pausen, Route und der Session-Zusammenfassung als Metadaten. Einzeln, per Auswahl oder automatisch für neue Aktivitäten. Bereits in Health vorhandene Trainings, von FITgap oder einer anderen App, werden erkannt und übersprungen.
 - **Details:** Strecke, Dauer, Durchschnitts- und Höchstgeschwindigkeit, Herzfrequenz, Trittfrequenz, Leistung, Höhenmeter und mehr, lokal aus der FIT-Session gelesen.
 - **Suche** über alle heruntergeladenen Aktivitäten.
 - **Dateien-App:** Jede geladene FIT liegt zusätzlich unter *Auf meinem iPhone › FITgap*.
-- **Große Archive:** Seitenweiser Abgleich mit Fortsetzung, Beachtung der Wahoo-Abruflimits und abbrechbare Downloads. Ab iOS 26 läuft ein selbst gestarteter Abgleich oder Health-Export nach dem Verlassen der App weiter, mit Fortschritt in der Dynamic Island.
+- **Große Archive:** Seitenweiser Abgleich mit Fortsetzung, Beachtung der Abruflimits von Wahoo und Dropbox und abbrechbare Downloads. Ab iOS 26 läuft ein selbst gestarteter Abgleich oder Health-Export nach dem Verlassen der App weiter, mit Fortschritt in der Dynamic Island.
 - **Integrität:** Downloads werden atomar gespeichert und vor dem Teilen per SHA-256 geprüft.
 - **Demo-Modus:** App ohne Konto mit drei synthetischen Beispielfahrten ausprobieren, auch den Export nach Apple Health. Zurücksetzen oder Beenden der Demo entfernt die Demo-Trainings wieder aus Health.
 
@@ -51,13 +52,14 @@ Schlüsselbund-, Sync-Lebenszyklus- und UI-Tests sind im Xcode-Scheme enthalten.
 - **Zwift** bietet keine öffentliche API. FITgap nutzt inoffizielle Schnittstellen mit einer öffentlichen Client-ID, die Zwift jederzeit ändern oder einschränken kann. Das Passwort wird nur vorübergehend zur Anmeldung verwendet und nie gespeichert.
 - **MyWhoosh** bietet ebenfalls keine öffentliche API. FITgap meldet sich mit E-Mail und Passwort über die inoffizielle Schnittstelle der MyWhoosh-Apps an und speichert nur das Zugangstoken und die Kontokennung (`WhooshId`). Eine Token-Erneuerung ist nicht bekannt; nach Ablauf der Sitzung ist eine neue Anmeldung nötig. FIT-Dateien werden über signierte Downloadlinks ohne Zugangstoken geladen. MyWhoosh kann diese Schnittstelle jederzeit ändern oder einschränken.
 - **Hammerhead** nutzt die offizielle API mit OAuth 2.0 (Scope `activity:read`). Hammerhead verlangt bei jeder Token-Anfrage ein Client-Secret und bietet kein PKCE, deshalb muss die App das Secret enthalten. Es kommt nie ins Repository: Es gehört in `Config/Secrets.xcconfig` (Vorlage `Config/Secrets.example.xcconfig`; Xcode Cloud schreibt die Datei in `ci_scripts/ci_post_clone.sh` aus der geheimen Umgebungsvariable `HAMMERHEAD_CLIENT_SECRET`). Beim Bauen maskiert `scripts/hammerhead-secret.sh` es mit einem pro Build neuen Zufallsschlüssel; das erschwert das Auslesen aus der App nur. Ohne Secret baut die App normal und blendet Hammerhead aus. Hammerhead akzeptiert nur http(s)-Rücksprungadressen, deshalb ist die statische Seite `docs/oauth/hammerhead/` auf GitHub Pages registriert; sie reicht Code und State an `fitgap://oauth/hammerhead` weiter und lädt nichts nach. Für eine eigene Version im Hammerhead Dashboard einen eigenen API-Client anlegen, diese Seite (oder eine eigene Kopie) als Rücksprungadresse eintragen und die Client-ID in `Sources/FITgapCore/HammerheadOAuth.swift` ändern.
+- **Dropbox** nutzt die offizielle API v2 mit OAuth 2.0 und PKCE als öffentlicher Client (`fitgap://oauth/dropbox`, `token_access_type=offline` für einen Refresh-Token), also ohne Client-Secret. FITgap fordert nur `files.metadata.read` und `files.content.read` an. Am wenigsten Zugriff bräuchte eine App mit *App folder*, sie sieht aber nur ihren eigenen Ordner unter `/Apps`, während Zwift, Wahoo, Karoo und andere in ihre eigenen Ordner dort schreiben. Deshalb braucht FITgap *Full Dropbox*, durch die beiden Scopes nur lesend; die App liest `/Apps` rekursiv, lädt nur `.fit`-Dateien und prüft jede vor dem Speichern gegen den Dropbox-Content-Hash und den FIT-Header. Der App-Key steht in `Sources/FITgapCore/DropboxOAuth.swift`; solange er leer ist, blendet die App Dropbox aus. Für eine eigene Version in der [Dropbox App Console](https://www.dropbox.com/developers/apps) eine App mit *Scoped access* und *Full Dropbox* anlegen, die beiden Scopes aktivieren, öffentliche Clients (PKCE) erlauben, `fitgap://oauth/dropbox` als Redirect-URI eintragen und den App-Key übernehmen.
 
 ## Datenschutz
 
 - Access- und Refresh-Tokens liegen ausschließlich im lokalen Schlüsselbund (`WhenUnlockedThisDeviceOnly`, ohne iCloud-Synchronisierung).
 - Aktivitäten und FIT-Dateien liegen auf dem Gerät unter `Application Support/FITgap/`. Es werden keine Daten an einen Server des Projekts gesendet.
 - Der Zugriff auf Apple Health ist optional. FITgap schreibt Trainings und liest nur Trainings, um Duplikate zu erkennen; über FITgap verlassen keine Health-Daten das Gerät.
-- Trennen entfernt die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen, nur bei Hammerhead widerruft FITgap sie. Heruntergeladene Dateien bleiben erhalten.
+- Trennen entfernt die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen, nur bei Hammerhead und Dropbox widerruft FITgap sie. Heruntergeladene Dateien bleiben erhalten.
 
 Siehe die vollständige [Datenschutzerklärung](https://florianwildt.github.io/fitgap/privacy/).
 
@@ -85,4 +87,4 @@ Lizenziert unter der [Apache License 2.0](LICENSE). Der Name **FITgap**, das Log
 
 Die App-Store-Version ist eine bequeme, kostenpflichtige Fassung desselben Quellcodes. Du kannst die App jederzeit selbst bauen.
 
-FITgap ist ein unabhängiges Projekt und steht in keiner Verbindung zu Wahoo, Zwift, MyWhoosh, Garmin oder HealthFit und wird von diesen nicht empfohlen.
+FITgap ist ein unabhängiges Projekt und steht in keiner Verbindung zu Wahoo, Zwift, MyWhoosh, Hammerhead, Dropbox, Garmin oder HealthFit und wird von diesen nicht empfohlen.

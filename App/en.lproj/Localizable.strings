@@ -40,7 +40,7 @@
 "Passwort" = "Password";
 "Strecke: %@, Höhenmeter: %@, Durchschnittsgeschwindigkeit: %@" = "Distance: %@, Elevation gain: %@, Average speed: %@";
 "Teilen" = "Share";
-"Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen, nur bei Hammerhead wird sie widerrufen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden." = "Tokens stay in this iPhone’s Keychain. Disconnecting removes the local session; access granted at the provider remains in place, except for Hammerhead, where it is revoked. Saved FIT files are kept and can be deleted individually.";
+"Tokens bleiben im Schlüsselbund dieses iPhones. Trennen entfernt die lokale Sitzung; die Freigabe beim Anbieter bleibt bestehen, nur bei Hammerhead und Dropbox wird sie widerrufen. Gespeicherte FITs bleiben erhalten und können einzeln gelöscht werden." = "Tokens stay in this iPhone’s Keychain. Disconnecting removes the local session; access granted at the provider remains in place, except for Hammerhead and Dropbox, where it is revoked. Saved FIT files are kept and can be deleted individually.";
 "Trennen" = "Disconnect";
 "Verbinde unter „Konten“ Wahoo, Zwift oder MyWhoosh und ziehe die Liste nach unten." = "Connect Wahoo, Zwift or MyWhoosh in “Accounts”, then pull the list down to refresh.";
 "Verbinden" = "Connect";
@@ -186,3 +186,9 @@
 "Dieses Jahr" = "This Year";
 "Letztes Jahr" = "Last Year";
 "Kein Filter" = "No filter";
+"Dropbox-Anmeldung …" = "Signing in to Dropbox…";
+"Dropbox wird getrennt …" = "Disconnecting Dropbox…";
+"Dropbox: FIT %lld von %lld" = "Dropbox: FIT %lld of %lld";
+"Lokal getrennt. Dropbox hat den Widerruf nicht bestätigt. Du kannst FITgap in den Dropbox-Einstellungen unter „Verbundene Apps“ entfernen." = "Disconnected locally. Dropbox did not confirm the revocation. You can remove FITgap in your Dropbox settings under “Connected apps”.";
+"Anmeldung über Dropbox mit nur lesendem Zugriff. FITgap lädt FIT-Dateien aus dem Ordner „Apps“, in den Dienste wie Zwift, Wahoo, Karoo oder TrainerRoad exportieren. Trennen widerruft auch die Freigabe bei Dropbox." = "Sign in through Dropbox with read-only access. FITgap loads FIT files from the “Apps” folder, where services such as Zwift, Wahoo, Karoo or TrainerRoad export. Disconnecting also revokes access at Dropbox.";
+"Die lokale Sitzung wird entfernt und die Freigabe bei Dropbox widerrufen. Deine Dateien in Dropbox und in FITgap bleiben erhalten." = "The local session will be removed and access at Dropbox revoked. Your files in Dropbox and in FITgap are kept.";
