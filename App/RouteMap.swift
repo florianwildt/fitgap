@@ -10,6 +10,7 @@ struct RouteSection: View {
     /// Set once reading has finished; a file that turns out to hold no usable route then hides the section.
     var read = false
     @State private var expanded = false
+    @AppStorage(MapAppearance.key) private var appearance = MapAppearance.standard
 
     var body: some View {
         // The section exists from the start when the cached metrics report positions, so the list never has to
@@ -41,6 +42,16 @@ struct RouteSection: View {
                             .toolbar {
                                 ToolbarItem(placement: .confirmationAction) {
                                     Button("Fertig", systemImage: "checkmark") { expanded = false }
+                                }
+                                ToolbarItem {
+                                    Menu {
+                                        Picker("Kartentyp", selection: $appearance) {
+                                            ForEach(MapAppearance.allCases) { Text($0.title).tag($0) }
+                                        }
+                                    } label: {
+                                        Label("Kartentyp", systemImage: appearance == .satellite ? "globe.europe.africa" : "map")
+                                    }
+                                    .accessibilityIdentifier("route-map-appearance")
                                 }
                             }
                     }
@@ -76,6 +87,7 @@ struct RouteSection: View {
 private struct RouteMap: View {
     let route: [FITActivity.Coordinate]
     let interactive: Bool
+    @AppStorage(MapAppearance.key) private var appearance = MapAppearance.standard
 
     /// Consecutive segments of the same colour share one line, so MapKit draws a few dozen lines instead of thousands.
     private var runs: [(id: Int, color: Color, points: [CLLocationCoordinate2D])] {
@@ -106,7 +118,7 @@ private struct RouteMap: View {
             if let first = route.first { Marker("Start", systemImage: "flag", coordinate: first.location).tint(.green) }
             if let last = route.last { Marker("Ziel", systemImage: "flag.checkered", coordinate: last.location).tint(.red) }
         }
-        .mapStyle(.standard(pointsOfInterest: .excludingAll))
+        .mapStyle(appearance.mapStyle)
         .mapControls {
             if interactive {
                 MapCompass()

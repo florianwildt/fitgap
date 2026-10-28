@@ -12,6 +12,7 @@ struct RouteThumbnail: View {
     var urgent = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.displayScale) private var displayScale
+    @AppStorage(MapAppearance.key) private var appearance = MapAppearance.standard
     @State private var route: [FITActivity.Coordinate]?
     /// The map with the size key it was made for; a map for another size is never stretched into the frame.
     @State private var map: (key: String, image: UIImage)?
@@ -45,7 +46,8 @@ struct RouteThumbnail: View {
                             do { try await Task.sleep(for: .milliseconds(120)) } catch { return }
                         }
                         let made = await RouteThumbnails.shared.map(key: key(proxy.size), route: loaded, size: pixelAligned(proxy.size),
-                                                               scale: displayScale, dark: colorScheme == .dark, urgent: urgent)
+                                                               scale: displayScale, dark: colorScheme == .dark,
+                                                               appearance: appearance, urgent: urgent)
                         if let made { map = (key(proxy.size), made) }
                     }
                 }
@@ -60,9 +62,9 @@ struct RouteThumbnail: View {
         CGSize(width: (size.width * displayScale).rounded(.up) / displayScale, height: (size.height * displayScale).rounded(.up) / displayScale)
     }
 
-    /// A new file, appearance or size gets its own map.
+    /// A new file, appearance, map type or size gets its own map.
     private func key(_ size: CGSize) -> String {
-        "\(activity.id)-\(activity.receipt?.sha256 ?? "")-\(colorScheme == .dark ? "dark" : "light")-\(Int(size.width))x\(Int(size.height))"
+        "\(activity.id)-\(activity.receipt?.sha256 ?? "")-\(colorScheme == .dark ? "dark" : "light")-\(appearance.rawValue)-\(Int(size.width))x\(Int(size.height))"
     }
 
     /// Only files whose cached metrics report positions get a map, so rows without a route keep their layout.
@@ -113,7 +115,8 @@ final class RouteThumbnails {
         maps.removeAllObjects()
     }
 
-    func map(key: String, route: [FITActivity.Coordinate], size: CGSize, scale: CGFloat, dark: Bool, urgent: Bool) async -> UIImage? {
+    func map(key: String, route: [FITActivity.Coordinate], size: CGSize, scale: CGFloat, dark: Bool, appearance: MapAppearance,
+             urgent: Bool) async -> UIImage? {
         if let cached = cachedMap(key) { return cached }
         if urgent {
             urgentRunning += 1
@@ -133,7 +136,7 @@ final class RouteThumbnails {
             traits.displayScale = scale
             traits.userInterfaceStyle = dark ? .dark : .light
         }
-        guard let image = await Self.snapshot(route, size: size, traits: traits) else { return nil }
+        guard let image = await Self.snapshot(route, size: size, traits: traits, appearance: appearance) else { return nil }
         maps.setObject(image, forKey: key as NSString)
         if urgent {
             let elapsed = ContinuousClock.now - started
@@ -144,15 +147,13 @@ final class RouteThumbnails {
 
     /// Makes the map and draws the route on a background queue; MapKit would otherwise deliver the snapshot
     /// on the main thread, which is busy while the app starts and syncs.
-    private nonisolated static func snapshot(_ route: [FITActivity.Coordinate], size: CGSize, traits: UITraitCollection) async -> UIImage? {
+    private nonisolated static func snapshot(_ route: [FITActivity.Coordinate], size: CGSize, traits: UITraitCollection,
+                                             appearance: MapAppearance) async -> UIImage? {
         let options = MKMapSnapshotter.Options()
         options.mapRect = RouteDrawing.mapRect(route)
         options.size = size
         options.traitCollection = traits
-        let configuration = MKStandardMapConfiguration(elevationStyle: .flat, emphasisStyle: .muted)
-        configuration.pointOfInterestFilter = .excludingAll
-        configuration.showsTraffic = false
-        options.preferredConfiguration = configuration
+        options.preferredConfiguration = appearance.snapshotConfiguration
         let snapshotter = MKMapSnapshotter(options: options)
         return await withCheckedContinuation { (continuation: CheckedContinuation<UIImage?, Never>) in
             snapshotter.start(with: .global(qos: .userInitiated)) { snapshot, _ in
@@ -167,6 +168,42 @@ final class RouteThumbnails {
                 }
                 continuation.resume(returning: image)
             }
+        }
+    }
+}
+
+/// The map type chosen in the settings, used by the list preview and the details map.
+enum MapAppearance: String, CaseIterable, Identifiable {
+    case standard, satellite
+
+    static let key = "mapAppearance"
+    var id: String { rawValue }
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .standard: "Standard"
+        case .satellite: "Satellit"
+        }
+    }
+
+    /// The regular map with roads, places, terrain and points of interest.
+    var snapshotConfiguration: MKMapConfiguration {
+        switch self {
+        case .standard:
+            let configuration = MKStandardMapConfiguration(elevationStyle: .flat)
+            configuration.showsTraffic = false
+            return configuration
+        case .satellite:
+            let configuration = MKHybridMapConfiguration(elevationStyle: .flat)
+            configuration.showsTraffic = false
+            return configuration
+        }
+    }
+
+    var mapStyle: MapStyle {
+        switch self {
+        case .standard: .standard
+        case .satellite: .hybrid
         }
     }
 }
@@ -217,16 +254,16 @@ enum RouteDrawing {
 
     static let casing = UIColor.black.withAlphaComponent(0.35)
 
-    /// Red for the slowest, green for the fastest segments; outliers beyond the 10th/90th percentile are clamped.
+    /// Pastel shades: soft coral for the slowest, mint for the fastest segments; outliers beyond the 10th/90th percentile are clamped.
     /// The colour of a point belongs to the segment that ends there.
     static func colors(for route: [FITActivity.Coordinate]) -> [UIColor] {
         let speeds = route.compactMap(\.speed).sorted()
         guard let low = speeds.dropFirst(speeds.count / 10).first, let high = speeds.dropLast(speeds.count / 10).last,
-              high > low else { return route.map { _ in .systemGreen } }
+              high > low else { return route.map { _ in UIColor(hue: 1 / 3, saturation: 0.5, brightness: 1, alpha: 1) } }
         return route.map { coordinate in
-            guard let speed = coordinate.speed else { return .systemYellow }
+            guard let speed = coordinate.speed else { return UIColor(hue: 1 / 6, saturation: 0.5, brightness: 1, alpha: 1) }
             let share = min(max((speed - low) / (high - low), 0), 1)
-            return UIColor(hue: share / 3, saturation: 0.9, brightness: 0.95, alpha: 1)
+            return UIColor(hue: share / 3, saturation: 0.5, brightness: 1, alpha: 1)
         }
     }
 }

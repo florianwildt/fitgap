@@ -6,6 +6,7 @@ struct AccountsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var confirmHealthExport = false
     @State private var healthDetails = false
+    @AppStorage(MapAppearance.key) private var mapAppearance = MapAppearance.standard
 
     var body: some View {
         NavigationStack {
@@ -70,6 +71,12 @@ struct AccountsView: View {
                 }
                 if let error = model.errorMessage {
                     Section("Hinweis") { Text(error); Button("OK") { model.errorMessage = nil } }
+                }
+                Section("Karte") {
+                    Picker("Kartentyp", selection: $mapAppearance) {
+                        ForEach(MapAppearance.allCases) { Text($0.title).tag($0) }
+                    }
+                    .accessibilityIdentifier("map-appearance")
                 }
                 Section("Datenschutz") {
                     Link(destination: URL(string: String(localized: "https://florianwildt.github.io/fitgap/privacy/"))!) {

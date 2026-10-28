@@ -207,3 +207,6 @@
 "Virtuelle Strecke: Die Koordinaten gehören zur Spielwelt und liegen oft abseits echter Straßen." = "Virtual route: the coordinates belong to the game world and often lie away from real roads.";
 "Ziel" = "Finish";
 "Karte" = "Map";
+"Kartentyp" = "Map Type";
+"Standard" = "Standard";
+"Satellit" = "Satellite";
