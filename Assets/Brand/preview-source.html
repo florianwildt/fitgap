@@ -1,0 +1,104 @@
+<!doctype html>
+<!--
+  Source for the FITgap App Store preview images (same look as header-source.html).
+  Render with headless Chrome at the exact pixel size App Store Connect expects, e.g. iPhone 6.3":
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --hide-scrollbars \
+    --force-device-scale-factor=1 --window-size=1206,2622 --virtual-time-budget=2000 \
+    --screenshot=out.png "file://$PWD/Assets/Brand/preview-source.html?lang=en&slide=list&w=1206&h=2622&img=file:///path/shot.png"
+  Easier: .claude/skills/app-store-previews/render.sh
+  Query parameters: lang=en|de, slide=list|detail|duo, w/h = target size in pixels, img = screenshot URL,
+  optional badge, head (headline), sub (subline) to replace the built-in copy.
+  The layout is drawn on a canvas whose short side is 660 and scaled to the window.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html,body{margin:0;overflow:hidden}
+  html{
+    min-height:100%;
+    background:
+      radial-gradient(ellipse 70% 45% at 50% 62%, rgba(120,160,255,.30), transparent 70%),
+      linear-gradient(180deg,#0A62FF 0%,#0B4FD8 45%,#062F9A 100%);
+  }
+  body{
+    font-family:-apple-system,"SF Pro Display","Helvetica Neue",sans-serif;
+    color:#fff;
+    display:flex;box-sizing:border-box;
+  }
+  .text{display:flex;flex-direction:column}
+  h1{margin:0;font-weight:800;letter-spacing:-.02em;line-height:1.05}
+  p{margin:0;font-weight:500;opacity:.88;line-height:1.25}
+  .badge{align-self:flex-start;background:#fff;color:#0B4FD8;font-weight:800;border-radius:999px;letter-spacing:.02em}
+  .shot{display:flex;min-height:0;min-width:0}
+  .shot img{display:block;box-sizing:border-box;
+    border:var(--bez) solid #111;background:#111;
+    box-shadow:0 30px 60px rgba(0,20,90,.45)}
+
+  /* stacked: text on top, screenshot below */
+  body.p{flex-direction:column;align-items:center;padding:64px 40px 0}
+  body.p .text{align-items:center;text-align:center;gap:14px;margin-bottom:40px}
+  body.p .badge{align-self:center;font-size:17px;padding:7px 16px}
+  body.p h1{font-size:46px}
+  body.p p{font-size:22px;max-width:520px}
+  body.p .shot{flex:1;align-items:flex-start;justify-content:center;width:100%}
+  /* tall phone screenshot: runs off the bottom edge */
+  body.p .shot img{--bez:12px;width:560px;max-width:100%;height:auto;border-radius:64px;border-bottom:0;border-bottom-left-radius:0;border-bottom-right-radius:0}
+  /* shorter screenshot (iPhone Duo): whole frame, centred in the space left */
+  body.p.short{padding-bottom:48px}
+  body.p.short .shot{align-items:center}
+  body.p.short .shot img{width:auto;height:auto;max-width:100%;max-height:100%;border-bottom:12px solid #111;border-radius:48px}
+
+  /* side by side: text left, screenshot right (very wide canvases) */
+  body.l{flex-direction:row;align-items:center;padding:48px 56px;gap:48px}
+  body.l .text{flex:0 0 380px;gap:16px}
+  body.l .badge{font-size:16px;padding:7px 16px}
+  body.l h1{font-size:50px}
+  body.l p{font-size:22px}
+  body.l .shot{flex:1;height:100%;align-items:center;justify-content:center}
+  body.l .shot img{--bez:10px;max-height:100%;max-width:100%;border-radius:36px}
+</style>
+</head>
+<body>
+  <div class="text">
+    <span class="badge" id="badge"></span>
+    <h1 id="h"></h1>
+    <p id="s"></p>
+  </div>
+  <div class="shot"><img id="img" alt=""></div>
+<script>
+  var q = new URLSearchParams(location.search);
+  var lang = q.get('lang') === 'de' ? 'de' : 'en';
+  var slide = q.get('slide') || 'list';
+  var copy = {
+    list: {
+      en: ['New: satellite map', 'Your rides on the map', 'Every activity with its route – standard or satellite, coloured by speed.'],
+      de: ['Neu: Satellitenkarte', 'Deine Fahrten auf der Karte', 'Jede Aktivität mit Strecke – Standard oder Satellit, nach Tempo eingefärbt.']
+    },
+    detail: {
+      en: ['FIT to Apple Health', 'Every detail, straight into Health', 'The complete time series of the FIT file – without duplicates.'],
+      de: ['FIT nach Apple Health', 'Alle Details direkt in Health', 'Die komplette Zeitreihe der FIT-Datei – ohne Dubletten.']
+    },
+    duo: {
+      en: ['iPhone Duo', 'List and details side by side', 'Two columns on iPhone Duo and wide displays.'],
+      de: ['iPhone Duo', 'Liste und Details nebeneinander', 'Zweispaltig auf dem iPhone Duo und breiten Displays.']
+    }
+  }[slide][lang];
+  ['badge', 'head', 'sub'].forEach(function (k, i) { if (q.has(k)) copy[i] = q.get(k); });
+  document.getElementById('badge').textContent = copy[0];
+  document.getElementById('h').textContent = copy[1];
+  document.getElementById('s').textContent = copy[2];
+
+  // Headless Chrome's viewport is a little shorter than --window-size, so the target size comes in as w/h.
+  var W = +q.get('w') || innerWidth, H = +q.get('h') || innerHeight, zoom = Math.min(W, H) / 660;
+  document.documentElement.style.zoom = zoom;
+  document.body.style.width = W / zoom + 'px';
+  document.body.style.height = H / zoom + 'px';
+  document.body.className = W / H > 1.8 ? 'l' : 'p';
+
+  var img = document.getElementById('img');
+  img.onload = function () { if (img.naturalHeight / img.naturalWidth < 1.8) document.body.classList.add('short'); };
+  img.src = q.get('img');
+</script>
+</body>
+</html>
