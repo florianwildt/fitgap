@@ -164,8 +164,7 @@ struct ActivitiesView: View {
             .transaction(value: filter) { $0.animation = nil }
             .refreshable { await model.refreshAndWait() }
             .environment(\.editMode, $editMode)
-            .navigationTitle(selecting ? String(localized: "\(picked.count) ausgewählt") : "FITgap")
-            .modifier(ChromeToolbar(show: !wide) { accounts = true })
+            .navigationTitle(selecting ? String(localized: "\(picked.count) ausgewählt") : "FITgap")            .modifier(ChromeToolbar(show: !wide) { accounts = true })
             .toolbar {
                 if selecting {
                     ToolbarItem(placement: .confirmationAction) {
@@ -192,52 +191,24 @@ struct ActivitiesView: View {
                                 .accessibilityIdentifier("health-export-selected")
                         }
                     }
-                } else {
-                    if !model.visibleActivities.isEmpty {
+                } else if wide {
+                    // The sidebar column is narrow side by side, so the actions share one menu and the title keeps its room.
+                    if #available(iOS 27, *) {
+                        ToolbarOverflowMenu { listActions }
+                    } else {
                         ToolbarItem(placement: .primaryAction) {
-                            Menu {
-                                // Each picker opens as a submenu that shows its current choice.
-                                Picker("Zeitraum", systemImage: "calendar", selection: $filter.period) {
-                                    Text("Gesamter Zeitraum").tag(ActivityFilter.Period?.none)
-                                    ForEach(ActivityFilter.Period.allCases) { period in Text(period.title).tag(Optional(period)) }
-                                }
-                                .pickerStyle(.menu)
-                                if listedKinds.count > 1 || filter.kind != nil {
-                                    Picker("Aktivitätstyp", systemImage: "figure.mixed.cardio", selection: $filter.kind) {
-                                        Text("Alle Typen").tag(ActivityKind?.none)
-                                        ForEach(listedKinds) { kind in Text(kind.title).tag(Optional(kind)) }
-                                    }
-                                    .pickerStyle(.menu)
-                                }
-                                if listedSources.count > 1 || filter.source != nil {
-                                    Picker("Datenquelle", systemImage: "tray.full", selection: $filter.source) {
-                                        Text("Alle Quellen").tag(Source?.none)
-                                        ForEach(listedSources) { source in Text(source.title).tag(Optional(source)) }
-                                    }
-                                    .pickerStyle(.menu)
-                                }
-                                if filter.isActive {
-                                    Section {
-                                        Button("Filter zurücksetzen", systemImage: "xmark.circle") { filter = ActivityFilter() }
-                                    }
-                                }
-                            } label: {
-                                Label("Filtern", systemImage: filter.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                            Menu { listActions } label: {
+                                Label("Mehr", systemImage: filter.isActive ? "ellipsis.circle.fill" : "ellipsis.circle")
                             }
-                            .accessibilityValue(filter.summary)
-                            .accessibilityIdentifier("activity-filter")
+                            .accessibilityIdentifier("list-actions")
                         }
                     }
-                    ToolbarItem(placement: .primaryAction) {
-                        Button("FIT importieren", systemImage: "square.and.arrow.down") { importing = true }
-                            .disabled(model.isDemo || !model.storageReady || model.switchingMode)
-                            .accessibilityIdentifier("import-fit")
+                } else {
+                    if !model.visibleActivities.isEmpty {
+                        ToolbarItem(placement: .primaryAction) { filterMenu }
                     }
-                    ToolbarItem(placement: .primaryAction) {
-                        Button("Auswählen", systemImage: "checkmark.circle") { picked.removeAll(); withAnimation { editMode = .active } }
-                            .disabled(model.activities.allSatisfy { $0.status != .available } || model.switchingMode)
-                            .accessibilityIdentifier("select-start")
-                    }
+                    ToolbarItem(placement: .primaryAction) { importButton }
+                    ToolbarItem(placement: .primaryAction) { selectButton }
                 }
             }
             .safeAreaInset(edge: .bottom) { DemoIndicator(enabled: model.isDemo) }
@@ -300,6 +271,59 @@ struct ActivitiesView: View {
                 else if model.isDemo { Text("Nur diese lokale Demo-Datei und ihre Teilen-Markierung werden gelöscht. Mit „Wiederherstellen“ erhältst du die Beispieldatei lokal zurück.") }
                 else { Text("Die Datei wird nur auf diesem iPhone gelöscht. Die Aktivität beim Anbieter bleibt erhalten. Du kannst die Datei später über „Erneut laden“ herunterladen.") }
             }
+    }
+
+    private var filterMenu: some View {
+        Menu {
+            // Each picker opens as a submenu that shows its current choice.
+            Picker("Zeitraum", systemImage: "calendar", selection: $filter.period) {
+                Text("Gesamter Zeitraum").tag(ActivityFilter.Period?.none)
+                ForEach(ActivityFilter.Period.allCases) { period in Text(period.title).tag(Optional(period)) }
+            }
+            .pickerStyle(.menu)
+            if listedKinds.count > 1 || filter.kind != nil {
+                Picker("Aktivitätstyp", systemImage: "figure.mixed.cardio", selection: $filter.kind) {
+                    Text("Alle Typen").tag(ActivityKind?.none)
+                    ForEach(listedKinds) { kind in Text(kind.title).tag(Optional(kind)) }
+                }
+                .pickerStyle(.menu)
+            }
+            if listedSources.count > 1 || filter.source != nil {
+                Picker("Datenquelle", systemImage: "tray.full", selection: $filter.source) {
+                    Text("Alle Quellen").tag(Source?.none)
+                    ForEach(listedSources) { source in Text(source.title).tag(Optional(source)) }
+                }
+                .pickerStyle(.menu)
+            }
+            if filter.isActive {
+                Section {
+                    Button("Filter zurücksetzen", systemImage: "xmark.circle") { filter = ActivityFilter() }
+                }
+            }
+        } label: {
+            Label("Filtern", systemImage: filter.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+        }
+        .accessibilityValue(filter.summary)
+        .accessibilityIdentifier("activity-filter")
+    }
+
+    private var importButton: some View {
+        Button("FIT importieren", systemImage: "square.and.arrow.down") { importing = true }
+            .disabled(model.isDemo || !model.storageReady || model.switchingMode)
+            .accessibilityIdentifier("import-fit")
+    }
+
+    private var selectButton: some View {
+        Button("Auswählen", systemImage: "checkmark.circle") { picked.removeAll(); withAnimation { editMode = .active } }
+            .disabled(model.activities.allSatisfy { $0.status != .available } || model.switchingMode)
+            .accessibilityIdentifier("select-start")
+    }
+
+    /// Filter, import and selection in one menu, for the narrow sidebar column.
+    @ViewBuilder private var listActions: some View {
+        if !model.visibleActivities.isEmpty { filterMenu }
+        importButton
+        selectButton
     }
 
     private func prepareShare(_ activity: ActivityRecord) {

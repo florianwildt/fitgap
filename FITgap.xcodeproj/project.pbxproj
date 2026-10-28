@@ -400,7 +400,7 @@
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "FITgap reads workouts only to check whether an activity is already in Apple Health, so it is never saved twice.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FITgap saves your downloaded activities as workouts in Apple Health, including heart rate, power, cadence, speed, distance, energy, laps, pauses and route.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				MARKETING_VERSION = 0.2.2;
+				MARKETING_VERSION = 0.2.3;
 				PRODUCT_BUNDLE_IDENTIFIER = org.fitgap.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -431,7 +431,7 @@
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "FITgap reads workouts only to check whether an activity is already in Apple Health, so it is never saved twice.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FITgap saves your downloaded activities as workouts in Apple Health, including heart rate, power, cadence, speed, distance, energy, laps, pauses and route.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				MARKETING_VERSION = 0.2.2;
+				MARKETING_VERSION = 0.2.3;
 				PRODUCT_BUNDLE_IDENTIFIER = org.fitgap.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
