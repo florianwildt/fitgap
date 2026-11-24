@@ -7,22 +7,26 @@ import SwiftUI
 struct StatisticsDetail: View {
     @ObservedObject var model: AppModel
     @ObservedObject var stats: StatisticsModel
-    let scope: StatsScope
+    @Binding var selection: StatsScope?
+    /// Sport groups with activity in the shown years, for the filter.
+    let categories: [StatsCategory]
     let period: StatsPeriod
     @Binding var metric: StatsMetric
     @State private var grown = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var current: YearSummary { period.summary(stats.entries, categories: scope.categories) }
+    private var scope: StatsScope { selection ?? .all }
     private var previous: YearSummary? { period.comparisonSummary(stats.entries, categories: scope.categories) }
+    private var others: [YearSummary] { period.chartSummaries(stats.entries, categories: scope.categories) }
     /// Changes of any of these move the chart marks.
     private var animationKey: [String] {
-        [String(period.year), String(period.comparison ?? 0), String(period.yearToDate), metric.rawValue,
+        [String(period.year), String(period.comparison ?? 0), String(period.yearToDate), "\(period.chartYears)", metric.rawValue,
          "\(scope)", String(stats.entries.count)]
     }
 
     var body: some View {
-        let current = current, previous = previous
+        let current = current, previous = previous, others = others
         List {
             Section {
                 Picker("Kennzahl", selection: $metric) {
@@ -40,21 +44,21 @@ struct StatisticsDetail: View {
                     year: previous?.year) { ActivityFormat.integer($0) }
                 total(StatsMetric.energy.title, .energy, current, previous)
             }
-            if current.count == 0 && (previous?.count ?? 0) == 0 {
+            if current.count == 0 && (previous?.count ?? 0) == 0 && others.allSatisfy({ $0.count == 0 }) {
                 Section {
                     ContentUnavailableView("Keine Aktivitäten", systemImage: "chart.bar.xaxis",
                         description: Text("Für diesen Zeitraum gibt es keine Aktivitäten."))
                 }
             } else {
                 Section {
-                    YearCurveChart(current: current, previous: previous, period: period, metric: metric, progress: grown ? 1 : 0)
+                    YearCurveChart(current: current, others: others, period: period, metric: metric, progress: grown ? 1 : 0)
                 } header: {
                     Text("Jahresverlauf")
                 } footer: {
                     missingNote(current)
                 }
                 Section("Monate") {
-                    MonthChart(current: current, previous: previous, metric: metric, progress: grown ? 1 : 0)
+                    MonthChart(current: current, others: others, metric: metric, progress: grown ? 1 : 0)
                 }
                 Section("Wochen") {
                     WeekChart(current: current, metric: metric, progress: grown ? 1 : 0)
@@ -62,6 +66,15 @@ struct StatisticsDetail: View {
                 if scope == .all, current.byCategory(metric).count > 1 {
                     Section("Sportarten") {
                         CategoryChart(summary: current, metric: metric, progress: grown ? 1 : 0)
+                    }
+                }
+                if scope == .all, !categories.isEmpty {
+                    Section {
+                        ForEach(categories) { category in categoryRow(category) }
+                    } header: {
+                        Text("Nach Sportart")
+                    } footer: {
+                        Text("Tippe auf eine Sportart, um nur sie zu zeigen.")
                     }
                 }
                 Section {
@@ -110,10 +123,55 @@ struct StatisticsDetail: View {
         .animation(reduceMotion ? nil : .smooth(duration: 0.6), value: animationKey)
         .navigationTitle(scopeTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar { ToolbarItem(placement: .primaryAction) { filterMenu } }
         .onAppear {
             guard !grown else { return }
             if reduceMotion { grown = true } else { withAnimation(.smooth(duration: 0.9)) { grown = true } }
         }
+    }
+
+    /// Filters every number and chart to one sport group; the same choice as in the sidebar.
+    private var filterMenu: some View {
+        Menu {
+            Picker("Sportart", selection: Binding(get: { scope }, set: { selection = $0 })) {
+                Label("Alle Sportarten", systemImage: "chart.bar.xaxis").tag(StatsScope.all)
+                ForEach(categories) { category in
+                    Label(category.title, systemImage: category.symbol).tag(StatsScope.category(category))
+                }
+            }
+        } label: {
+            Label("Sportart", systemImage: scope == .all ? "line.3.horizontal.decrease.circle"
+                                                         : "line.3.horizontal.decrease.circle.fill")
+        }
+        .accessibilityIdentifier("stats-filter")
+    }
+
+    /// One sport group with its total and the change to the comparison year; tapping filters to it.
+    private func categoryRow(_ category: StatsCategory) -> some View {
+        let value = period.summary(stats.entries, categories: [category])
+        let before = period.comparisonSummary(stats.entries, categories: [category])
+        return Button {
+            selection = .category(category)
+        } label: {
+            LabeledContent {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(metric.formatted(value.total(metric))).monospacedDigit().contentTransition(.numericText())
+                    if let before { ChangeText(value: value.total(metric), previous: before.total(metric), year: before.year) }
+                }
+            } label: {
+                Label {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(category.title)
+                        Text("\(value.count) Aktivitäten").font(.caption).foregroundStyle(.secondary)
+                    }
+                } icon: {
+                    Image(systemName: category.symbol).foregroundStyle(category.color)
+                }
+            }
+        }
+        .tint(.primary)
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Zeigt nur diese Sportart")
     }
 
     private var scopeTitle: String {
@@ -184,10 +242,16 @@ struct StatisticsDetail: View {
     }
 }
 
-/// The running total over the year, the comparison year dashed beneath; touching the chart shows both values.
+/// Colours of the shown year and the further chart years; the comparison year keeps the neutral grey.
+private func yearColors(_ count: Int) -> [Color] {
+    let palette: [Color] = [.secondary, .orange, .purple, .teal, .pink, .brown, .indigo, .mint]
+    return [.accentColor] + (0..<count).map { palette[$0 % palette.count] }
+}
+
+/// The running total over the year, the other years dashed beneath; touching the chart shows every value.
 private struct YearCurveChart: View {
     let current: YearSummary
-    let previous: YearSummary?
+    let others: [YearSummary]
     let period: StatsPeriod
     let metric: StatsMetric
     let progress: Double
@@ -216,7 +280,7 @@ private struct YearCurveChart: View {
             if let last = result.last, end > last.date { result.append(Point(series: series, date: end, value: last.value)) }
             return result
         }
-        return curve(current) + (previous.map(curve) ?? [])
+        return curve(current) + others.flatMap(curve)
     }
 
     var body: some View {
@@ -239,8 +303,8 @@ private struct YearCurveChart: View {
                     }
             }
         }
-        .chartForegroundStyleScale(domain: [currentSeries] + (previous.map { [String($0.year)] } ?? []),
-                                   range: [Color.accentColor, Color.secondary])
+        .chartForegroundStyleScale(domain: [currentSeries] + others.map { String($0.year) },
+                                   range: yearColors(others.count))
         .chartXAxis {
             AxisMarks(values: .stride(by: .month, count: 2)) { _ in
                 AxisGridLine()
@@ -255,7 +319,7 @@ private struct YearCurveChart: View {
     }
 
     private func callout(_ date: Date, _ points: [Point]) -> some View {
-        let series = [String(current.year)] + (previous.map { [String($0.year)] } ?? [])
+        let series = [String(current.year)] + others.map { String($0.year) }
         return VStack(alignment: .leading, spacing: 2) {
             Text(date.formatted(.dateTime.day().month(.abbreviated))).font(.caption.weight(.semibold))
             ForEach(series, id: \.self) { name in
@@ -270,10 +334,10 @@ private struct YearCurveChart: View {
     }
 }
 
-/// Monthly totals of both years side by side.
+/// Monthly totals of the shown years side by side.
 private struct MonthChart: View {
     let current: YearSummary
-    let previous: YearSummary?
+    let others: [YearSummary]
     let metric: StatsMetric
     let progress: Double
     @State private var selected: Date?
@@ -294,7 +358,7 @@ private struct MonthChart: View {
                     value: metric.plotted(value))
             }
         }
-        return bars(current) + (previous.map(bars) ?? [])
+        return bars(current) + others.flatMap(bars)
     }
 
     var body: some View {
@@ -306,8 +370,8 @@ private struct MonthChart: View {
                 .cornerRadius(3)
                 .opacity(selected == nil || Calendar.current.isDate(bar.month, equalTo: selected!, toGranularity: .month) ? 1 : 0.4)
         }
-        .chartForegroundStyleScale(domain: [String(current.year)] + (previous.map { [String($0.year)] } ?? []),
-                                   range: [Color.accentColor, Color.secondary.opacity(0.6)])
+        .chartForegroundStyleScale(domain: [String(current.year)] + others.map { String($0.year) },
+                                   range: yearColors(others.count))
         .chartXAxis {
             AxisMarks(values: .stride(by: .month)) { _ in
                 AxisValueLabel(format: .dateTime.month(.narrow), centered: true)

@@ -117,11 +117,21 @@ struct StatisticsView: View {
     @State private var yearToDate = true
     @State private var metric = StatsMetric.distance
     @State private var healthRequest = false
+    /// Years in the curve and month charts, the shown one included; 0 shows every year.
+    @AppStorage("statsChartYears") private var chartYears = 2
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     private var currentYear: Int { Calendar.current.component(.year, from: .now) }
     private var period: StatsPeriod {
-        StatsPeriod(year: year, comparison: comparison, yearToDate: yearToDate && year == currentYear)
+        StatsPeriod(year: year, comparison: comparison, yearToDate: yearToDate && year == currentYear,
+                    chartYears: chartComparisons)
+    }
+
+    /// Further years for the charts: the comparison year first, then the years closest to the shown one.
+    private var chartComparisons: [Int] {
+        let limit = chartYears == 0 ? Int.max : max(0, chartYears - 1)
+        let rest = stats.years.filter { $0 != year && $0 != comparison }.sorted { abs($0 - year) < abs($1 - year) }
+        return Array(((comparison.map { [$0] } ?? []) + rest).prefix(limit))
     }
 
     var body: some View {
@@ -150,11 +160,16 @@ struct StatisticsView: View {
                 }
             }
             .navigationTitle(String(localized: "Statistik \(String(year))"))
-            .toolbar { ToolbarItem(placement: .primaryAction) { periodMenu } }
+            .toolbar {
+                // The details always carry the menu; stacked on iPhone the list needs its own.
+                if sizeClass == .compact { ToolbarItem(placement: .primaryAction) { periodMenu } }
+            }
             .safeAreaInset(edge: .bottom) { DemoIndicator(enabled: model.isDemo) }
         } detail: {
             NavigationStack {
-                StatisticsDetail(model: model, stats: stats, scope: selection ?? .all, period: period, metric: $metric)
+                StatisticsDetail(model: model, stats: stats, selection: $selection, categories: presentCategories,
+                                 period: period, metric: $metric)
+                    .toolbar { ToolbarItem(placement: .primaryAction) { periodMenu } }
                     .navigationDestination(for: ActivityKey.self) { key in
                         if let activity = model.activities.first(where: { $0.key == key }) {
                             ActivityDetailView(model: model, initial: activity)
@@ -213,6 +228,13 @@ struct StatisticsView: View {
             if year == currentYear, comparison != nil {
                 Toggle("Bis zum heutigen Datum", isOn: $yearToDate)
             }
+            Picker("Jahre in Diagrammen", selection: $chartYears) {
+                ForEach(1...5, id: \.self) { count in
+                    Text(count == 1 ? String(localized: "Nur \(String(year))") : String(localized: "\(count) Jahre")).tag(count)
+                }
+                Text("Alle Jahre").tag(0)
+            }
+            .pickerStyle(.menu)
         } label: {
             Label("Zeitraum", systemImage: "calendar")
         }
@@ -229,6 +251,8 @@ struct StatsPeriod: Equatable {
     let year: Int
     let comparison: Int?
     let yearToDate: Bool
+    /// Further years shown in the curve and month charts, the comparison year first.
+    var chartYears: [Int] = []
 
     func summary(_ entries: [StatsEntry], categories: Set<StatsCategory>?) -> YearSummary {
         YearSummary(year: year, entries: entries, categories: categories)
@@ -236,6 +260,14 @@ struct StatsPeriod: Equatable {
 
     func comparisonSummary(_ entries: [StatsEntry], categories: Set<StatsCategory>?) -> YearSummary? {
         comparison.map { other in
+            YearSummary(year: other, entries: entries, categories: categories,
+                        until: yearToDate ? YearSummary.sameDate(.now, inYear: other) : nil)
+        }
+    }
+
+    /// The further chart years, each cut at today's date when the current year is compared up to today.
+    func chartSummaries(_ entries: [StatsEntry], categories: Set<StatsCategory>?) -> [YearSummary] {
+        chartYears.map { other in
             YearSummary(year: other, entries: entries, categories: categories,
                         until: yearToDate ? YearSummary.sameDate(.now, inYear: other) : nil)
         }

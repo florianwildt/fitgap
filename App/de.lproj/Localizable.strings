@@ -282,3 +282,12 @@
 
 "Trainings aus Apple Health einbeziehen" = "Trainings aus Apple Health einbeziehen";
 "Die Statistik zählt die Aktivitäten in FITgap. Mit Apple Health kommen Trainings anderer Apps dazu, etwa von der Apple Watch; doppelte zählen einmal." = "Die Statistik zählt die Aktivitäten in FITgap. Mit Apple Health kommen Trainings anderer Apps dazu, etwa von der Apple Watch; doppelte zählen einmal.";
+
+"Jahre in Diagrammen" = "Jahre in Diagrammen";
+"Nur %@" = "Nur %@";
+"%lld Jahre" = "%lld Jahre";
+"Alle Jahre" = "Alle Jahre";
+"Nach Sportart" = "Nach Sportart";
+"Tippe auf eine Sportart, um nur sie zu zeigen." = "Tippe auf eine Sportart, um nur sie zu zeigen.";
+"%lld Aktivitäten" = "%lld Aktivitäten";
+"Zeigt nur diese Sportart" = "Zeigt nur diese Sportart";
