@@ -126,8 +126,6 @@ final class StatisticsModel: ObservableObject {
 
     @Published private(set) var entries: [StatsEntry] = []
     @Published private(set) var healthState = HealthState.off
-    /// FITgap activities whose FIT is not read yet and therefore not counted.
-    @Published private(set) var unread = 0
     @Published private(set) var everyday: [Int: HealthStatisticsReader.Everyday] = [:]
     /// Year goals, kept on this device.
     @Published private(set) var goals: [StatsGoal] = StatisticsModel.loadGoals()
@@ -142,12 +140,9 @@ final class StatisticsModel: ObservableObject {
         return Set(entries.map { Calendar.current.component(.year, from: $0.date) } + [current]).sorted(by: >)
     }
 
-    var healthCount: Int { entries.filter { if case .health = $0.origin { true } else { false } }.count }
-
     func update(_ records: [ActivityRecord], hidden: Set<ActivityKey>) {
         let visible = records.filter { !hidden.contains($0.key) }
         fitgap = visible.compactMap(StatsEntry.init)
-        unread = visible.count - fitgap.count
         merge()
     }
 

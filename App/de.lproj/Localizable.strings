@@ -226,13 +226,7 @@
 "Bis zum heutigen Datum" = "Bis zum heutigen Datum";
 "%@ ggü. %@" = "%@ ggü. %@";
 "Neu ggü. %@" = "Neu ggü. %@";
-"Im Demo-Modus zählt die Statistik nur die Demo-Aktivitäten." = "Im Demo-Modus zählt die Statistik nur die Demo-Aktivitäten.";
-"Die Statistik zählt die Aktivitäten in FITgap." = "Die Statistik zählt die Aktivitäten in FITgap.";
 "Trainings aus Apple Health werden gelesen …" = "Trainings aus Apple Health werden gelesen …";
-"Enthält %lld Trainings, die nur in Apple Health liegen, etwa von der Apple Watch oder anderen Apps. Trainings, die auch in FITgap liegen, zählen einmal." = "Enthält %lld Trainings, die nur in Apple Health liegen, etwa von der Apple Watch oder anderen Apps. Trainings, die auch in FITgap liegen, zählen einmal.";
-"Apple Health liefert keine weiteren Trainings. Falls du das Lesen nicht erlaubt hast: Einstellungen › Apps › Health › Datenzugriff & Geräte › FITgap." = "Apple Health liefert keine weiteren Trainings. Falls du das Lesen nicht erlaubt hast: Einstellungen › Apps › Health › Datenzugriff & Geräte › FITgap.";
-"Apple Health konnte nicht gelesen werden. Die Statistik zählt nur die Aktivitäten in FITgap." = "Apple Health konnte nicht gelesen werden. Die Statistik zählt nur die Aktivitäten in FITgap.";
-"%lld Aktivitäten ohne geladene FIT-Datei sind nicht enthalten." = "%lld Aktivitäten ohne geladene FIT-Datei sind nicht enthalten.";
 "Kennzahl" = "Kennzahl";
 "Überblick" = "Überblick";
 "Aktive Tage" = "Aktive Tage";
@@ -277,7 +271,6 @@
 "Hm" = "Hm";
 
 "Trainings aus Apple Health einbeziehen" = "Trainings aus Apple Health einbeziehen";
-"Die Statistik zählt die Aktivitäten in FITgap. Mit Apple Health kommen Trainings anderer Apps dazu, etwa von der Apple Watch; doppelte zählen einmal." = "Die Statistik zählt die Aktivitäten in FITgap. Mit Apple Health kommen Trainings anderer Apps dazu, etwa von der Apple Watch; doppelte zählen einmal.";
 
 "Jahre in Diagrammen" = "Jahre in Diagrammen";
 "Nur %@" = "Nur %@";

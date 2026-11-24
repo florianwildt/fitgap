@@ -166,15 +166,13 @@ struct StatisticsView: View {
                         }
                     }
                 }
-                Section {
-                    if stats.healthState == .needsAccess, !model.isDemo {
+                if stats.healthState == .needsAccess, !model.isDemo {
+                    Section {
                         Button("Trainings aus Apple Health einbeziehen", systemImage: "heart.text.square") {
                             healthRequest.toggle()
                         }
                         .accessibilityIdentifier("stats-health-request")
                     }
-                } footer: {
-                    StatisticsSourcesNote(stats: stats, isDemo: model.isDemo)
                 }
             }
             .navigationTitle(String(localized: "Statistik \(String(year))"))
@@ -322,40 +320,6 @@ struct ChangeText: View {
             .contentTransition(.numericText())
         } else if previous == 0, value > 0 {
             Text("Neu ggü. \(String(year))").font(.caption).foregroundStyle(.secondary)
-        }
-    }
-}
-
-/// Where the numbers come from and what is missing.
-struct StatisticsSourcesNote: View {
-    @ObservedObject var stats: StatisticsModel
-    let isDemo: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if isDemo {
-                Text("Im Demo-Modus zählt die Statistik nur die Demo-Aktivitäten.")
-            } else {
-                switch stats.healthState {
-                case .off:
-                    Text("Die Statistik zählt die Aktivitäten in FITgap.")
-                case .needsAccess:
-                    Text("Die Statistik zählt die Aktivitäten in FITgap. Mit Apple Health kommen Trainings anderer Apps dazu, etwa von der Apple Watch; doppelte zählen einmal.")
-                case .loading:
-                    Text("Trainings aus Apple Health werden gelesen …")
-                case .loaded:
-                    if stats.healthCount > 0 {
-                        Text("Enthält \(stats.healthCount) Trainings, die nur in Apple Health liegen, etwa von der Apple Watch oder anderen Apps. Trainings, die auch in FITgap liegen, zählen einmal.")
-                    } else {
-                        Text("Apple Health liefert keine weiteren Trainings. Falls du das Lesen nicht erlaubt hast: Einstellungen › Apps › Health › Datenzugriff & Geräte › FITgap.")
-                    }
-                case .failed:
-                    Text("Apple Health konnte nicht gelesen werden. Die Statistik zählt nur die Aktivitäten in FITgap.")
-                }
-            }
-            if stats.unread > 0 {
-                Text("\(stats.unread) Aktivitäten ohne geladene FIT-Datei sind nicht enthalten.")
-            }
         }
     }
 }
