@@ -17,6 +17,25 @@ enum HealthExportError: Error, LocalizedError {
 
 /// Writes a verified original FIT to Apple Health: one workout with every record sample Health has a type for,
 /// laps, swim lengths, pauses, the GPS route and the session summary as metadata.
+/// Every Health type FITgap writes or reads, requested together once at launch so the user decides only once.
+enum HealthAccess {
+    static let store = HKHealthStore()
+
+    static var shareTypes: Set<HKSampleType> {
+        Set(HealthExporter.quantityTypes.map { HKQuantityType($0) as HKSampleType } + [.workoutType(), HKSeriesType.workoutRoute()])
+    }
+
+    static var readTypes: Set<HKObjectType> {
+        Set(shareTypes.map { $0 as HKObjectType }).union(HealthStatisticsReader.readTypes).union(HealthWorkoutReader.readTypes)
+    }
+
+    /// Whether some type is still undecided; iOS shows no sheet for types already answered.
+    static func needsRequest() async -> Bool {
+        guard HKHealthStore.isHealthDataAvailable() else { return false }
+        return (try? await store.statusForAuthorizationRequest(toShare: shareTypes, read: readTypes)) != .unnecessary
+    }
+}
+
 /// Its read access to workouts serves the duplicate check before writing; the year statistics read through `HealthStatisticsReader`.
 struct HealthExporter: Sendable {
     enum Outcome: Sendable { case exported, existing(String) }
@@ -27,7 +46,7 @@ struct HealthExporter: Sendable {
 
     static var isAvailable: Bool { HKHealthStore.isHealthDataAvailable() }
 
-    private static var quantityTypes: [HKQuantityTypeIdentifier] {
+    static var quantityTypes: [HKQuantityTypeIdentifier] {
         var types: [HKQuantityTypeIdentifier] = [
             .heartRate, .respiratoryRate, .activeEnergyBurned, .stepCount, .swimmingStrokeCount,
             .distanceWalkingRunning, .distanceCycling, .distanceSwimming, .distanceWheelchair, .distanceDownhillSnowSports,
@@ -43,8 +62,8 @@ struct HealthExporter: Sendable {
     /// Asks once per new type; iOS shows no sheet when every type was already decided.
     func requestAuthorization() async throws {
         guard Self.isAvailable else { throw HealthExportError.unavailable }
-        let share = Set(Self.quantityTypes.map { HKQuantityType($0) as HKSampleType } + [.workoutType(), HKSeriesType.workoutRoute()])
-        try await store.requestAuthorization(toShare: share, read: [.workoutType()])
+        // Everything FITgap reads and writes in one request, so iOS never asks again for single values.
+        try await store.requestAuthorization(toShare: HealthAccess.shareTypes, read: HealthAccess.readTypes)
     }
 
     /// `includeOverlaps` writes even when another app's workout covers the same time; FITgap's own earlier export is always respected.

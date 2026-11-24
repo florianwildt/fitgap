@@ -521,7 +521,7 @@ struct HealthWorkoutDetailView: View {
             let track = details?.track ?? []
             await photos.load(workout.interval, onMap: !workout.indoor && (details?.route.count ?? 0) > 1) { track }
         }
-        .healthDataAccessRequest(store: reader.store, shareTypes: [], readTypes: HealthWorkoutReader.readTypes, trigger: request) { _ in
+        .healthDataAccessRequest(store: HealthAccess.store, shareTypes: HealthAccess.shareTypes, readTypes: HealthAccess.readTypes, trigger: request) { _ in
             Task { @MainActor in
                 reload += 1
                 NotificationCenter.default.post(name: HealthWorkoutsModel.accessChanged, object: nil)

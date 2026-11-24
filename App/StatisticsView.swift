@@ -200,8 +200,12 @@ struct StatisticsView: View {
         .onReceive(model.$duplicates) { groups in stats.update(model.activities, hidden: groups.hidden) }
         .task(id: model.isDemo) { await stats.loadHealth(enabled: !model.isDemo) }
         // Apple's SwiftUI request is shown above the visible view, only after a tap.
-        .healthDataAccessRequest(store: stats.reader.store, shareTypes: [], readTypes: HealthStatisticsReader.readTypes,
+        .healthDataAccessRequest(store: HealthAccess.store, shareTypes: HealthAccess.shareTypes, readTypes: HealthAccess.readTypes,
                                  trigger: healthRequest) { _ in
+            Task { await stats.loadHealth(enabled: !model.isDemo) }
+        }
+        // The launch request may be answered while this view waits for access.
+        .onReceive(NotificationCenter.default.publisher(for: HealthWorkoutsModel.accessChanged)) { _ in
             Task { await stats.loadHealth(enabled: !model.isDemo) }
         }
         .task(id: [year, comparison ?? 0, stats.healthState == .loaded ? 1 : 0]) {
