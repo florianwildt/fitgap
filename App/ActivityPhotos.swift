@@ -1,7 +1,7 @@
 import CoreLocation
 import FITgapCore
 import Photos
-import QuickLook
+import ImageIO
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
@@ -17,15 +17,15 @@ struct ActivityPhoto: Identifiable, Equatable {
     }
 }
 
-/// Photos from the library taken during one activity. Nothing is copied into FITgap; only a photo opened in the
-/// large view is written to a temporary file for Quick Look and removed when the details close.
+/// Photos from the library taken during one activity. Nothing is copied into FITgap; only photos opened in the
+/// large view are written to temporary files for viewing and sharing and removed when the details close.
 @MainActor
 final class ActivityPhotos: ObservableObject {
     @Published private(set) var status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
     @Published private(set) var items: [ActivityPhoto] = []
     @Published private(set) var loaded = false
     @Published private(set) var preparing = false
-    /// Quick Look selection in the details list and in the full-screen map, which is a separate sheet.
+    /// Photo opened from the details list or from the full-screen map, which is a separate sheet.
     @Published var listPreview: URL?
     @Published var mapPreview: URL?
     @Published private(set) var previewURLs: [URL] = []
@@ -120,6 +120,104 @@ final class ActivityPhotos: ObservableObject {
         let url = folder.appendingPathComponent("\(String(format: "%02d", index + 1)) \(time).\(ext)")
         do { try data.write(to: url, options: .atomic) } catch { return nil }
         return url
+    }
+}
+
+/// The large view of the activity's photos: swipe sideways between them, pinch to look closer, share or close.
+/// From iOS 18 it zooms in and closes by swiping down, like Photos.
+struct PhotoViewer: View {
+    let urls: [URL]
+    @State var current: URL
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            TabView(selection: $current) {
+                ForEach(urls, id: \.self) { url in
+                    PhotoPage(url: url).tag(url)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .ignoresSafeArea()
+            .navigationTitle(urls.count > 1 ? String(localized: "\((urls.firstIndex(of: current) ?? 0) + 1) von \(urls.count)") : "")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Schließen", systemImage: "xmark") { dismiss() }
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    ShareLink(item: current)
+                }
+            }
+        }
+        .accessibilityIdentifier("photo-viewer")
+    }
+}
+
+/// One photo, loaded at screen size; pinching enlarges it until released.
+private struct PhotoPage: View {
+    let url: URL
+    @State private var image: UIImage?
+    @State private var scale = 1.0
+    @Environment(\.displayScale) private var displayScale
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack {
+                if let image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .scaleEffect(scale)
+                        .accessibilityLabel(Text("Foto"))
+                        .gesture(MagnifyGesture()
+                            .onChanged { scale = max(1, $0.magnification) }
+                            .onEnded { _ in withAnimation(.spring) { scale = 1 } })
+                } else {
+                    ProgressView()
+                }
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height)
+            .task(id: url) {
+                let pixels = max(proxy.size.width, proxy.size.height) * displayScale
+                image = await Task.detached { Self.load(url, pixels: pixels) }.value
+            }
+        }
+    }
+
+    /// Downsampled decode, so large photos do not fill the memory.
+    nonisolated private static func load(_ url: URL, pixels: CGFloat) -> UIImage? {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        let options: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways: true,
+                                        kCGImageSourceCreateThumbnailWithTransform: true,
+                                        kCGImageSourceThumbnailMaxPixelSize: max(pixels, 1)]
+        return CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary).map(UIImage.init)
+    }
+}
+
+extension View {
+    /// Shows the photo viewer full screen while `url` is set.
+    func photoViewer(_ url: Binding<URL?>, in urls: [URL]) -> some View {
+        modifier(PhotoViewerPresentation(url: url, urls: urls))
+    }
+}
+
+private struct PhotoViewerPresentation: ViewModifier {
+    @Binding var url: URL?
+    let urls: [URL]
+    @Namespace private var namespace
+
+    func body(content: Content) -> some View {
+        content.fullScreenCover(isPresented: Binding(get: { url != nil }, set: { if !$0 { url = nil } })) {
+            if let start = url {
+                if #available(iOS 18, *) {
+                    PhotoViewer(urls: urls, current: start)
+                        .navigationTransition(.zoom(sourceID: "photo", in: namespace))
+                } else {
+                    PhotoViewer(urls: urls, current: start)
+                }
+            }
+        }
     }
 }
 

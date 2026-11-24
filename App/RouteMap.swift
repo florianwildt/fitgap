@@ -48,7 +48,7 @@ struct RouteSection: View {
                                         .background(.regularMaterial, in: .rect(cornerRadius: 12))
                                 }
                             }
-                            .quickLookPreview($photos.mapPreview, in: photos.previewURLs)
+                            .photoViewer($photos.mapPreview, in: photos.previewURLs)
                             .navigationTitle(activity.displayName)
                             .navigationBarTitleDisplayMode(.inline)
                             .toolbar {

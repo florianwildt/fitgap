@@ -125,7 +125,7 @@ struct ActivityDetailView: View {
         // Access may have changed in Settings.
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in photosReload += 1 }
         .onDisappear { photos.removeFiles() }
-        .quickLookPreview($photos.listPreview, in: photos.previewURLs)
+        .photoViewer($photos.listPreview, in: photos.previewURLs)
         .navigationTitle(activity.displayName)
         .navigationBarTitleDisplayMode(.inline)
     }
