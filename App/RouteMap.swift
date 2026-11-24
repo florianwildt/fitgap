@@ -9,6 +9,8 @@ struct RouteSection: View {
     let route: [FITActivity.Coordinate]
     /// Set once reading has finished; a file that turns out to hold no usable route then hides the section.
     var read = false
+    /// Photos taken during the activity; small marks on the preview, tappable thumbnails on the full-screen map.
+    @ObservedObject var photos: ActivityPhotos
     @State private var expanded = false
     @AppStorage(MapAppearance.key) private var appearance = MapAppearance.standard
 
@@ -22,7 +24,7 @@ struct RouteSection: View {
                         Rectangle().fill(.quaternary)
                         if route.count > 1 {
                             // A new activity gets a new map, so the camera frames its route.
-                            RouteMap(route: route, interactive: false).id(activity.id)
+                            RouteMap(route: route, interactive: false, photos: photos.placed).id(activity.id)
                         } else { ProgressView() }
                     }
                     .frame(height: 220)
@@ -35,8 +37,18 @@ struct RouteSection: View {
                 .accessibilityIdentifier("route-map")
                 .sheet(isPresented: $expanded) {
                     NavigationStack {
-                        RouteMap(route: route, interactive: true)
+                        RouteMap(route: route, interactive: true, photos: photos.placed) { photo in
+                            Task { await photos.open(photo, fromMap: true) }
+                        }
                             .ignoresSafeArea(edges: .bottom)
+                            .overlay {
+                                if photos.preparing {
+                                    ProgressView("Fotos werden geladen …")
+                                        .padding(12)
+                                        .background(.regularMaterial, in: .rect(cornerRadius: 12))
+                                }
+                            }
+                            .quickLookPreview($photos.mapPreview, in: photos.previewURLs)
                             .navigationTitle(activity.displayName)
                             .navigationBarTitleDisplayMode(.inline)
                             .toolbar {
@@ -64,7 +76,9 @@ struct RouteSection: View {
         }
     }
 
-    private var isVirtual: Bool {
+    private var isVirtual: Bool { Self.isVirtual(activity) }
+
+    static func isVirtual(_ activity: ActivityRecord) -> Bool {
         activity.metrics?.subSport == 58 || activity.source == .zwift || activity.source == .mywhoosh
     }
 
@@ -87,7 +101,17 @@ struct RouteSection: View {
 private struct RouteMap: View {
     let route: [FITActivity.Coordinate]
     let interactive: Bool
+    var photos: [ActivityPhoto] = []
+    var open: ((ActivityPhoto) -> Void)?
     @AppStorage(MapAppearance.key) private var appearance = MapAppearance.standard
+    /// Height of the visible region in metres; photos closer than a few percent of it share one pin.
+    @State private var span = 0.0
+
+    /// One pin per photo on the preview; on the zoomable map nearby photos stack until zoomed in.
+    private var photoGroups: [[ActivityPhoto]] {
+        guard interactive else { return photos.map { [$0] } }
+        return TrackPlacement.groups(photos, meters: max(span * 0.06, 15)) { ($0.coordinate!.latitude, $0.coordinate!.longitude) }
+    }
 
     /// Consecutive segments of the same colour share one line, so MapKit draws a few dozen lines instead of thousands.
     private var runs: [(id: Int, color: Color, points: [CLLocationCoordinate2D])] {
@@ -117,6 +141,23 @@ private struct RouteMap: View {
             }
             if let first = route.first { Marker("Start", systemImage: "flag", coordinate: first.location).tint(.green) }
             if let last = route.last { Marker("Ziel", systemImage: "flag.checkered", coordinate: last.location).tint(.red) }
+            ForEach(photoGroups, id: \.first!.id) { group in
+                Annotation(String(localized: "Foto"), coordinate: group[0].coordinate!, anchor: .center) {
+                    if interactive {
+                        Button { open?(group[0]) } label: { PhotoPin(photos: group, large: true) }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(group.count > 1
+                                ? Text("\(group.count) Fotos") : Text("Foto, \(group[0].date.formatted(date: .omitted, time: .shortened))"))
+                            .accessibilityHint("Öffnet das Foto in groß")
+                    } else {
+                        PhotoPin(photos: group, large: false).accessibilityHidden(true)
+                    }
+                }
+                .annotationTitles(.hidden)
+            }
+        }
+        .onMapCameraChange(frequency: .onEnd) { context in
+            if interactive { span = context.region.span.latitudeDelta * 111_000 }
         }
         .mapStyle(appearance.mapStyle)
         .mapControls {

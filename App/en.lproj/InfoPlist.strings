@@ -1,3 +1,4 @@
 "NSHealthUpdateUsageDescription" = "FITgap saves your downloaded activities as workouts in Apple Health, including heart rate, power, cadence, speed, distance, energy, laps, pauses and route.";
-"NSHealthShareUsageDescription" = "FITgap reads workouts only to check whether an activity is already in Apple Health, so it is never saved twice.";
+"NSHealthShareUsageDescription" = "FITgap reads workouts, distances, active energy and steps from every app in Apple Health to show your year statistics and to check whether an activity is already in Apple Health, so it is never saved twice.";
 "FIT Activity" = "FIT Activity";
+"NSPhotoLibraryUsageDescription" = "FITgap shows the photos you took during an activity in its details and on the route map. Photos stay on your device.";

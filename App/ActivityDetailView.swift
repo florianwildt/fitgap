@@ -8,6 +8,8 @@ struct ActivityDetailView: View {
     @State private var confirmOverlap = false
     @State private var route: [FITActivity.Coordinate] = []
     @State private var routeRead = false
+    @StateObject private var photos = ActivityPhotos()
+    @State private var photosReload = 0
 
     // Follow the live record so recalculated metrics or a new sharing mark appear immediately.
     private var activity: ActivityRecord { model.activities.first { $0.key == initial.key } ?? initial }
@@ -15,7 +17,8 @@ struct ActivityDetailView: View {
 
     var body: some View {
         List {
-            RouteSection(activity: activity, route: route, read: routeRead)
+            RouteSection(activity: activity, route: route, read: routeRead, photos: photos)
+            PhotoSection(photos: photos) { photosReload += 1 }
             Section {
                 row("Sportart", sport)
                 row("Start", activity.date?.formatted(.dateTime.day().month(.abbreviated).year().hour().minute()))
@@ -118,8 +121,25 @@ struct ActivityDetailView: View {
             if full.count > 1 { route = full }
             routeRead = true
         }
+        .task(id: "\(model.libraryGeneration)-\(activity.id)-\(photosReload)") { await loadPhotos() }
+        // Access may have changed in Settings.
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in photosReload += 1 }
+        .onDisappear { photos.removeFiles() }
+        .quickLookPreview($photos.listPreview, in: photos.previewURLs)
         .navigationTitle(activity.displayName)
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// Photos of the activity's time span; placed on the map only for real routes, not for virtual worlds.
+    private func loadPhotos() async {
+        let record = activity
+        guard let start = record.date else { return await photos.load(DateInterval(start: .distantPast, duration: 0), onMap: false) { [] } }
+        let seconds = metrics?.elapsedSeconds ?? metrics?.timerSeconds ?? record.duration ?? 0
+        let library = model.library
+        await photos.load(DateInterval(start: start, duration: max(0, seconds)),
+                          onMap: RouteThumbnail.hasRoute(record) && !RouteSection.isVirtual(record)) {
+            await Task.detached(priority: .userInitiated) { (try? library.activity(for: record))?.track() ?? [] }.value
+        }
     }
 
     @ViewBuilder private func row(_ title: LocalizedStringKey, _ value: String?) -> some View {

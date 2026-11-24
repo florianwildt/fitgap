@@ -9,11 +9,14 @@ final class OrientationDelegate: NSObject, UIApplicationDelegate {
     }
 }
 
+enum AppTab: Hashable { case activities, statistics }
+
 @main
 struct FITgapApp: App {
     @UIApplicationDelegateAdaptor(OrientationDelegate.self) private var delegate
     @StateObject private var model = AppModel()
     @Environment(\.scenePhase) private var phase
+    @State private var tab = AppTab.activities
 
     init() {
         StartupLog.beginLaunch()
@@ -23,7 +26,15 @@ struct FITgapApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ActivitiesView(model: model)
+            // Tab bar placement (bottom, or vertical on the right of an iPhone Duo) is left to the system.
+            TabView(selection: $tab) {
+                ActivitiesView(model: model)
+                    .tabItem { Label("Aktivitäten", systemImage: "list.bullet.rectangle") }
+                    .tag(AppTab.activities)
+                StatisticsView(model: model)
+                    .tabItem { Label("Statistik", systemImage: "chart.bar.xaxis") }
+                    .tag(AppTab.statistics)
+            }
                 .onAppear { StartupLog.mark("first view appeared", once: true) }
                 .task { StartupLog.measure("AppModel.start") { model.start() } }
                 .onChange(of: phase) { _, value in
@@ -31,7 +42,11 @@ struct FITgapApp: App {
                     model.phaseChanged(value)
                 }
                 // "Open in FITgap" and sharing a .fit file to FITgap from Files, Mail or another app.
-                .onOpenURL { url in if url.isFileURL { model.importFiles([url]) } }
+                .onOpenURL { url in
+                    guard url.isFileURL else { return }
+                    tab = .activities
+                    model.importFiles([url])
+                }
         }
     }
 }

@@ -17,7 +17,7 @@ enum HealthExportError: Error, LocalizedError {
 
 /// Writes a verified original FIT to Apple Health: one workout with every record sample Health has a type for,
 /// laps, swim lengths, pauses, the GPS route and the session summary as metadata.
-/// Read access covers workouts only and serves solely the duplicate check before writing.
+/// Its read access to workouts serves the duplicate check before writing; the year statistics read through `HealthStatisticsReader`.
 struct HealthExporter: Sendable {
     enum Outcome: Sendable { case exported, existing(String) }
 
@@ -153,10 +153,7 @@ struct HealthExporter: Sendable {
     }
 
     /// Two workouts are the same when they overlap at least half of the shorter duration.
-    static func sameWorkout(_ first: DateInterval, _ second: DateInterval) -> Bool {
-        guard let shared = first.intersection(with: second) else { return false }
-        return shared.duration >= 0.5 * min(first.duration, second.duration)
-    }
+    static func sameWorkout(_ first: DateInterval, _ second: DateInterval) -> Bool { StatsMerge.sameWorkout(first, second) }
 
     // MARK: Samples
 

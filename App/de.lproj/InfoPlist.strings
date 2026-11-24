@@ -1,3 +1,4 @@
 "NSHealthUpdateUsageDescription" = "FITgap sichert deine geladenen Aktivitäten als Trainings in Apple Health, inklusive Herzfrequenz, Leistung, Trittfrequenz, Geschwindigkeit, Strecke, Energie, Runden, Pausen und Route.";
-"NSHealthShareUsageDescription" = "FITgap liest Trainings nur, um zu prüfen, ob eine Aktivität bereits in Apple Health vorhanden ist, damit sie nie doppelt gesichert wird.";
+"NSHealthShareUsageDescription" = "FITgap liest Trainings, Strecken, aktive Energie und Schritte aller Apps in Apple Health, um deine Jahresstatistik zu zeigen und zu prüfen, ob eine Aktivität bereits in Apple Health vorhanden ist, damit sie nie doppelt gesichert wird.";
 "FIT Activity" = "FIT-Aktivität";
+"NSPhotoLibraryUsageDescription" = "FITgap zeigt die Fotos, die du während einer Aktivität aufgenommen hast, in den Details und auf der Streckenkarte. Die Fotos bleiben auf deinem Gerät.";

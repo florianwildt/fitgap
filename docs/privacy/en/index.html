@@ -37,7 +37,7 @@ footer a{color:var(--muted);text-decoration:underline}
 <p>Please do not send passwords, access tokens or complete workout files without agreeing this beforehand.</p>
 
 <h1 id="privacy-policy">Privacy Policy</h1>
-<p>Last updated: 25 October 2026</p>
+<p>Last updated: 24 November 2026</p>
 <p><em>This is a translation of the <a href="../">German original</a>. In case of doubt, the German version prevails.</em></p>
 
 <h2 id="1-controller">1. Controller</h2>
@@ -103,13 +103,14 @@ Germany</p>
 
 <p>When you share via the iOS share sheet, the selected original file is handed to the app or destination you choose, for example HealthFit. A FIT file may also contain sensitive workout and location data. The recipient’s privacy policy applies to any further processing by the recipient.</p>
 <p>If an activity contains location data, FITgap shows its route on a map from Apple (MapKit). To load the map, Apple’s map service receives the displayed map region and technically necessary connection data such as your IP address; FITgap draws the route itself on the device. Apple’s <a href="https://www.apple.com/legal/privacy/data/en/apple-maps/">Apple Maps privacy information</a> applies.</p>
+<p><strong>Photos:</strong> If you allow it, FITgap looks in your photo library for photos taken during an activity (capture time and, if available, capture location) and shows them in the details and on the route map. Photos without their own location are placed on the route by their capture time. FITgap does not copy photos into its storage and does not change your library; only a photo opened in full size is briefly stored as a temporary file for the preview and removed when the details close. Photos are not transmitted. You can change access under Settings › Apps › FITgap › Photos.</p>
 
 <h2 id="6-apple-health">6. Apple Health</h2>
 <p>Saving to Apple Health is optional and only happens when you trigger it for an activity, a selection or automatically for new activities, and allow access in iOS.</p>
 
 <ul>
   <li><strong>Writing:</strong> FITgap creates a workout in Apple Health from a downloaded FIT file. Depending on the recording, this includes heart rate, respiratory rate, power, cadence, speed, running dynamics, distance, steps, swimming strokes, energy burned, laps, pauses, device name and the recorded route, including virtual coordinates such as those from Zwift.</li>
-  <li><strong>Reading:</strong> FITgap only reads workouts (time span and source app) to check before writing whether the activity is already present. This prevents duplicates. No other health data is read.</li>
+  <li><strong>Reading:</strong> FITgap reads workouts from every app (time span, sport, source app, distance, active energy and elevation gain) to prevent duplicates before writing and to calculate the year statistics. For the statistics, FITgap also reads distances, active energy and steps, including outside workouts. The statistics are calculated on the device only and are not stored. Other health data such as heart rate is not read.</li>
   <li>Data from Apple Health is not transmitted to the developer or third parties, not used for advertising, marketing or profiling, and not stored in iCloud or other cloud services. FITgap only stores locally when an activity was saved or which app already contained it.</li>
   <li>Storage in Apple Health is subject to Apple’s terms and your Health settings, including any iCloud synchronisation of Health by Apple.</li>
 </ul>
