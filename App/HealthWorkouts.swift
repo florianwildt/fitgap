@@ -77,15 +77,24 @@ final class HealthWorkoutsModel: ObservableObject {
             sortDescriptors: [SortDescriptor(\.startDate, order: .reverse)], limit: HKObjectQueryNoLimit).result(for: store)
         else { return }
         var loaded = samples.map(HealthWorkout.init).filter { $0.bundleIdentifier != own }
-        // One query for all routes; each belongs to the workout whose time span holds it.
+        // One query for all routes; a route belongs to the workout of the same app whose time span it overlaps,
+        // whether or not the app linked the two.
         let routes = (try? await HKSampleQueryDescriptor(predicates: [.workoutRoute()], sortDescriptors: [SortDescriptor(\.startDate)])
             .result(for: store)) ?? []
         let starts = routes.map(\.startDate)
         for index in loaded.indices {
-            let interval = loaded[index].interval
+            let workout = loaded[index]
             var low = 0, high = starts.count
-            while low < high { let mid = (low + high) / 2; if starts[mid] < interval.start.addingTimeInterval(-60) { low = mid + 1 } else { high = mid } }
-            loaded[index].hasRoute = low < starts.count && starts[low] <= interval.end
+            let earliest = workout.interval.start.addingTimeInterval(-86_400)
+            while low < high { let mid = (low + high) / 2; if starts[mid] < earliest { low = mid + 1 } else { high = mid } }
+            while low < routes.count, starts[low] <= workout.interval.end {
+                let route = routes[low]
+                if route.endDate >= workout.interval.start, route.sourceRevision.source.bundleIdentifier == workout.bundleIdentifier {
+                    loaded[index].hasRoute = true
+                    break
+                }
+                low += 1
+            }
         }
         workouts = loaded
     }
@@ -260,10 +269,17 @@ struct HealthWorkoutReader: Sendable {
     }
 
     /// All recorded positions of the workout's routes, in order.
+    /// Linked routes first; apps that save the route without linking it to the workout are matched by app and time span.
     private func route(_ workout: HKWorkout) async -> [CLLocation] {
-        let routes = HKSampleQueryDescriptor(predicates: [.workoutRoute(HKQuery.predicateForObjects(from: workout))],
+        let linked = HKSampleQueryDescriptor(predicates: [.workoutRoute(HKQuery.predicateForObjects(from: workout))],
                                              sortDescriptors: [SortDescriptor(\.startDate)])
-        guard let samples = try? await routes.result(for: store) else { return [] }
+        var samples = (try? await linked.result(for: store)) ?? []
+        if samples.isEmpty {
+            let overlapping = HKQuery.predicateForSamples(withStart: workout.startDate, end: workout.endDate, options: [])
+            let unlinked = HKSampleQueryDescriptor(predicates: [.workoutRoute(overlapping)], sortDescriptors: [SortDescriptor(\.startDate)])
+            let source = workout.sourceRevision.source.bundleIdentifier
+            samples = ((try? await unlinked.result(for: store)) ?? []).filter { $0.sourceRevision.source.bundleIdentifier == source }
+        }
         var locations: [CLLocation] = []
         for sample in samples {
             do {
@@ -448,6 +464,10 @@ struct HealthWorkoutDetailView: View {
                 row("Quelle", workout.sourceName)
                 row("Gerät", details?.device)
                 if workout.indoor { row("Ort", String(localized: "Drinnen")) }
+            } footer: {
+                if read, !workout.indoor, details?.route.isEmpty ?? true {
+                    Text("Apple Health enthält keine Route für dieses Training, oder FITgap darf Trainingsrouten nicht lesen. Zeigt die Health-App beim Training eine Karte, erlaube unter „Konten“ › „Freigaben“ den Zugriff auf Trainingsrouten.")
+                }
             }
             Section {
                 row("Anstieg", workout.ascentMeters.map(ActivityFormat.meters))
