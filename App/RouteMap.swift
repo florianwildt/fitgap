@@ -5,7 +5,12 @@ import SwiftUI
 /// Map preview of the recorded positions; hidden when the file has no route.
 /// Virtual rides (e.g. Zwift, MyWhoosh) are drawn at the coordinates of their game world.
 struct RouteSection: View {
-    let activity: ActivityRecord
+    /// Identity of the shown workout; a new one gets a new map.
+    let id: String
+    let title: String
+    /// Whether a route is expected before it is read.
+    let expected: Bool
+    let virtual: Bool
     let route: [FITActivity.Coordinate]
     /// Set once reading has finished; a file that turns out to hold no usable route then hides the section.
     var read = false
@@ -14,17 +19,28 @@ struct RouteSection: View {
     @State private var expanded = false
     @AppStorage(MapAppearance.key) private var appearance = MapAppearance.standard
 
+    init(id: String, title: String, expected: Bool, virtual: Bool, route: [FITActivity.Coordinate], read: Bool,
+         photos: ActivityPhotos) {
+        self.id = id; self.title = title; self.expected = expected; self.virtual = virtual
+        self.route = route; self.read = read; self.photos = photos
+    }
+
+    init(activity: ActivityRecord, route: [FITActivity.Coordinate], read: Bool, photos: ActivityPhotos) {
+        self.init(id: activity.id, title: activity.displayName, expected: RouteThumbnail.hasRoute(activity),
+                  virtual: Self.isVirtual(activity), route: route, read: read, photos: photos)
+    }
+
     var body: some View {
         // The section exists from the start when the cached metrics report positions, so the list never has to
         // insert it later; the map fills in once the route is read.
-        if RouteThumbnail.hasRoute(activity), !(read && route.count < 2) {
+        if expected, !(read && route.count < 2) {
             Section {
                 Button { expanded = true } label: {
                     ZStack {
                         Rectangle().fill(.quaternary)
                         if route.count > 1 {
                             // A new activity gets a new map, so the camera frames its route.
-                            RouteMap(route: route, interactive: false, photos: photos.placed).id(activity.id)
+                            RouteMap(route: route, interactive: false, photos: photos.placed).id(id)
                         } else { ProgressView() }
                     }
                     .frame(height: 220)
@@ -49,7 +65,7 @@ struct RouteSection: View {
                                 }
                             }
                             .photoViewer($photos.mapPreview, in: photos.previewURLs)
-                            .navigationTitle(activity.displayName)
+                            .navigationTitle(title)
                             .navigationBarTitleDisplayMode(.inline)
                             .toolbar {
                                 ToolbarItem(placement: .confirmationAction) {
@@ -76,7 +92,7 @@ struct RouteSection: View {
         }
     }
 
-    private var isVirtual: Bool { Self.isVirtual(activity) }
+    private var isVirtual: Bool { virtual }
 
     static func isVirtual(_ activity: ActivityRecord) -> Bool {
         activity.metrics?.subSport == 58 || activity.source == .zwift || activity.source == .mywhoosh

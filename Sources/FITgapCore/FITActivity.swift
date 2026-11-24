@@ -104,6 +104,10 @@ public struct FITActivity: Sendable {
         public let longitude: Double
         /// Average speed in m/s since the previous returned position; nil for the first one or without elapsed time.
         public var speed: Double?
+
+        public init(latitude: Double, longitude: Double, speed: Double? = nil) {
+            self.latitude = latitude; self.longitude = longitude; self.speed = speed
+        }
     }
 
     /// Recorded positions in order for a map preview, thinned evenly to at most `limit` points;
