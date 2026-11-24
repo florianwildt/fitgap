@@ -60,7 +60,7 @@ struct HealthWorkout: Identifiable, Equatable, Sendable {
 @MainActor
 final class HealthWorkoutsModel: ObservableObject {
     /// Posted after the user answered a Health access request, so the list reads routes it may now see.
-    static let accessChanged = Notification.Name("FITgapHealthAccessChanged")
+    nonisolated static let accessChanged = Notification.Name("FITgapHealthAccessChanged")
     @Published private(set) var workouts: [HealthWorkout] = []
     private let store = HKHealthStore()
     private var loading = false
