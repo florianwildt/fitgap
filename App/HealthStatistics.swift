@@ -12,7 +12,9 @@ struct HealthStatisticsReader: Sendable {
     private static var quantityTypes: [HKQuantityTypeIdentifier] {
         var types: [HKQuantityTypeIdentifier] = [.distanceCycling, .distanceWalkingRunning, .distanceSwimming,
                                                  .activeEnergyBurned, .stepCount]
-        if #available(iOS 18, *) { types.append(.distanceRowing) }
+        if #available(iOS 18, *) {
+            types += [.distanceRowing, .distanceCrossCountrySkiing, .distancePaddleSports, .distanceDownhillSnowSports]
+        }
         return types
     }
 
@@ -76,7 +78,10 @@ struct HealthStatisticsReader: Sendable {
         case .running, .walking, .hiking: .distanceWalkingRunning
         case .swimming: .distanceSwimming
         case .rowing: if #available(iOS 18, *) { .distanceRowing } else { nil }
-        case .other: nil
+        case .crossCountrySkiing: if #available(iOS 18, *) { .distanceCrossCountrySkiing } else { nil }
+        case .paddling: if #available(iOS 18, *) { .distancePaddleSports } else { nil }
+        case .alpineSkiing: if #available(iOS 18, *) { .distanceDownhillSnowSports } else { nil }
+        case .strength, .yoga, .fitnessEquipment, .other: nil
         }
     }
 
@@ -88,6 +93,12 @@ struct HealthStatisticsReader: Sendable {
         case .walking: .walking
         case .hiking: .hiking
         case .rowing: .rowing
+        case .crossCountrySkiing: .crossCountrySkiing
+        case .traditionalStrengthTraining, .functionalStrengthTraining: .strength
+        case .paddleSports: .paddling
+        case .downhillSkiing, .snowboarding: .alpineSkiing
+        case .yoga: .yoga
+        case .elliptical, .stairClimbing, .stepTraining: .fitnessEquipment
         default: .other
         }
     }

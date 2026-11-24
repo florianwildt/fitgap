@@ -330,3 +330,12 @@
 "Messwerte werden aus Apple Health gelesen …" = "Messwerte werden aus Apple Health gelesen …";
 "Für Herzfrequenz, Leistung, Trittfrequenz, Tempo und Route braucht FITgap Lesezugriff auf diese Werte in Apple Health." = "Für Herzfrequenz, Leistung, Trittfrequenz, Tempo und Route braucht FITgap Lesezugriff auf diese Werte in Apple Health.";
 "Dieses Workout stammt aus Apple Health. Health speichert keine FIT-Datei, nur die Messwerte; FITgap zeigt sie hier an. Teilen oder Löschen ist hier nicht möglich." = "Dieses Workout stammt aus Apple Health. Health speichert keine FIT-Datei, nur die Messwerte; FITgap zeigt sie hier an. Teilen oder Löschen ist hier nicht möglich.";
+
+"Skilanglauf" = "Skilanglauf";
+"Krafttraining" = "Krafttraining";
+"1 Tag" = "1 Tag";
+
+"Paddeln" = "Paddeln";
+"Ski alpin & Snowboard" = "Ski alpin & Snowboard";
+"Yoga" = "Yoga";
+"Fitnessgeräte" = "Fitnessgeräte";

@@ -76,3 +76,13 @@ private func entry(_ id: String, _ start: Date, minutes: Double, km: Double?, ca
     #expect(StatsForecast.make(total: 1, now: range.end, year: 2026, calendar: utc) == nil)
     #expect(StatsForecast.make(total: 2_000_000, now: half, year: 2026, target: 1_500_000, calendar: utc)?.perWeek == nil)
 }
+
+@Test func fitSportsMapToStatisticsGroups() {
+    #expect(StatsCategory(fitSport: 12) == .crossCountrySkiing)
+    #expect(StatsCategory(fitSport: 10, subSport: 20) == .strength)
+    #expect(StatsCategory(fitSport: 10) == .other)
+    #expect(StatsCategory(fitSport: 2, subSport: 6) == .cycling)
+    #expect(StatsCategory(fitSport: 4, subSport: 14) == .rowing && StatsCategory(fitSport: 4) == .fitnessEquipment)
+    #expect(StatsCategory(fitSport: 41) == .paddling && StatsCategory(fitSport: 14) == .alpineSkiing)
+    #expect(StatsCategory(fitSport: 10, subSport: 43) == .yoga && StatsCategory(fitSport: 21) == .cycling)
+}

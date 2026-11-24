@@ -2,18 +2,27 @@ import Foundation
 
 /// Sport groups of the year statistics; FIT and Apple Health types map onto the same groups.
 public enum StatsCategory: String, CaseIterable, Codable, Sendable, Identifiable {
-    case cycling, running, swimming, walking, hiking, rowing, other
+    case cycling, running, swimming, walking, hiking, rowing, paddling, crossCountrySkiing, alpineSkiing
+    case strength, yoga, fitnessEquipment, other
     public var id: String { rawValue }
 
-    /// FIT `sport` enum values (Garmin FIT Global Profile).
-    public init(fitSport sport: Int?) {
+    /// FIT `sport` and `sub_sport` enum values (Garmin FIT Global Profile). Training (10) counts as strength training
+    /// or yoga only with that sub sport; fitness equipment (4) on an indoor rower counts as rowing.
+    public init(fitSport sport: Int?, subSport: Int? = nil) {
         switch sport {
-        case 2: self = .cycling
+        case 2, 21: self = .cycling                       // cycling, e-biking
         case 1: self = .running
         case 5: self = .swimming
         case 11: self = .walking
-        case 17: self = .hiking
+        case 17, 16: self = .hiking                       // hiking, mountaineering
         case 15: self = .rowing
+        case 4 where subSport == 14: self = .rowing       // indoor rowing
+        case 4: self = .fitnessEquipment
+        case 19, 37, 41, 42: self = .paddling             // paddling, stand-up paddling, kayaking, rafting
+        case 12: self = .crossCountrySkiing
+        case 13, 14: self = .alpineSkiing                 // alpine skiing, snowboarding
+        case 10 where subSport == 20: self = .strength
+        case 10 where subSport == 43: self = .yoga
         default: self = .other
         }
     }
@@ -53,7 +62,7 @@ public struct StatsEntry: Sendable, Equatable, Identifiable {
         guard let metrics = record.metrics, let date = record.date else { return nil }
         let elapsed = metrics.elapsedSeconds ?? metrics.timerSeconds ?? record.duration ?? 0
         self.init(origin: .fitgap(record.key), interval: DateInterval(start: date, duration: max(0, elapsed)),
-                  category: StatsCategory(fitSport: metrics.sport),
+                  category: StatsCategory(fitSport: metrics.sport, subSport: metrics.subSport),
                   indoor: metrics.subSport == 6 || metrics.subSport == 58,
                   duration: metrics.timerSeconds ?? record.duration ?? elapsed,
                   distanceMeters: metrics.distanceMeters, ascentMeters: metrics.ascentMeters,

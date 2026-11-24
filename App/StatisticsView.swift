@@ -22,6 +22,12 @@ extension StatsCategory {
         case .walking: String(localized: "Gehen")
         case .hiking: String(localized: "Wandern")
         case .rowing: String(localized: "Rudern")
+        case .crossCountrySkiing: String(localized: "Skilanglauf")
+        case .strength: String(localized: "Krafttraining")
+        case .paddling: String(localized: "Paddeln")
+        case .alpineSkiing: String(localized: "Ski alpin & Snowboard")
+        case .yoga: String(localized: "Yoga")
+        case .fitnessEquipment: String(localized: "Fitnessgeräte")
         case .other: String(localized: "Sonstige")
         }
     }
@@ -34,6 +40,12 @@ extension StatsCategory {
         case .walking: "figure.walk"
         case .hiking: "figure.hiking"
         case .rowing: "figure.rower"
+        case .crossCountrySkiing: "figure.skiing.crosscountry"
+        case .strength: "figure.strengthtraining.traditional"
+        case .paddling: "oar.2.crossed"
+        case .alpineSkiing: "figure.skiing.downhill"
+        case .yoga: "figure.yoga"
+        case .fitnessEquipment: "figure.elliptical"
         case .other: "figure.mixed.cardio"
         }
     }
@@ -46,6 +58,12 @@ extension StatsCategory {
         case .walking: .yellow
         case .hiking: .brown
         case .rowing: .indigo
+        case .crossCountrySkiing: .mint
+        case .strength: .pink
+        case .paddling: .blue
+        case .alpineSkiing: .teal
+        case .yoga: .purple
+        case .fitnessEquipment: .red
         case .other: .gray
         }
     }

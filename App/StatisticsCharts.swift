@@ -31,8 +31,7 @@ struct StatisticsDetail: View {
         List {
             Section("Überblick") {
                 // Two even columns sized by the container, so the tiles stay readable side by side and stacked.
-                LazyVGrid(columns: [GridItem(.flexible(), alignment: .topLeading), GridItem(.flexible(), alignment: .topLeading)],
-                          alignment: .leading, spacing: 14) {
+                LazyVGrid(columns: Self.tileColumns, alignment: .leading, spacing: 14) {
                     tile(.distance, current, previous)
                     tile(.duration, current, previous)
                     tile(.ascent, current, previous)
@@ -88,7 +87,10 @@ struct StatisticsDetail: View {
                 }
                 if scope == .all, !categories.isEmpty {
                     Section {
-                        ForEach(categories) { category in categoryRow(category) }
+                        LazyVGrid(columns: Self.tileColumns, alignment: .leading, spacing: 14) {
+                            ForEach(categories) { category in categoryTile(category) }
+                        }
+                        .padding(.vertical, 6)
                     } header: {
                         Text("Nach Sportart")
                     } footer: {
@@ -104,23 +106,26 @@ struct StatisticsDetail: View {
                 }
                 let years = allYears
                 Section {
-                    record(String(localized: "Längste Strecke"), current.best(.distance),
-                           overall(years, { $0.best(.distance) }, by: { $0.distanceMeters ?? 0 })) {
-                        StatsMetric.distance.formatted($0.distanceMeters ?? 0)
+                    LazyVGrid(columns: Self.tileColumns, alignment: .leading, spacing: 14) {
+                        record(String(localized: "Längste Strecke"), StatsMetric.distance.symbol, current.best(.distance),
+                               overall(years, { $0.best(.distance) }, by: { $0.distanceMeters ?? 0 })) {
+                            StatsMetric.distance.formatted($0.distanceMeters ?? 0)
+                        }
+                        record(String(localized: "Längste Dauer"), StatsMetric.duration.symbol, current.best(.duration),
+                               overall(years, { $0.best(.duration) }, by: \.duration)) {
+                            StatsMetric.duration.formatted($0.duration)
+                        }
+                        record(String(localized: "Meiste Höhenmeter"), StatsMetric.ascent.symbol, current.best(.ascent),
+                               overall(years, { $0.best(.ascent) }, by: { $0.ascentMeters ?? 0 })) {
+                            StatsMetric.ascent.formatted($0.ascentMeters ?? 0)
+                        }
+                        record(String(localized: "Höchster Schnitt"), "speedometer", current.fastest,
+                               overall(years, \.fastest, by: { ($0.distanceMeters ?? 0) / max($0.duration, 1) })) {
+                            ActivityFormat.speed(($0.distanceMeters ?? 0) / max($0.duration, 1)) ?? ""
+                        }
+                        streak(current.longestStreak, overall: years.map(\.longestStreak).max() ?? 0)
                     }
-                    record(String(localized: "Längste Dauer"), current.best(.duration),
-                           overall(years, { $0.best(.duration) }, by: \.duration)) {
-                        StatsMetric.duration.formatted($0.duration)
-                    }
-                    record(String(localized: "Meiste Höhenmeter"), current.best(.ascent),
-                           overall(years, { $0.best(.ascent) }, by: { $0.ascentMeters ?? 0 })) {
-                        StatsMetric.ascent.formatted($0.ascentMeters ?? 0)
-                    }
-                    record(String(localized: "Höchster Schnitt"), current.fastest,
-                           overall(years, \.fastest, by: { ($0.distanceMeters ?? 0) / max($0.duration, 1) })) {
-                        ActivityFormat.speed(($0.distanceMeters ?? 0) / max($0.duration, 1)) ?? ""
-                    }
-                    streak(current.longestStreak, overall: years.map(\.longestStreak).max() ?? 0)
+                    .padding(.vertical, 6)
                 } header: {
                     Text("Bestwerte")
                 } footer: {
@@ -187,6 +192,8 @@ struct StatisticsDetail: View {
             Label(title, systemImage: symbol)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
             Text(value)
                 .font(.title3.weight(.semibold))
                 .monospacedDigit()
@@ -214,30 +221,33 @@ struct StatisticsDetail: View {
         .accessibilityIdentifier("stats-filter")
     }
 
-    /// One sport group with its total and the change to the comparison year; tapping filters to it.
-    private func categoryRow(_ category: StatsCategory) -> some View {
+    /// Two even columns sized by the container, shared by the overview, sport and record tiles.
+    private static let tileColumns = [GridItem(.flexible(), alignment: .topLeading), GridItem(.flexible(), alignment: .topLeading)]
+
+    /// One sport group with its total, activity count and change to the comparison year; tapping filters to it.
+    private func categoryTile(_ category: StatsCategory) -> some View {
         let value = period.summary(stats.entries, categories: [category])
         let before = period.comparisonSummary(stats.entries, categories: [category])
         return Button {
             selection = .category(category)
         } label: {
-            LabeledContent {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(metric.formatted(value.total(metric))).monospacedDigit().contentTransition(.numericText())
-                    if let before { ChangeText(value: value.total(metric), previous: before.total(metric), year: before.year) }
-                }
-            } label: {
-                Label {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(category.title)
-                        Text("\(value.count) Aktivitäten").font(.caption).foregroundStyle(.secondary)
-                    }
-                } icon: {
-                    Image(systemName: category.symbol).foregroundStyle(category.color)
-                }
+            VStack(alignment: .leading, spacing: 3) {
+                Label { Text(category.title) } icon: { Image(systemName: category.symbol).foregroundStyle(category.color) }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(metric.formatted(value.total(metric)))
+                    .font(.title3.weight(.semibold))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Text("\(value.count) Aktivitäten").font(.caption).foregroundStyle(.secondary)
+                if let before { ChangeText(value: value.total(metric), previous: before.total(metric), year: before.year) }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(.rect)
         }
-        .tint(.primary)
+        .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
         .accessibilityHint("Zeigt nur diese Sportart")
     }
@@ -275,43 +285,52 @@ struct StatisticsDetail: View {
         if isShownYear {
             Label("Bestwert aller Jahre", systemImage: "star.fill")
                 .labelStyle(.titleAndIcon).font(.caption).foregroundStyle(.orange)
+                .lineLimit(1).minimumScaleFactor(0.8)
         } else {
             Text(String(localized: "Gesamt: \(text)")).font(.caption).foregroundStyle(.secondary)
+                .lineLimit(1).minimumScaleFactor(0.8)
         }
     }
 
+    private static func days(_ count: Int) -> String {
+        count == 1 ? String(localized: "1 Tag") : String(localized: "\(count) Tage")
+    }
+
     private func streak(_ days: Int, overall: Int) -> some View {
-        LabeledContent {
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(String(localized: "\(days) Tage")).monospacedDigit()
-                if overall > 0 { overallLine(String(localized: "\(overall) Tage"), isShownYear: days == overall) }
-            }
-        } label: {
-            Text("Längste Serie")
+        VStack(alignment: .leading, spacing: 3) {
+            Label("Längste Serie", systemImage: "calendar").font(.caption).foregroundStyle(.secondary)
+            Text(Self.days(days)).font(.title3.weight(.semibold)).monospacedDigit()
+            if overall > 0 { overallLine(Self.days(overall), isShownYear: days == overall) }
         }
         .accessibilityElement(children: .combine)
     }
 
+    /// The shown year's record with its activity, and the record of all years; opens the activity when it is in FITgap.
     @ViewBuilder
-    private func record(_ title: String, _ best: StatsEntry?, _ overall: StatsEntry?, value: @escaping (StatsEntry) -> String) -> some View {
+    private func record(_ title: String, _ symbol: String, _ best: StatsEntry?, _ overall: StatsEntry?,
+                        value: @escaping (StatsEntry) -> String) -> some View {
         if let best {
-            let content = LabeledContent {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(value(best)).monospacedDigit()
-                    if let overall {
-                        let year = Calendar.current.component(.year, from: overall.date)
-                        overallLine("\(value(overall)) (\(String(year)))", isShownYear: overall == best || value(overall) == value(best))
-                    }
-                }
-            } label: {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                    Text(recordSubtitle(best)).font(.caption).foregroundStyle(.secondary)
+            let key: ActivityKey? = if case .fitgap(let key) = best.origin, model.activities.contains(where: { $0.key == key }) {
+                key
+            } else {
+                nil
+            }
+            let content = VStack(alignment: .leading, spacing: 3) {
+                Label(title, systemImage: symbol).font(.caption).foregroundStyle(.secondary)
+                    .lineLimit(1).minimumScaleFactor(0.8)
+                Text(value(best)).font(.title3.weight(.semibold)).monospacedDigit()
+                    .lineLimit(1).minimumScaleFactor(0.7)
+                Text(recordSubtitle(best)).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                if let overall {
+                    let year = Calendar.current.component(.year, from: overall.date)
+                    overallLine("\(value(overall)) (\(String(year)))", isShownYear: overall == best || value(overall) == value(best))
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(.rect)
             .accessibilityElement(children: .combine)
-            if case .fitgap(let key) = best.origin, model.activities.contains(where: { $0.key == key }) {
-                NavigationLink(value: key) { content }
+            if let key {
+                NavigationLink(value: key) { content }.buttonStyle(.plain)
             } else {
                 content
             }
