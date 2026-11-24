@@ -48,7 +48,7 @@ struct AccountsView: View {
                         if model.isDemo {
                             Text("Demo: Die Beispielfahrten werden als synthetische Trainings in Apple Health gesichert und beim Zurücksetzen oder Beenden der Demo dort wieder entfernt. Automatisches Sichern ist in der Demo pausiert.")
                         } else {
-                            Text("FITgap schreibt Trainings nach Apple Health und liest dort nur Trainings, um Duplikate zu erkennen. Überschneidet sich ein vorhandenes Training (z. B. von Apple Watch, HealthFit oder der Anbieter-App) zeitlich mit einer Aktivität, wird sie übersprungen. Automatisch gesichert werden beim App-Start und nach jedem Abgleich alle Aktivitäten, die nach dem Einschalten beginnen oder geladen werden; ältere sicherst du über „Alle vergangenen Aktivitäten sichern“, in den Details oder per Auswahl.")
+                            Text("FITgap schreibt Trainings nach Apple Health und liest dort Trainings und Messwerte, um Duplikate zu erkennen, die Statistik zu zeigen und Trainings anderer Apps anzuzeigen. Überschneidet sich ein vorhandenes Training (z. B. von Apple Watch, HealthFit oder der Anbieter-App) zeitlich mit einer Aktivität, wird sie übersprungen. Automatisch gesichert werden beim App-Start und nach jedem Abgleich alle Aktivitäten, die nach dem Einschalten beginnen oder geladen werden; ältere sicherst du über „Alle vergangenen Aktivitäten sichern“, in den Details oder per Auswahl.")
                         }
                     }
                 }
@@ -78,6 +78,7 @@ struct AccountsView: View {
                     }
                     .accessibilityIdentifier("map-appearance")
                 }
+                AccessSection(healthAvailable: model.healthAvailable)
                 Section("Datenschutz") {
                     Link(destination: URL(string: String(localized: "https://florianwildt.github.io/fitgap/privacy/"))!) {
                         Text("Datenschutzerklärung")
