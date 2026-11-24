@@ -183,7 +183,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2710;
+				LastUpgradeCheck = 2720;
 				TargetAttributes = {
 					A00000000000000000000010 = {
 						CreatedOnToolsVersion = 27.1;
@@ -398,8 +398,8 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "FITgap reads workouts, distances, active energy and steps from every app in Apple Health to show your year statistics and to check whether an activity is already in Apple Health, so it is never saved twice.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "FITgap shows the photos you took during an activity in its details and on the route map. Photos stay on your device.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FITgap saves your downloaded activities as workouts in Apple Health, including heart rate, power, cadence, speed, distance, energy, laps, pauses and route.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "FITgap shows the photos you took during an activity in its details and on the route map. Photos stay on your device.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				MARKETING_VERSION = 0.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = org.fitgap.app;
@@ -430,8 +430,8 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "FITgap reads workouts, distances, active energy and steps from every app in Apple Health to show your year statistics and to check whether an activity is already in Apple Health, so it is never saved twice.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "FITgap shows the photos you took during an activity in its details and on the route map. Photos stay on your device.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FITgap saves your downloaded activities as workouts in Apple Health, including heart rate, power, cadence, speed, distance, energy, laps, pauses and route.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "FITgap shows the photos you took during an activity in its details and on the route map. Photos stay on your device.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				MARKETING_VERSION = 0.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = org.fitgap.app;
