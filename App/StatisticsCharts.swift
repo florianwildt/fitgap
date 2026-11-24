@@ -28,13 +28,6 @@ struct StatisticsDetail: View {
     var body: some View {
         let current = current, previous = previous, others = others
         List {
-            Section {
-                Picker("Kennzahl", selection: $metric) {
-                    ForEach(StatsMetric.allCases) { Text($0.shortTitle).tag($0).accessibilityLabel($0.title) }
-                }
-                .pickerStyle(.segmented)
-                .accessibilityIdentifier("stats-metric")
-            }
             Section("Überblick") {
                 total(StatsMetric.distance.title, .distance, current, previous)
                 total(StatsMetric.duration.title, .duration, current, previous)
@@ -51,6 +44,12 @@ struct StatisticsDetail: View {
                 }
             } else {
                 Section {
+                    // The metric only changes the charts, so it sits right above them.
+                    Picker("Kennzahl", selection: $metric) {
+                        ForEach(StatsMetric.allCases) { Text($0.shortTitle).tag($0).accessibilityLabel($0.title) }
+                    }
+                    .pickerStyle(.segmented)
+                    .accessibilityIdentifier("stats-metric")
                     YearCurveChart(current: current, others: others, period: period, metric: metric, progress: grown ? 1 : 0)
                 } header: {
                     Text("Jahresverlauf")
@@ -59,9 +58,6 @@ struct StatisticsDetail: View {
                 }
                 Section("Monate") {
                     MonthChart(current: current, others: others, metric: metric, progress: grown ? 1 : 0)
-                }
-                Section("Wochen") {
-                    WeekChart(current: current, metric: metric, progress: grown ? 1 : 0)
                 }
                 if scope == .all, current.byCategory(metric).count > 1 {
                     Section("Sportarten") {
@@ -84,21 +80,29 @@ struct StatisticsDetail: View {
                 } footer: {
                     Text("Je dunkler ein Tag, desto länger war die Trainingszeit.")
                 }
-                Section("Bestwerte") {
-                    record(String(localized: "Längste Strecke"), current.best(.distance), previous?.best(.distance)) {
+                let years = allYears
+                Section {
+                    record(String(localized: "Längste Strecke"), current.best(.distance),
+                           overall(years, { $0.best(.distance) }, by: { $0.distanceMeters ?? 0 })) {
                         StatsMetric.distance.formatted($0.distanceMeters ?? 0)
                     }
-                    record(String(localized: "Längste Dauer"), current.best(.duration), previous?.best(.duration)) {
+                    record(String(localized: "Längste Dauer"), current.best(.duration),
+                           overall(years, { $0.best(.duration) }, by: \.duration)) {
                         StatsMetric.duration.formatted($0.duration)
                     }
-                    record(String(localized: "Meiste Höhenmeter"), current.best(.ascent), previous?.best(.ascent)) {
+                    record(String(localized: "Meiste Höhenmeter"), current.best(.ascent),
+                           overall(years, { $0.best(.ascent) }, by: { $0.ascentMeters ?? 0 })) {
                         StatsMetric.ascent.formatted($0.ascentMeters ?? 0)
                     }
-                    record(String(localized: "Höchster Schnitt"), current.fastest, previous?.fastest) {
+                    record(String(localized: "Höchster Schnitt"), current.fastest,
+                           overall(years, \.fastest, by: { ($0.distanceMeters ?? 0) / max($0.duration, 1) })) {
                         ActivityFormat.speed(($0.distanceMeters ?? 0) / max($0.duration, 1)) ?? ""
                     }
-                    kpi(String(localized: "Längste Serie"), Double(current.longestStreak), previous.map { Double($0.longestStreak) },
-                        year: previous?.year) { String(localized: "\(Int($0)) Tage") }
+                    streak(current.longestStreak, overall: years.map(\.longestStreak).max() ?? 0)
+                } header: {
+                    Text("Bestwerte")
+                } footer: {
+                    Text("Groß der Bestwert \(String(period.year)), darunter der Bestwert aller Jahre.")
                 }
             }
             if scope == .all, let everyday = stats.everyday[period.year] {
@@ -201,14 +205,48 @@ struct StatisticsDetail: View {
         .accessibilityElement(children: .combine)
     }
 
+    /// Every year with activity in the selected sport groups, for the records of all years.
+    private var allYears: [YearSummary] {
+        stats.years.map { YearSummary(year: $0, entries: stats.entries, categories: scope.categories) }
+    }
+
+    private func overall(_ years: [YearSummary], _ best: (YearSummary) -> StatsEntry?,
+                         by value: (StatsEntry) -> Double) -> StatsEntry? {
+        years.compactMap(best).max { value($0) < value($1) }
+    }
+
+    /// The record of all years below the shown year's; a star when the shown year holds it.
     @ViewBuilder
-    private func record(_ title: String, _ best: StatsEntry?, _ previous: StatsEntry?, value: @escaping (StatsEntry) -> String) -> some View {
+    private func overallLine(_ text: String, isShownYear: Bool) -> some View {
+        if isShownYear {
+            Label("Bestwert aller Jahre", systemImage: "star.fill")
+                .labelStyle(.titleAndIcon).font(.caption).foregroundStyle(.orange)
+        } else {
+            Text(String(localized: "Gesamt: \(text)")).font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    private func streak(_ days: Int, overall: Int) -> some View {
+        LabeledContent {
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(String(localized: "\(days) Tage")).monospacedDigit()
+                if overall > 0 { overallLine(String(localized: "\(overall) Tage"), isShownYear: days == overall) }
+            }
+        } label: {
+            Text("Längste Serie")
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private func record(_ title: String, _ best: StatsEntry?, _ overall: StatsEntry?, value: @escaping (StatsEntry) -> String) -> some View {
         if let best {
             let content = LabeledContent {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(value(best)).monospacedDigit()
-                    if let previous, let year = period.comparison {
-                        Text(verbatim: "\(String(year)): \(value(previous))").font(.caption).foregroundStyle(.secondary)
+                    if let overall {
+                        let year = Calendar.current.component(.year, from: overall.date)
+                        overallLine("\(value(overall)) (\(String(year)))", isShownYear: overall == best || value(overall) == value(best))
                     }
                 }
             } label: {
@@ -283,9 +321,41 @@ private struct YearCurveChart: View {
         return curve(current) + others.flatMap(curve)
     }
 
+    /// The shown year's total so far and the difference to the comparison year at the same point.
+    @ViewBuilder
+    private func difference(_ points: [Point]) -> some View {
+        let currentSeries = String(current.year)
+        if let last = points.last(where: { $0.series == currentSeries }) {
+            let unit = metric.unit.isEmpty ? "" : " \(metric.unit)"
+            VStack(alignment: .leading, spacing: 2) {
+                Text(verbatim: "\(last.value.formatted(.number.precision(.fractionLength(0...1))))\(unit)")
+                    .font(.title3.weight(.semibold)).monospacedDigit()
+                    .contentTransition(.numericText())
+                if let other = others.first,
+                   let before = points.last(where: { $0.series == String(other.year) && $0.date <= last.date })?.value {
+                    let delta = last.value - before
+                    let sign = delta >= 0 ? "+" : "−"
+                    let amount = "\(sign)\(abs(delta).formatted(.number.precision(.fractionLength(0...1))))\(unit)"
+                    Label {
+                        Text(String(localized: "\(amount) ggü. \(String(other.year))"))
+                    } icon: {
+                        Image(systemName: delta >= 0 ? "arrow.up.right" : "arrow.down.right")
+                    }
+                    .labelStyle(.titleAndIcon)
+                    .font(.subheadline)
+                    .foregroundStyle(delta >= 0 ? Color.green : Color.red)
+                }
+            }
+            .accessibilityElement(children: .combine)
+        }
+    }
+
     var body: some View {
         let points = points
         let currentSeries = String(current.year)
+        difference(points)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 8)
         Chart {
             ForEach(points) { point in
                 LineMark(x: .value("Datum", point.date), y: .value(metric.title, point.value * progress),
@@ -320,17 +390,39 @@ private struct YearCurveChart: View {
 
     private func callout(_ date: Date, _ points: [Point]) -> some View {
         let series = [String(current.year)] + others.map { String($0.year) }
-        return VStack(alignment: .leading, spacing: 2) {
+        let colors = yearColors(others.count)
+        return VStack(alignment: .leading, spacing: 3) {
             Text(date.formatted(.dateTime.day().month(.abbreviated))).font(.caption.weight(.semibold))
-            ForEach(series, id: \.self) { name in
+            ForEach(Array(series.enumerated()), id: \.element) { index, name in
                 if let value = points.last(where: { $0.series == name && $0.date <= date })?.value {
-                    Text(verbatim: "\(name): \(value.formatted(.number.precision(.fractionLength(0...1)))) \(metric.unit)")
-                        .font(.caption).monospacedDigit()
+                    CalloutLine(color: colors[index],
+                                text: "\(name): \(value.formatted(.number.precision(.fractionLength(0...1)))) \(metric.unit)")
                 }
             }
         }
-        .padding(6)
-        .background(.regularMaterial, in: .rect(cornerRadius: 8))
+        .statsCallout()
+    }
+}
+
+extension View {
+    /// Opaque, outlined background, so the callout stands out from the lines and bars behind it.
+    func statsCallout() -> some View {
+        padding(8)
+            .background(Color(uiColor: .tertiarySystemGroupedBackground), in: .rect(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.separator))
+            .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
+    }
+}
+
+/// One year's value in a callout with the year's chart colour.
+private struct CalloutLine: View {
+    let color: Color
+    let text: String
+    var body: some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 8, height: 8)
+            Text(verbatim: text).font(.caption).monospacedDigit()
+        }
     }
 }
 
@@ -363,12 +455,31 @@ private struct MonthChart: View {
 
     var body: some View {
         let bars = bars
-        Chart(bars) { bar in
-            BarMark(x: .value("Monat", bar.month, unit: .month), y: .value(metric.title, bar.value * progress))
-                .foregroundStyle(by: .value("Jahr", bar.series))
-                .position(by: .value("Jahr", bar.series))
-                .cornerRadius(3)
-                .opacity(selected == nil || Calendar.current.isDate(bar.month, equalTo: selected!, toGranularity: .month) ? 1 : 0.4)
+        let colors = yearColors(others.count)
+        Chart {
+            ForEach(bars) { bar in
+                BarMark(x: .value("Monat", bar.month, unit: .month), y: .value(metric.title, bar.value * progress))
+                    .foregroundStyle(by: .value("Jahr", bar.series))
+                    .position(by: .value("Jahr", bar.series))
+                    .cornerRadius(3)
+                    .opacity(selected == nil || Calendar.current.isDate(bar.month, equalTo: selected!, toGranularity: .month) ? 1 : 0.4)
+            }
+            if let selected, let month = Calendar.current.dateInterval(of: .month, for: selected)?.start {
+                // Invisible line over the month, carrying the callout above its bars.
+                RuleMark(x: .value("Monat", month, unit: .month))
+                    .foregroundStyle(.clear)
+                    .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))) {
+                        let shown = bars.filter { Calendar.current.isDate($0.month, equalTo: month, toGranularity: .month) }
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(month.formatted(.dateTime.month(.wide))).font(.caption.weight(.semibold))
+                            ForEach(Array(shown.enumerated()), id: \.element.id) { index, bar in
+                                CalloutLine(color: colors[min(index, colors.count - 1)],
+                                            text: "\(bar.series): \(bar.value.formatted(.number.precision(.fractionLength(0...1)))) \(metric.unit)")
+                            }
+                        }
+                        .statsCallout()
+                    }
+            }
         }
         .chartForegroundStyleScale(domain: [String(current.year)] + others.map { String($0.year) },
                                    range: yearColors(others.count))
@@ -381,60 +492,7 @@ private struct MonthChart: View {
         .chartXSelection(value: $selected)
         .frame(height: 200)
         .padding(.vertical, 8)
-        .overlay(alignment: .topLeading) {
-            if let selected {
-                let month = bars.filter { Calendar.current.isDate($0.month, equalTo: selected, toGranularity: .month) }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(selected.formatted(.dateTime.month(.wide))).font(.caption.weight(.semibold))
-                    ForEach(month) { bar in
-                        Text(verbatim: "\(bar.series): \(bar.value.formatted(.number.precision(.fractionLength(0...1)))) \(metric.unit)")
-                            .font(.caption).monospacedDigit()
-                    }
-                }
-                .padding(6)
-                .background(.regularMaterial, in: .rect(cornerRadius: 8))
-            }
-        }
         .accessibilityLabel(Text("Monate \(metric.title)"))
-    }
-}
-
-/// Totals per calendar week with the weekly average.
-private struct WeekChart: View {
-    let current: YearSummary
-    let metric: StatsMetric
-    let progress: Double
-
-    var body: some View {
-        let weeks = current.weekly(metric).map { (week: $0.key, value: metric.plotted($0.value)) }.sorted { $0.week < $1.week }
-        let range = YearSummary.range(current.year, calendar: current.calendar)
-        let active = weeks.filter { $0.value > 0 }
-        let average = active.isEmpty ? 0 : active.reduce(0) { $0 + $1.value } / Double(active.count)
-        Chart {
-            ForEach(weeks, id: \.week) { week in
-                BarMark(x: .value("Woche", week.week, unit: .weekOfYear), y: .value(metric.title, week.value * progress))
-                    .foregroundStyle(Color.accentColor.gradient)
-            }
-            if average > 0 {
-                RuleMark(y: .value("Durchschnitt", average * progress))
-                    .foregroundStyle(.secondary)
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                    .annotation(position: .top, alignment: .trailing) {
-                        Text(verbatim: "Ø \(average.formatted(.number.precision(.fractionLength(0...1)))) \(metric.unit)")
-                            .font(.caption2).foregroundStyle(.secondary)
-                    }
-            }
-        }
-        .chartXScale(domain: range.start...range.end)
-        .chartXAxis {
-            AxisMarks(values: .stride(by: .month)) { _ in
-                AxisValueLabel(format: .dateTime.month(.narrow), centered: true)
-            }
-        }
-        .chartYAxisLabel(metric.unit)
-        .frame(height: 160)
-        .padding(.vertical, 8)
-        .accessibilityLabel(Text("Wochen \(metric.title)"))
     }
 }
 

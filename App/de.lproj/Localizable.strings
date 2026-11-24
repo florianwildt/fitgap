@@ -240,7 +240,6 @@
 "Für diesen Zeitraum gibt es keine Aktivitäten." = "Für diesen Zeitraum gibt es keine Aktivitäten.";
 "Jahresverlauf" = "Jahresverlauf";
 "Monate" = "Monate";
-"Wochen" = "Wochen";
 "Aktivitätskalender" = "Aktivitätskalender";
 "Je dunkler ein Tag, desto länger war die Trainingszeit." = "Je dunkler ein Tag, desto länger war die Trainingszeit.";
 "Bestwerte" = "Bestwerte";
@@ -262,7 +261,6 @@
 "Datum" = "Datum";
 "Monat" = "Monat";
 "Woche" = "Woche";
-"Durchschnitt" = "Durchschnitt";
 "Tag" = "Tag";
 "Fotos dieser Aktivität anzeigen" = "Fotos dieser Aktivität anzeigen";
 "FITgap hat keinen Zugriff auf deine Fotos." = "FITgap hat keinen Zugriff auf deine Fotos.";
@@ -292,3 +290,7 @@
 
 
 "Schließen" = "Schließen";
+
+"Bestwert aller Jahre" = "Bestwert aller Jahre";
+"Gesamt: %@" = "Gesamt: %@";
+"Groß der Bestwert %@, darunter der Bestwert aller Jahre." = "Groß der Bestwert %@, darunter der Bestwert aller Jahre.";

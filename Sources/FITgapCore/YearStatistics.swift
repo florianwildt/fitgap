@@ -170,16 +170,6 @@ public struct YearSummary: Sendable, Equatable {
         }
     }
 
-    /// Totals per week, keyed by the start of the week in the calendar's week convention.
-    public func weekly(_ metric: StatsMetric) -> [Date: Double] {
-        var result: [Date: Double] = [:]
-        for entry in entries {
-            guard let week = calendar.dateInterval(of: .weekOfYear, for: entry.date)?.start else { continue }
-            result[week, default: 0] += metric.value(entry)
-        }
-        return result
-    }
-
     public func byCategory(_ metric: StatsMetric) -> [(category: StatsCategory, value: Double)] {
         var result: [StatsCategory: Double] = [:]
         for entry in entries { result[entry.category, default: 0] += metric.value(entry) }

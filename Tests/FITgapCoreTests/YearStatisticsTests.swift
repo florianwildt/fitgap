@@ -40,8 +40,6 @@ private func entry(_ id: String, _ start: Date, minutes: Double, km: Double?, ca
     #expect(year.cumulative(.distance).last?.value == 110_000)
     #expect(year.best(.distance)?.origin == entries[1].origin)
     #expect(year.longestStreak == 2 && year.missing(.ascent) == 2)
-    // The Gregorian test calendar starts weeks on Sunday, so Saturday 3 and Sunday 4 January fall into two weeks.
-    #expect(year.weekly(.distance).values.sorted() == [10_000, 30_000, 70_000])
     #expect(YearSummary(year: 2026, entries: entries, categories: [.running], calendar: utc).count == 1)
     #expect(YearSummary.change(110, from: 100)! > 0.099 && YearSummary.change(1, from: 0) == nil)
 }
