@@ -43,6 +43,8 @@ struct ActivitiesView: View {
     @State private var sharedSelection = false
     @State private var healthDetails = false
     @State private var importing = false
+    @StateObject private var healthWorkouts = HealthWorkoutsModel()
+    @State private var selectedHealth: UUID?
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var columns = NavigationSplitViewVisibility.all
 
@@ -56,15 +58,41 @@ struct ActivitiesView: View {
         }
     }
 
-    /// Sources that appear in the list, in the order the accounts are listed.
-    private var listedSources: [Source] {
-        let present = Set(model.visibleActivities.map(\.source))
-        return Source.allCases.filter(present.contains)
+    /// Health workouts of other apps that no FITgap activity covers; the demo shows its own activities only.
+    private var otherWorkouts: [HealthWorkout] {
+        model.isDemo ? [] : healthWorkouts.uncovered(by: model.activities)
     }
 
-    /// Activity types read from downloaded FITs; files not yet downloaded have no type yet.
+    private var healthMatches: [HealthWorkout] {
+        otherWorkouts.filter { workout in
+            filter.matches(workout, now: .now)
+                && (search.isEmpty || workout.name.localizedStandardContains(search) || workout.sourceName.localizedStandardContains(search))
+        }
+    }
+
+    /// FITgap activities in their list order with the Health workouts placed by start date, newest first.
+    private var items: [ListItem] {
+        var health = healthMatches[...]
+        var result: [ListItem] = []
+        for activity in matches {
+            if let date = activity.date {
+                while let next = health.first, next.date > date { result.append(.health(next)); health.removeFirst() }
+            }
+            result.append(.activity(activity))
+        }
+        result.append(contentsOf: health.map(ListItem.health))
+        return result
+    }
+
+    /// Sources that appear in the list, in the order the accounts are listed, then Apple Health.
+    private var listedOrigins: [ActivityOrigin] {
+        let present = Set(model.visibleActivities.map(\.source))
+        return Source.allCases.filter(present.contains).map(ActivityOrigin.source) + (otherWorkouts.isEmpty ? [] : [.health])
+    }
+
+    /// Activity types read from downloaded FITs and Health workouts; files not yet downloaded have no type yet.
     private var listedKinds: [ActivityKind] {
-        let present = Set(model.visibleActivities.compactMap { ActivityKind($0.metrics) })
+        let present = Set(model.visibleActivities.compactMap { ActivityKind($0.metrics) } + otherWorkouts.compactMap(\.kind))
         return ActivityKind.allCases.filter(present.contains)
     }
 
@@ -75,9 +103,23 @@ struct ActivitiesView: View {
     private var pickable: [ActivityRecord] { matches.filter { $0.status == .available } }
 
     /// Outside selection mode the list keeps its single selection that drives the details column.
-    private var listSelection: Binding<Set<ActivityKey>> {
-        Binding(get: { selecting ? picked : Set([selected].compactMap { $0 }) },
-                set: { if selecting { picked = $0 } else { selected = $0.first } })
+    /// Health workouts have no file, so only activities can be picked for sharing.
+    private var listSelection: Binding<Set<ListRow>> {
+        Binding(get: {
+            if selecting { return Set(picked.map(ListRow.activity)) }
+            if let selected { return [.activity(selected)] }
+            return Set([selectedHealth].compactMap { $0 }.map(ListRow.health))
+        }, set: { rows in
+            if selecting {
+                picked = Set(rows.compactMap { if case .activity(let key) = $0 { key } else { nil } })
+            } else {
+                switch rows.first {
+                case .activity(let key): selected = key; selectedHealth = nil
+                case .health(let id): selected = nil; selectedHealth = id
+                case nil: selected = nil; selectedHealth = nil
+                }
+            }
+        })
     }
 
     var body: some View {
@@ -87,12 +129,13 @@ struct ActivitiesView: View {
             ScrollViewReader { proxy in
             List(selection: listSelection) {
                 DemoSection(model: model)
-                if model.activities.isEmpty {
+                let all = items
+                if model.activities.isEmpty && otherWorkouts.isEmpty {
                     Section {
                         ContentUnavailableView("Noch keine Aktivitäten", systemImage: "figure.outdoor.cycle",
                             description: Text("Verbinde unter „Konten“ eine Datenquelle und ziehe die Liste nach unten – oder importiere eine FIT-Datei."))
                     }
-                } else if matches.isEmpty {
+                } else if all.isEmpty {
                     if filter.isActive, search.isEmpty {
                         ContentUnavailableView {
                             Label("Keine passenden Aktivitäten", systemImage: "line.3.horizontal.decrease.circle")
@@ -103,22 +146,26 @@ struct ActivitiesView: View {
                         }
                     } else { ContentUnavailableView.search(text: search) }
                 }
-                let all = matches
                 let visible = Array(all.prefix(limit))
-                ForEach(Array(visible.enumerated()), id: \.element.id) { index, activity in
+                ForEach(Array(visible.enumerated()), id: \.element.id) { index, item in
                     // Each activity is its own inset card, like workouts in HealthFit or Fitness.
                     Section {
+                    switch item {
+                    case .health(let workout):
+                        HealthWorkoutRow(workout: workout)
+                            .tag(ListRow.health(workout.id))
+                            .accessibilityIdentifier("health-workout-\(workout.id.uuidString)")
+                            .selectionDisabled(selecting)
+                            .onAppear { appeared(index, item.id, visible: visible, total: all.count) }
+                    case .activity(let activity):
                         // Row buttons stay borderless and keep their own taps; the rest of the row opens the details.
                         ActivityRow(activity: activity, library: model.library, urgent: index < 3, connected: model.isDemo || model.connected.contains(activity.source), busy: model.busy || model.switchingMode,
                                     share: { prepareShare(activity) }, download: { model.download(activity) })
                         // The tag drives the list selection that opens the details; unlike a NavigationLink it shows no chevron.
-                        .tag(activity.key)
+                        .tag(ListRow.activity(activity.key))
                         .accessibilityIdentifier("activity-\(activity.source.rawValue)-\(activity.remoteID)")
                         .selectionDisabled(selecting && activity.status != .available)
-                        .onAppear {
-                            if index >= Self.jumpThreshold { showJump = true } else if index == 0 { showJump = false }
-                            if activity.id == visible.last?.id, visible.count < all.count { limit += Self.pageSize }
-                        }
+                        .onAppear { appeared(index, item.id, visible: visible, total: all.count) }
                         .swipeActions(edge: .leading) {
                             if model.healthAvailable && activity.status == .available && activity.health == nil {
                                 Button("In Health sichern", systemImage: "heart") { model.exportToHealth([activity]) }
@@ -135,6 +182,7 @@ struct ActivitiesView: View {
                             }
                         }
                     }
+                    }
                 }
                 Section {
                 } footer: {
@@ -144,7 +192,7 @@ struct ActivitiesView: View {
                 }
             }
             .overlay(alignment: .bottomTrailing) {
-                if showJump, let first = matches.first {
+                if showJump, let first = items.first {
                     Button {
                         withAnimation { proxy.scrollTo(first.id, anchor: .top) }
                     } label: {
@@ -162,7 +210,13 @@ struct ActivitiesView: View {
             .animation(.default, value: showJump)
             .transaction(value: search) { $0.animation = nil }
             .transaction(value: filter) { $0.animation = nil }
-            .refreshable { await model.refreshAndWait() }
+            .refreshable {
+                await model.refreshAndWait()
+                await healthWorkouts.load(enabled: !model.isDemo)
+            }
+            .task(id: model.isDemo) { await healthWorkouts.load(enabled: !model.isDemo) }
+            // Saving to Health from FITgap may decide access for the first time; read the other apps' workouts then.
+            .onChange(of: model.busy) { _, busy in if !busy { Task { await healthWorkouts.load(enabled: !model.isDemo) } } }
             .environment(\.editMode, $editMode)
             .navigationTitle(selecting ? String(localized: "\(picked.count) ausgewählt") : "FITgap")            .modifier(ChromeToolbar(show: !wide) { accounts = true })
             .toolbar {
@@ -204,7 +258,7 @@ struct ActivitiesView: View {
                         }
                     }
                 } else {
-                    if !model.visibleActivities.isEmpty {
+                    if !model.visibleActivities.isEmpty || !otherWorkouts.isEmpty {
                         ToolbarItem(placement: .primaryAction) { filterMenu }
                     }
                     ToolbarItem(placement: .primaryAction) { importButton }
@@ -223,7 +277,7 @@ struct ActivitiesView: View {
             .animation(.default, value: model.busy)
             .onChange(of: search) { _, _ in limit = Self.pageSize; showJump = false }
             .onChange(of: filter) { _, _ in limit = Self.pageSize; showJump = false }
-            .onChange(of: model.libraryGeneration) { _, _ in search = ""; filter = ActivityFilter(); limit = Self.pageSize; deleteCandidate = nil; share = nil; selected = nil; endSelection() }
+            .onChange(of: model.libraryGeneration) { _, _ in search = ""; filter = ActivityFilter(); limit = Self.pageSize; deleteCandidate = nil; share = nil; selected = nil; selectedHealth = nil; endSelection() }
             .sheet(isPresented: $accounts) { AccountsView(model: model) }
             .fileImporter(isPresented: $importing, allowedContentTypes: [.fit], allowsMultipleSelection: true) { result in
                 switch result {
@@ -243,6 +297,8 @@ struct ActivitiesView: View {
             Group {
             if let selected, let activity = model.activities.first(where: { $0.key == selected }) {
                 ActivityDetailView(model: model, initial: activity)
+            } else if let selectedHealth, let workout = otherWorkouts.first(where: { $0.id == selectedHealth }) {
+                HealthWorkoutDetailView(workout: workout)
             } else {
                 ContentUnavailableView("Aktivität auswählen", systemImage: "figure.outdoor.cycle",
                     description: Text("Wähle links eine Aktivität, um ihre Details zu sehen."))
@@ -288,10 +344,10 @@ struct ActivitiesView: View {
                 }
                 .pickerStyle(.menu)
             }
-            if listedSources.count > 1 || filter.source != nil {
-                Picker("Datenquelle", systemImage: "tray.full", selection: $filter.source) {
-                    Text("Alle Quellen").tag(Source?.none)
-                    ForEach(listedSources) { source in Text(source.title).tag(Optional(source)) }
+            if listedOrigins.count > 1 || filter.origin != nil {
+                Picker("Datenquelle", systemImage: "tray.full", selection: $filter.origin) {
+                    Text("Alle Quellen").tag(ActivityOrigin?.none)
+                    ForEach(listedOrigins) { origin in Text(origin.title).tag(Optional(origin)) }
                 }
                 .pickerStyle(.menu)
             }
@@ -321,9 +377,15 @@ struct ActivitiesView: View {
 
     /// Filter, import and selection in one menu, for the narrow sidebar column.
     @ViewBuilder private var listActions: some View {
-        if !model.visibleActivities.isEmpty { filterMenu }
+        if !model.visibleActivities.isEmpty || !otherWorkouts.isEmpty { filterMenu }
         importButton
         selectButton
+    }
+
+    /// Shows the jump button past the first rows and loads the next page at the last visible row.
+    private func appeared(_ index: Int, _ id: ListRow, visible: [ListItem], total: Int) {
+        if index >= Self.jumpThreshold { showJump = true } else if index == 0 { showJump = false }
+        if id == visible.last?.id, visible.count < total { limit += Self.pageSize }
     }
 
     private func prepareShare(_ activity: ActivityRecord) {
@@ -499,21 +561,58 @@ struct ActivityFilter: Equatable {
 
     var period: Period?
     var kind: ActivityKind?
-    var source: Source?
+    var origin: ActivityOrigin?
 
-    var isActive: Bool { period != nil || kind != nil || source != nil }
+    var isActive: Bool { period != nil || kind != nil || origin != nil }
 
     /// Activities without a date or a readable type drop out once that criterion is set.
     func matches(_ activity: ActivityRecord, now: Date) -> Bool {
-        if let source, activity.source != source { return false }
+        if let origin, origin != .source(activity.source) { return false }
         if let kind, ActivityKind(activity.metrics) != kind { return false }
         if let period { guard let date = activity.date, period.contains(date, now: now) else { return false } }
         return true
     }
 
+    func matches(_ workout: HealthWorkout, now: Date) -> Bool {
+        if let origin, origin != .health { return false }
+        if let kind, workout.kind != kind { return false }
+        if let period, !period.contains(workout.date, now: now) { return false }
+        return true
+    }
+
     var summary: String {
-        let parts = [period?.title, kind?.title, source?.title].compactMap { $0 }
+        let parts = [period?.title, kind?.title, origin?.title].compactMap { $0 }
         return parts.isEmpty ? String(localized: "Kein Filter") : parts.formatted(.list(type: .and, width: .narrow))
+    }
+}
+
+/// Where a list entry comes from: a FITgap data source or a workout another app saved in Apple Health.
+enum ActivityOrigin: Hashable, Identifiable {
+    case source(Source)
+    case health
+    var id: Self { self }
+    var title: String {
+        switch self {
+        case .source(let source): source.title
+        case .health: String(localized: "Apple Health")
+        }
+    }
+}
+
+/// Identity of a list row, for the selection and scrolling.
+enum ListRow: Hashable {
+    case activity(ActivityKey)
+    case health(UUID)
+}
+
+private enum ListItem: Identifiable {
+    case activity(ActivityRecord)
+    case health(HealthWorkout)
+    var id: ListRow {
+        switch self {
+        case .activity(let record): .activity(record.key)
+        case .health(let workout): .health(workout.id)
+        }
     }
 }
 
