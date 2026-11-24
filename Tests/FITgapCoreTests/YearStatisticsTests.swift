@@ -62,3 +62,17 @@ private func entry(_ id: String, _ start: Date, minutes: Double, km: Double?, ca
     let groups = TrackPlacement.groups([(50.0, 8.0), (50.0001, 8.0), (51.0, 9.0)], meters: 100) { ($0.0, $0.1) }
     #expect(groups.map(\.count) == [2, 1])
 }
+
+@Test func forecastProjectsThePaceToTheYearEnd() throws {
+    let range = YearSummary.range(2026, calendar: utc)
+    let half = range.start.addingTimeInterval(range.duration / 2)
+    let forecast = try #require(StatsForecast.make(total: 1_000_000, now: half, year: 2026, target: 1_500_000, calendar: utc))
+    #expect(abs(forecast.yearEnd - 2_000_000) < 1)
+    // At this pace 1,500 km are reached three quarters into the year.
+    #expect(abs(forecast.reached!.timeIntervalSince(range.start) - range.duration * 0.75) < 1)
+    #expect(forecast.perWeek! > 0)
+    let short = try #require(StatsForecast.make(total: 100_000, now: half, year: 2026, target: 1_500_000, calendar: utc))
+    #expect(short.reached == nil && short.yearEnd < 1_500_000)
+    #expect(StatsForecast.make(total: 1, now: range.end, year: 2026, calendar: utc) == nil)
+    #expect(StatsForecast.make(total: 2_000_000, now: half, year: 2026, target: 1_500_000, calendar: utc)?.perWeek == nil)
+}

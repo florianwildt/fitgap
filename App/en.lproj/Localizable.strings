@@ -294,3 +294,23 @@
 "Bestwert aller Jahre" = "Best of All Years";
 "Gesamt: %@" = "Overall: %@";
 "Groß der Bestwert %@, darunter der Bestwert aller Jahre." = "Large: the best of %@; below: the best of all years.";
+
+"Ziele %@" = "Goals %@";
+"Ziel hinzufügen" = "Add Goal";
+"Löschen" = "Delete";
+"Ziel erreicht" = "Goal reached";
+"Prognose: erreicht am %@" = "Forecast: reached on %@";
+"Prognose: %@ bis Jahresende" = "Forecast: %@ by year end";
+"Noch %@, etwa %@ pro Woche" = "%@ to go, about %@ per week";
+"Nicht erreicht" = "Not reached";
+"Wert" = "Value";
+"Das Ziel gilt für %@. Die Prognose rechnet das bisherige Tempo bis zum Jahresende hoch." = "The goal applies to %@. The forecast projects the pace so far to the end of the year.";
+"Ziel löschen" = "Delete Goal";
+"Neues Ziel" = "New Goal";
+"%@ von %@" = "%@ of %@";
+"Ziel %@" = "Goal %@";
+"Bearbeitet das Ziel" = "Edits the goal";
+"Workout" = "Workout";
+"Aus Apple Health" = "From Apple Health";
+"App" = "App";
+"Dieses Workout stammt aus Apple Health. Es hat keine FIT-Datei in FITgap und lässt sich hier weder teilen noch löschen." = "This workout comes from Apple Health. It has no FIT file in FITgap and can’t be shared or deleted here.";

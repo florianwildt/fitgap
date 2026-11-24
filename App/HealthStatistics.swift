@@ -118,6 +118,8 @@ final class StatisticsModel: ObservableObject {
     /// FITgap activities whose FIT is not read yet and therefore not counted.
     @Published private(set) var unread = 0
     @Published private(set) var everyday: [Int: HealthStatisticsReader.Everyday] = [:]
+    /// Year goals, kept on this device.
+    @Published private(set) var goals: [StatsGoal] = StatisticsModel.loadGoals()
 
     private var fitgap: [StatsEntry] = []
     private var health: [StatsEntry] = []
@@ -176,6 +178,27 @@ final class StatisticsModel: ObservableObject {
             everyday[year] = await reader.everyday(range)
         }
         merge()
+    }
+
+    func save(_ goal: StatsGoal) {
+        if let index = goals.firstIndex(where: { $0.id == goal.id }) { goals[index] = goal } else { goals.append(goal) }
+        storeGoals()
+    }
+
+    func delete(_ goal: StatsGoal) {
+        goals.removeAll { $0.id == goal.id }
+        storeGoals()
+    }
+
+    private static let goalsKey = "statsGoals"
+
+    private static func loadGoals() -> [StatsGoal] {
+        guard let data = UserDefaults.standard.data(forKey: goalsKey) else { return [] }
+        return (try? JSONDecoder().decode([StatsGoal].self, from: data)) ?? []
+    }
+
+    private func storeGoals() {
+        if let data = try? JSONEncoder().encode(goals) { UserDefaults.standard.set(data, forKey: Self.goalsKey) }
     }
 
     private func merge() {

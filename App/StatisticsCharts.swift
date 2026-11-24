@@ -13,6 +13,7 @@ struct StatisticsDetail: View {
     let period: StatsPeriod
     @Binding var metric: StatsMetric
     @State private var grown = false
+    @State private var editing: GoalEditing?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var current: YearSummary { period.summary(stats.entries, categories: scope.categories) }
@@ -29,13 +30,33 @@ struct StatisticsDetail: View {
         let current = current, previous = previous, others = others
         List {
             Section("Überblick") {
-                total(StatsMetric.distance.title, .distance, current, previous)
-                total(StatsMetric.duration.title, .duration, current, previous)
-                total(StatsMetric.ascent.title, .ascent, current, previous)
-                total(StatsMetric.count.title, .count, current, previous)
-                kpi(String(localized: "Aktive Tage"), Double(current.activeDays), previous.map { Double($0.activeDays) },
-                    year: previous?.year) { ActivityFormat.integer($0) }
-                total(StatsMetric.energy.title, .energy, current, previous)
+                // Two even columns sized by the container, so the tiles stay readable side by side and stacked.
+                LazyVGrid(columns: [GridItem(.flexible(), alignment: .topLeading), GridItem(.flexible(), alignment: .topLeading)],
+                          alignment: .leading, spacing: 14) {
+                    tile(.distance, current, previous)
+                    tile(.duration, current, previous)
+                    tile(.ascent, current, previous)
+                    tile(.count, current, previous)
+                    tile(title: String(localized: "Aktive Tage"), symbol: "calendar", value: ActivityFormat.integer(Double(current.activeDays)),
+                         raw: Double(current.activeDays), previous: previous.map { Double($0.activeDays) }, year: previous?.year)
+                    tile(.energy, current, previous)
+                }
+                .padding(.vertical, 6)
+            }
+            Section {
+                ForEach(shownGoals) { goal in
+                    GoalRow(goal: goal, entries: stats.entries) { editing = GoalEditing(goal: goal, isNew: false) }
+                        .swipeActions {
+                            Button("Löschen", systemImage: "trash", role: .destructive) { stats.delete(goal) }
+                        }
+                }
+                Button("Ziel hinzufügen", systemImage: "plus.circle") {
+                    editing = GoalEditing(goal: StatsGoal(year: period.year, category: scope.categories?.first, metric: metric,
+                                                          target: 0), isNew: true)
+                }
+                .accessibilityIdentifier("goal-add")
+            } header: {
+                Text("Ziele \(String(period.year))")
             }
             if current.count == 0 && (previous?.count ?? 0) == 0 && others.allSatisfy({ $0.count == 0 }) {
                 Section {
@@ -50,7 +71,8 @@ struct StatisticsDetail: View {
                     }
                     .pickerStyle(.segmented)
                     .accessibilityIdentifier("stats-metric")
-                    YearCurveChart(current: current, others: others, period: period, metric: metric, progress: grown ? 1 : 0)
+                    YearCurveChart(current: current, others: others, period: period, metric: metric, goal: chartGoal,
+                                   progress: grown ? 1 : 0)
                 } header: {
                     Text("Jahresverlauf")
                 } footer: {
@@ -128,10 +150,52 @@ struct StatisticsDetail: View {
         .navigationTitle(scopeTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .primaryAction) { filterMenu } }
+        .sheet(item: $editing) { item in
+            GoalEditor(goal: item.goal, isNew: item.isNew, save: stats.save, delete: stats.delete)
+        }
         .onAppear {
             guard !grown else { return }
             if reduceMotion { grown = true } else { withAnimation(.smooth(duration: 0.9)) { grown = true } }
         }
+    }
+
+    private struct GoalEditing: Identifiable {
+        let goal: StatsGoal
+        let isNew: Bool
+        var id: UUID { goal.id }
+    }
+
+    /// Goals of the shown year: all of them for every sport, otherwise those of the filtered sport.
+    private var shownGoals: [StatsGoal] {
+        stats.goals.filter { $0.year == period.year && (scope == .all || $0.category == scope.categories?.first) }
+    }
+
+    /// The goal drawn in the year curve: same sport selection and metric.
+    private var chartGoal: StatsGoal? {
+        stats.goals.first { $0.year == period.year && $0.category == scope.categories?.first && $0.statsMetric == metric }
+    }
+
+    @ViewBuilder
+    private func tile(_ metric: StatsMetric, _ current: YearSummary, _ previous: YearSummary?) -> some View {
+        let empty = current.count > 0 && current.missing(metric) == current.count
+        tile(title: metric.title, symbol: metric.symbol, value: empty ? "–" : metric.formatted(current.total(metric)),
+             raw: current.total(metric), previous: empty ? nil : previous?.total(metric), year: previous?.year)
+    }
+
+    private func tile(title: String, symbol: String, value: String, raw: Double, previous: Double?, year: Int?) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Label(title, systemImage: symbol)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.title3.weight(.semibold))
+                .monospacedDigit()
+                .contentTransition(.numericText())
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            if let previous, let year { ChangeText(value: raw, previous: previous, year: year) }
+        }
+        .accessibilityElement(children: .combine)
     }
 
     /// Filters every number and chart to one sport group; the same choice as in the sidebar.
@@ -181,16 +245,6 @@ struct StatisticsDetail: View {
     private var scopeTitle: String {
         if case .category(let category) = scope { return "\(category.title) \(period.year)" }
         return String(localized: "Statistik \(String(period.year))")
-    }
-
-    /// A total no counted activity has a value for shows a dash instead of zero, e.g. energy of files without calories.
-    @ViewBuilder
-    private func total(_ title: String, _ metric: StatsMetric, _ current: YearSummary, _ previous: YearSummary?) -> some View {
-        if current.count > 0, current.missing(metric) == current.count {
-            LabeledContent(title, value: "–")
-        } else {
-            kpi(title, current.total(metric), previous?.total(metric), year: previous?.year, format: metric.formatted)
-        }
     }
 
     private func kpi(_ title: String, _ value: Double, _ previous: Double?, year: Int?, format: @escaping (Double) -> String) -> some View {
@@ -292,8 +346,19 @@ private struct YearCurveChart: View {
     let others: [YearSummary]
     let period: StatsPeriod
     let metric: StatsMetric
+    let goal: StatsGoal?
     let progress: Double
     @State private var selected: Date?
+
+    /// Straight line from today to the year end at the pace so far; only while the shown year runs.
+    private func projection(_ points: [Point]) -> [(date: Date, value: Double)] {
+        let range = YearSummary.range(current.year, calendar: current.calendar)
+        guard let last = points.last(where: { $0.series == String(current.year) }),
+              let forecast = StatsForecast.make(total: current.total(metric), now: .now, year: current.year,
+                                                calendar: current.calendar),
+              let end = current.calendar.date(byAdding: .day, value: -1, to: range.end) else { return [] }
+        return [(last.date, last.value), (end, metric.plotted(forecast.yearEnd))]
+    }
 
     private struct Point: Identifiable {
         let series: String
@@ -363,7 +428,21 @@ private struct YearCurveChart: View {
                     .foregroundStyle(by: .value("Jahr", point.series))
                     .lineStyle(StrokeStyle(lineWidth: point.series == currentSeries ? 3 : 2,
                                            dash: point.series == currentSeries ? [] : [5, 4]))
-                    .interpolationMethod(.monotone)
+                    .interpolationMethod(.stepEnd)
+            }
+            ForEach(projection(points), id: \.date) { point in
+                LineMark(x: .value("Datum", point.date), y: .value(metric.title, point.value * progress),
+                         series: .value("Prognose", "Prognose"))
+                    .foregroundStyle(Color.accentColor.opacity(0.5))
+                    .lineStyle(StrokeStyle(lineWidth: 2, dash: [2, 4]))
+            }
+            if let goal {
+                RuleMark(y: .value("Ziel", metric.plotted(goal.target) * progress))
+                    .foregroundStyle(.orange)
+                    .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [6, 3]))
+                    .annotation(position: .top, alignment: .leading) {
+                        Text("Ziel \(metric.formatted(goal.target))").font(.caption2.weight(.semibold)).foregroundStyle(.orange)
+                    }
             }
             if let selected {
                 RuleMark(x: .value("Datum", selected))

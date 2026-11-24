@@ -205,6 +205,52 @@ public struct YearSummary: Sendable, Equatable {
     }
 }
 
+/// A year goal for one metric, for every sport or one sport group.
+public struct StatsGoal: Codable, Sendable, Equatable, Identifiable {
+    public var id: UUID
+    public var year: Int
+    /// nil counts every sport.
+    public var category: StatsCategory?
+    public var metric: String
+    /// In the metric's base unit: metres, seconds, count or kcal.
+    public var target: Double
+
+    public init(id: UUID = UUID(), year: Int, category: StatsCategory?, metric: StatsMetric, target: Double) {
+        self.id = id; self.year = year; self.category = category; self.metric = metric.rawValue; self.target = target
+    }
+
+    public var statsMetric: StatsMetric { StatsMetric(rawValue: metric) ?? .distance }
+}
+
+/// Where the year ends at the pace so far, and when a target is reached at that pace.
+public struct StatsForecast: Sendable, Equatable {
+    /// Total at the end of the year.
+    public let yearEnd: Double
+    /// Day the target is reached; nil when it is already reached, out of reach this year or there is no target.
+    public let reached: Date?
+    /// Still needed per remaining week to reach the target; nil when reached or without target.
+    public let perWeek: Double?
+
+    /// Only for a running year: before or after it there is nothing to project.
+    public static func make(total: Double, now: Date, year: Int, target: Double? = nil,
+                            calendar: Calendar = .current) -> StatsForecast? {
+        let range = YearSummary.range(year, calendar: calendar)
+        let elapsed = now.timeIntervalSince(range.start)
+        guard elapsed > 0, now < range.end else { return nil }
+        let pace = total / elapsed
+        var reached: Date?
+        var perWeek: Double?
+        if let target, total < target {
+            if pace > 0 {
+                let date = range.start.addingTimeInterval(target / pace)
+                if date <= range.end { reached = date }
+            }
+            perWeek = (target - total) / max(range.end.timeIntervalSince(now) / (7 * 86_400), 1.0 / 7)
+        }
+        return StatsForecast(yearEnd: pace * range.duration, reached: reached, perWeek: perWeek)
+    }
+}
+
 /// A position along the recorded track at a given time, for placing photos without their own location.
 public enum TrackPlacement {
     public struct Point: Sendable, Equatable {
