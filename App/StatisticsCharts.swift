@@ -234,7 +234,7 @@ private struct YearCurveChart: View {
             if let selected {
                 RuleMark(x: .value("Datum", selected))
                     .foregroundStyle(.secondary.opacity(0.5))
-                    .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
+                    .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))) {
                         callout(selected, points)
                     }
             }
