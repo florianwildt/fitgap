@@ -267,7 +267,7 @@ struct PhotoSection: View {
     @ObservedObject var photos: ActivityPhotos
     let reload: () -> Void
     /// Thumbnail size, growing with the text size.
-    @ScaledMetric(relativeTo: .body) private var side: CGFloat = 128
+    @ScaledMetric(relativeTo: .body) private var side: CGFloat = 180
 
     /// With access the section only appears once photos were found, so activities without photos show nothing.
     private var hidden: Bool { photos.hasAccess && photos.items.isEmpty }
