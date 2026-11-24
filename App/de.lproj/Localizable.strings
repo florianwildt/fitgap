@@ -329,7 +329,6 @@
 "App-Version" = "App-Version";
 "Messwerte werden aus Apple Health gelesen …" = "Messwerte werden aus Apple Health gelesen …";
 "Für Herzfrequenz, Leistung, Trittfrequenz, Tempo und Route braucht FITgap Lesezugriff auf diese Werte in Apple Health." = "Für Herzfrequenz, Leistung, Trittfrequenz, Tempo und Route braucht FITgap Lesezugriff auf diese Werte in Apple Health.";
-"Dieses Workout stammt aus Apple Health. Health speichert keine FIT-Datei, nur die Messwerte; FITgap zeigt sie hier an. Teilen oder Löschen ist hier nicht möglich." = "Dieses Workout stammt aus Apple Health. Health speichert keine FIT-Datei, nur die Messwerte; FITgap zeigt sie hier an. Teilen oder Löschen ist hier nicht möglich.";
 
 "Skilanglauf" = "Skilanglauf";
 "Krafttraining" = "Krafttraining";
@@ -339,3 +338,6 @@
 "Ski alpin & Snowboard" = "Ski alpin & Snowboard";
 "Yoga" = "Yoga";
 "Fitnessgeräte" = "Fitnessgeräte";
+"Als FIT teilen" = "Als FIT teilen";
+"Health speichert keine FIT-Datei, nur die Messwerte. „Als FIT teilen“ erzeugt daraus eine FIT mit allen Messreihen, Route, Runden und Pausen, z. B. für Strava oder intervals.icu." = "Health speichert keine FIT-Datei, nur die Messwerte. „Als FIT teilen“ erzeugt daraus eine FIT mit allen Messreihen, Route, Runden und Pausen, z. B. für Strava oder intervals.icu.";
+"Die FIT-Datei konnte nicht erzeugt werden. %@" = "Die FIT-Datei konnte nicht erzeugt werden. %@";

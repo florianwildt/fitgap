@@ -63,3 +63,46 @@ private func fit(_ body: [UInt8]) -> Data {
     // Without recorded distance the speed follows the straight line: 0.011° latitude in 11 s ≈ 111 m/s.
     #expect(abs((thinned[1].speed ?? 0) - 111.2) < 0.5)
 }
+
+@Test func fitWriterRoundTripsThroughTheReaders() throws {
+    let start = Date(timeIntervalSince1970: 1_700_000_000)
+    var export = FITExport(start: start, end: start.addingTimeInterval(600), sport: 2, subSport: 0)
+    export.timerSeconds = 540
+    export.distanceMeters = 5_000
+    export.energyKilocalories = 150
+    export.ascentMeters = 42
+    export.averageHeartRate = 141; export.maximumHeartRate = 172
+    export.averagePower = 210; export.maximumPower = 480
+    export.averageSpeed = 9.26
+    export.productName = "Fahrrad-App ü"
+    export.pauses = [DateInterval(start: start.addingTimeInterval(300), duration: 60)]
+    export.laps = [DateInterval(start: start, duration: 300), DateInterval(start: start.addingTimeInterval(300), duration: 300)]
+    export.records = (0...600).map { second in
+        var record = FITActivity.Record(at: start.addingTimeInterval(Double(second)))
+        record.latitude = 50 + Double(second) / 100_000; record.longitude = -8.5
+        record.altitudeMeters = 100 + Double(second) / 10
+        record.heartRate = second % 2 == 0 ? 140 : nil
+        record.power = 200; record.cadence = 90
+        record.distanceMeters = Double(second) * 8.3
+        record.speed = 8.3
+        return record
+    }
+    let data = FITWriter.encode(export)
+    #expect(OriginalFITStore.isComplete(data))
+    // The CRC over the whole file including its trailing CRC is zero.
+    #expect(FITWriter.crc(Array(data)) == 0)
+
+    let activity = try FITActivity.read(data)
+    #expect(activity.records.count == 601)
+    #expect(abs(activity.records[10].latitude! - 50.0001) < 0.000_001)
+    #expect(activity.records[1].heartRate == nil && activity.records[2].heartRate == 140)
+    #expect(abs(activity.records[600].altitudeMeters! - 160) < 0.2)
+    #expect(activity.laps.count == 2)
+    #expect(activity.timerEvents.map(\.running) == [true, false, true, false])
+    #expect(activity.device.productName == "Fahrrad-App ü")
+
+    let metrics = try #require(FITMetrics.read(data))
+    #expect(metrics.sport == 2 && metrics.timerSeconds == 540 && metrics.elapsedSeconds == 600)
+    #expect(metrics.distanceMeters == 5_000 && metrics.ascentMeters == 42 && metrics.averagePowerWatts == 210)
+    #expect(metrics.averageSpeedMetersPerSecond == 9.26 && metrics.maximumAltitudeMeters == 160)
+}

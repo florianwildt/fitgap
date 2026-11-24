@@ -242,6 +242,137 @@ struct HealthWorkoutReader: Sendable {
         return locations
     }
 
+    /// Writes the workout as an activity FIT into a temporary folder: every sample Health keeps for it, one record per second
+    /// that has a value, the route, laps and pauses. Values are not interpolated; totals come from Health.
+    func fit(_ item: HealthWorkout, details: HealthWorkoutDetails?) async throws -> URL {
+        let query = HKSampleQueryDescriptor(predicates: [.workout(HKQuery.predicateForObject(with: item.id))], sortDescriptors: [], limit: 1)
+        guard let workout = try await query.result(for: store).first else { throw CocoaError(.fileNoSuchFile) }
+        let (sport, subSport) = Self.fitSport(workout)
+        var export = FITExport(start: workout.startDate, end: workout.endDate, sport: sport, subSport: subSport)
+        export.timerSeconds = workout.duration
+        export.distanceMeters = item.distanceMeters
+        export.energyKilocalories = item.energyKilocalories
+        export.ascentMeters = item.ascentMeters
+        export.averageHeartRate = details?.heartRate.average; export.maximumHeartRate = details?.heartRate.maximum
+        export.averageCadence = details?.cadence.average; export.maximumCadence = details?.cadence.maximum
+        export.averagePower = details?.power.average; export.maximumPower = details?.power.maximum
+        export.averageSpeed = details?.speed.average ?? item.distanceMeters.flatMap { workout.duration > 0 ? $0 / workout.duration : nil }
+        export.maximumSpeed = details?.speed.maximum
+        export.cycles = details?.strokes ?? details?.steps
+        export.poolLengthMeters = details?.lapLength
+        export.productName = item.sourceName
+
+        var records: [Int: FITActivity.Record] = [:]
+        func set(_ date: Date, _ update: (inout FITActivity.Record) -> Void) {
+            let second = Int(date.timeIntervalSince1970.rounded(.down))
+            var record = records[second] ?? FITActivity.Record(at: Date(timeIntervalSince1970: Double(second)))
+            update(&record)
+            records[second] = record
+        }
+        let perMinute = HKUnit.count().unitDivided(by: .minute()), perSecond = HKUnit.meter().unitDivided(by: .second())
+        let cycling = [.cycling, .handCycling].contains(workout.workoutActivityType)
+        for (value, date) in try await series(.heartRate, perMinute, workout) { set(date) { $0.heartRate = value } }
+        for (value, date) in try await series(.respiratoryRate, perMinute, workout) { set(date) { $0.respirationRate = value } }
+        for (value, date) in try await series(cycling ? .cyclingPower : .runningPower, .watt(), workout) { set(date) { $0.power = value } }
+        if cycling { for (value, date) in try await series(.cyclingCadence, perMinute, workout) { set(date) { $0.cadence = value } } }
+        for (value, date) in try await series(cycling ? .cyclingSpeed : .runningSpeed, perSecond, workout) { set(date) { $0.speed = value } }
+        if let type = Self.distanceType(workout.workoutActivityType) {
+            // Health stores distance in pieces; the FIT keeps the running total at the end of each piece.
+            var total = 0.0
+            for (value, date) in try await series(type, .meter(), workout, atEnd: true, oneSource: true) {
+                total += value
+                set(date) { $0.distanceMeters = total }
+            }
+        }
+        for location in await route(workout) {
+            set(location.timestamp) { record in
+                record.latitude = location.coordinate.latitude; record.longitude = location.coordinate.longitude
+                if location.verticalAccuracy >= 0 { record.altitudeMeters = location.altitude }
+                if record.speed == nil, location.speed >= 0 { record.speed = location.speed }
+            }
+        }
+        export.records = records.values.sorted { $0.date < $1.date }
+
+        let events = (workout.workoutEvents ?? []).sorted { $0.dateInterval.start < $1.dateInterval.start }
+        export.laps = events.filter { $0.type == .lap }.map(\.dateInterval)
+        var pausedAt: Date?
+        for event in events {
+            switch event.type {
+            case .pause, .motionPaused: pausedAt = pausedAt ?? event.dateInterval.start
+            case .resume, .motionResumed:
+                if let start = pausedAt, event.dateInterval.start > start { export.pauses.append(DateInterval(start: start, end: event.dateInterval.start)) }
+                pausedAt = nil
+            default: break
+            }
+        }
+
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("HealthFIT", isDirectory: true)
+        try? FileManager.default.removeItem(at: folder)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let stamp = workout.startDate.formatted(.verbatim("\(year: .defaultDigits)-\(month: .twoDigits)-\(day: .twoDigits) \(hour: .twoDigits(clock: .twentyFourHour, hourCycle: .zeroBased))\(minute: .twoDigits)",
+                                                          timeZone: .current, calendar: Calendar(identifier: .gregorian)))
+        let name = "\(item.name) \(item.sourceName) \(stamp)".components(separatedBy: CharacterSet(charactersIn: "/:\\?%*|\"<>")).joined(separator: "-")
+        let url = folder.appendingPathComponent(name).appendingPathExtension("fit")
+        try FITWriter.encode(export).write(to: url, options: .atomic)
+        return url
+    }
+
+    /// Every value of a type during the workout, from the samples the app attached to it, else from all sources.
+    /// `oneSource` keeps only the source with the most samples, so distance from iPhone and Watch is not added twice.
+    private func series(_ identifier: HKQuantityTypeIdentifier, _ unit: HKUnit, _ workout: HKWorkout,
+                        atEnd: Bool = false, oneSource: Bool = false) async throws -> [(Double, Date)] {
+        let type = HKQuantityType(identifier)
+        let interval = HKQuery.predicateForSamples(withStart: workout.startDate, end: workout.endDate, options: .strictStartDate)
+        let attached = NSCompoundPredicate(andPredicateWithSubpredicates: [interval, HKQuery.predicateForObjects(from: workout)])
+        for predicate in [attached, interval] {
+            var values: [(Double, Date, String)] = []
+            for try await result in HKQuantitySeriesSampleQueryDescriptor(predicate: .quantitySample(type: type, predicate: predicate))
+                .results(for: store) {
+                try Task.checkCancellation()
+                values.append((result.quantity.doubleValue(for: unit), atEnd ? result.dateInterval.end : result.dateInterval.start,
+                               result.sample?.sourceRevision.source.bundleIdentifier ?? ""))
+            }
+            guard !values.isEmpty else { continue }
+            if oneSource {
+                let counts = Dictionary(grouping: values, by: \.2).mapValues(\.count)
+                if let main = counts.max(by: { $0.value < $1.value })?.key { values = values.filter { $0.2 == main } }
+            }
+            return values.sorted { $0.1 < $1.1 }.map { ($0.0, $0.1) }
+        }
+        return []
+    }
+
+    private static func distanceType(_ type: HKWorkoutActivityType) -> HKQuantityTypeIdentifier? {
+        switch type {
+        case .cycling, .handCycling: .distanceCycling
+        case .running, .walking, .hiking: .distanceWalkingRunning
+        case .swimming: .distanceSwimming
+        case .rowing: if #available(iOS 18, *) { .distanceRowing } else { nil }
+        default: nil
+        }
+    }
+
+    /// FIT `sport` and `sub_sport` (Garmin FIT Global Profile); unlisted types are generic.
+    private static func fitSport(_ workout: HKWorkout) -> (Int, Int) {
+        let indoor = workout.metadata?[HKMetadataKeyIndoorWorkout] as? Bool ?? false
+        switch workout.workoutActivityType {
+        case .cycling, .handCycling: return (2, indoor ? 6 : 0)
+        case .running: return (1, indoor ? 1 : 0)
+        case .walking: return (11, indoor ? 27 : 0)
+        case .hiking: return (17, 0)
+        case .swimming:
+            let location = (workout.metadata?[HKMetadataKeySwimmingLocationType] as? NSNumber)?.intValue
+            return (5, location == HKWorkoutSwimmingLocationType.openWater.rawValue ? 18 : 17)
+        case .rowing: return (15, indoor ? 14 : 0)
+        case .elliptical: return (4, 15)
+        case .stairClimbing: return (4, 16)
+        case .traditionalStrengthTraining, .functionalStrengthTraining: return (10, 20)
+        case .yoga: return (10, 43)
+        case .crossTraining, .highIntensityIntervalTraining, .coreTraining, .mixedCardio: return (10, 0)
+        default: return (0, 0)
+        }
+    }
+
     /// At most 2000 positions for the map, first and last kept, with the speed since the previous one.
     private static func thinned(_ locations: [CLLocation], limit: Int = 2000) -> [FITActivity.Coordinate] {
         let picked = locations.count > limit
@@ -270,6 +401,9 @@ struct HealthWorkoutDetailView: View {
     @StateObject private var photos = ActivityPhotos()
     @State private var photosReload = 0
     private let reader = HealthWorkoutReader()
+    @State private var exporting = false
+    @State private var shared: SharedFIT?
+    @State private var exportError: String?
 
     var body: some View {
         List {
@@ -322,12 +456,22 @@ struct HealthWorkoutDetailView: View {
                         .accessibilityIdentifier("health-workout-access")
                 }
                 row("App-Version", details?.appVersion)
+                Button {
+                    Task { await exportFIT() }
+                } label: {
+                    HStack {
+                        Label("Als FIT teilen", systemImage: "square.and.arrow.up")
+                        if exporting { Spacer(); ProgressView() }
+                    }
+                }
+                .disabled(exporting || !read)
+                .accessibilityIdentifier("health-workout-share-fit")
             } header: {
                 Text("Apple Health")
             } footer: {
                 Text(needsAccess
                      ? "Für Herzfrequenz, Leistung, Trittfrequenz, Tempo und Route braucht FITgap Lesezugriff auf diese Werte in Apple Health."
-                     : "Dieses Workout stammt aus Apple Health. Health speichert keine FIT-Datei, nur die Messwerte; FITgap zeigt sie hier an. Teilen oder Löschen ist hier nicht möglich.")
+                     : "Health speichert keine FIT-Datei, nur die Messwerte. „Als FIT teilen“ erzeugt daraus eine FIT mit allen Messreihen, Route, Runden und Pausen, z. B. für Strava oder intervals.icu.")
             }
         }
         .task(id: "\(workout.id)-\(reload)") {
@@ -352,8 +496,20 @@ struct HealthWorkoutDetailView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in photosReload += 1 }
         .onDisappear { photos.removeFiles() }
         .photoViewer($photos.listPreview, in: photos.previewURLs)
+        .sheet(item: $shared) { file in ShareSheet(urls: [file.url]) { _ in } }
+        .alert("FITgap", isPresented: Binding(get: { exportError != nil }, set: { if !$0 { exportError = nil } })) {
+            Button("OK", role: .cancel) { exportError = nil }
+        } message: { Text(exportError ?? "") }
         .navigationTitle(workout.name)
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func exportFIT() async {
+        exporting = true
+        defer { exporting = false }
+        do { shared = SharedFIT(url: try await reader.fit(workout, details: details)) }
+        catch is CancellationError {}
+        catch { exportError = String(localized: "Die FIT-Datei konnte nicht erzeugt werden. \(error.localizedDescription)") }
     }
 
     private var averageSpeed: Double? {
@@ -367,6 +523,11 @@ struct HealthWorkoutDetailView: View {
 
     private func heartRate(_ value: Double) -> String { String(localized: "\(Int(value.rounded())) S/min") }
     private func cadence(_ value: Double) -> String { String(localized: "\(Int(value.rounded())) U/min") }
+}
+
+private struct SharedFIT: Identifiable {
+    let id = UUID()
+    let url: URL
 }
 
 enum HealthWorkoutFormat {

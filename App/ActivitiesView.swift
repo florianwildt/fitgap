@@ -517,7 +517,7 @@ private struct SharedFiles: Identifiable {
     let generation: UUID
 }
 
-private struct ShareSheet: UIViewControllerRepresentable {
+struct ShareSheet: UIViewControllerRepresentable {
     let urls: [URL]
     let completion: @MainActor (Bool) -> Void
 
