@@ -86,3 +86,13 @@ private func entry(_ id: String, _ start: Date, minutes: Double, km: Double?, ca
     #expect(StatsCategory(fitSport: 41) == .paddling && StatsCategory(fitSport: 14) == .alpineSkiing)
     #expect(StatsCategory(fitSport: 10, subSport: 43) == .yoga && StatsCategory(fitSport: 21) == .cycling)
 }
+
+@Test func longestStreakListsItsDays() {
+    let entries = [entry("a", day(2026, 3, 1), minutes: 30, km: 5), entry("b", day(2026, 3, 2), minutes: 30, km: 5),
+                   entry("c", day(2026, 3, 2), minutes: 20, km: 3), entry("d", day(2026, 3, 3), minutes: 30, km: 5),
+                   entry("e", day(2026, 5, 1), minutes: 30, km: 5), entry("f", day(2026, 5, 2), minutes: 30, km: 5)]
+    let year = YearSummary(year: 2026, entries: entries, calendar: utc)
+    #expect(year.longestStreak == 3)
+    #expect(year.longestStreakDays == [day(2026, 3, 1), day(2026, 3, 2), day(2026, 3, 3)].map { utc.startOfDay(for: $0) })
+    #expect(year.entries(on: day(2026, 3, 2)).count == 2)
+}

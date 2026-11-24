@@ -197,15 +197,26 @@ public struct YearSummary: Sendable, Equatable {
     }
 
     /// Longest run of consecutive days with activity.
-    public var longestStreak: Int {
-        let days = Set(entries.compactMap { calendar.ordinality(of: .day, in: .era, for: $0.date) }).sorted()
-        var best = 0, current = 0, previous: Int?
+    public var longestStreak: Int { longestStreakDays.count }
+
+    /// The days of the longest run of consecutive days with activity, oldest first; the latest run wins a tie.
+    public var longestStreakDays: [Date] {
+        let days = Set(entries.map { calendar.startOfDay(for: $0.date) }).sorted()
+        var best: [Date] = [], current: [Date] = []
         for day in days {
-            current = previous == day - 1 ? current + 1 : 1
-            best = max(best, current)
-            previous = day
+            if let last = current.last, calendar.date(byAdding: .day, value: 1, to: last) == day {
+                current.append(day)
+            } else {
+                current = [day]
+            }
+            if current.count >= best.count { best = current }
         }
         return best
+    }
+
+    /// The entries of the given day, oldest first.
+    public func entries(on day: Date) -> [StatsEntry] {
+        entries.filter { calendar.isDate($0.date, inSameDayAs: day) }.sorted { $0.date < $1.date }
     }
 
     /// Relative change from `previous`; nil without a base to compare with.

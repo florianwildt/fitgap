@@ -283,7 +283,6 @@
 
 "Schließen" = "Schließen";
 
-"Bestwert aller Jahre" = "Bestwert aller Jahre";
 "Gesamt: %@" = "Gesamt: %@";
 
 "Ziele %@" = "Ziele %@";
@@ -344,3 +343,5 @@
 "Den Fotozugriff änderst du in den Einstellungen unter Apps › FITgap." = "Den Fotozugriff änderst du in den Einstellungen unter Apps › FITgap.";
 "Apple Health enthält keine Route für dieses Training, oder FITgap darf Trainingsrouten nicht lesen. Zeigt die Health-App beim Training eine Karte, erlaube unter „Konten“ › „Freigaben“ den Zugriff auf Trainingsrouten." = "Apple Health enthält keine Route für dieses Training, oder FITgap darf Trainingsrouten nicht lesen. Zeigt die Health-App beim Training eine Karte, erlaube unter „Konten“ › „Freigaben“ den Zugriff auf Trainingsrouten.";
 
+
+"%@ Bestwert aller Jahre" = "%@ Bestwert aller Jahre";

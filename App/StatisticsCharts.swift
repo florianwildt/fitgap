@@ -122,7 +122,7 @@ struct StatisticsDetail: View {
                            overall(years, \.fastest, by: { ($0.distanceMeters ?? 0) / max($0.duration, 1) })) {
                         ActivityFormat.speed(($0.distanceMeters ?? 0) / max($0.duration, 1)) ?? ""
                     }
-                    streak(current.longestStreak, overall: years.map(\.longestStreak).max() ?? 0)
+                    streak(current, overall: years.map(\.longestStreak).max() ?? 0)
                 } header: {
                     Text("Bestwerte")
                 }
@@ -278,8 +278,8 @@ struct StatisticsDetail: View {
     @ViewBuilder
     private func overallLine(_ text: String, isShownYear: Bool) -> some View {
         if isShownYear {
-            Label("Bestwert aller Jahre", systemImage: "star.fill")
-                .labelStyle(.titleAndIcon).font(.caption).foregroundStyle(.orange)
+            // The star stays inline with the text, so it never takes a line of its own.
+            Text("\(Image(systemName: "star.fill")) Bestwert aller Jahre").font(.caption).foregroundStyle(.orange)
         } else {
             Text(String(localized: "Gesamt: \(text)")).font(.caption).foregroundStyle(.secondary)
         }
@@ -289,20 +289,37 @@ struct StatisticsDetail: View {
         count == 1 ? String(localized: "1 Tag") : String(localized: "\(count) Tage")
     }
 
-    private func streak(_ days: Int, overall: Int) -> some View {
-        LabeledContent {
-            Text(Self.days(days)).monospacedDigit()
-        } label: {
-            Label {
+    /// Title and details on the left, the value on the right; the value keeps its width so it never wraps below.
+    private func recordRow<Details: View>(_ title: String, _ symbol: String, value: String,
+                                         @ViewBuilder details: () -> Details) -> some View {
+        Label {
+            HStack(alignment: .center, spacing: 8) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Längste Serie")
-                    if overall > 0 { overallLine(Self.days(overall), isShownYear: days == overall) }
+                    Text(title)
+                    details()
                 }
-            } icon: {
-                Image(systemName: "calendar")
+                Spacer(minLength: 8)
+                Text(value).monospacedDigit().foregroundStyle(.secondary).fixedSize()
             }
+        } icon: {
+            Image(systemName: symbol)
         }
         .accessibilityElement(children: .combine)
+    }
+
+    /// The longest run of the shown year; tapping lists its days and workouts.
+    @ViewBuilder
+    private func streak(_ summary: YearSummary, overall: Int) -> some View {
+        let days = summary.longestStreak
+        if days > 0 {
+            NavigationLink {
+                StreakView(model: model, summary: summary)
+            } label: {
+                recordRow(String(localized: "Längste Serie"), "calendar", value: Self.days(days)) {
+                    if overall > 0 { overallLine(Self.days(overall), isShownYear: days == overall) }
+                }
+            }
+        }
     }
 
     /// The shown year's record with its activity, and the record of all years; opens the activity when it is in FITgap.
@@ -315,25 +332,13 @@ struct StatisticsDetail: View {
             } else {
                 nil
             }
-            // One record per row: title, activity and the record of all years on the left, the value on the right.
-            let content = LabeledContent {
-                Text(value(best)).monospacedDigit()
-            } label: {
-                Label {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(title)
-                        Text(recordSubtitle(best)).font(.caption).foregroundStyle(.secondary)
-                        if let overall {
-                            let year = Calendar.current.component(.year, from: overall.date)
-                            overallLine("\(value(overall)) (\(String(year)))",
-                                        isShownYear: overall == best || value(overall) == value(best))
-                        }
-                    }
-                } icon: {
-                    Image(systemName: symbol)
+            let content = recordRow(title, symbol, value: value(best)) {
+                Text(recordSubtitle(best)).font(.caption).foregroundStyle(.secondary)
+                if let overall {
+                    let year = Calendar.current.component(.year, from: overall.date)
+                    overallLine("\(value(overall)) (\(String(year)))", isShownYear: overall == best || value(overall) == value(best))
                 }
             }
-            .accessibilityElement(children: .combine)
             if let key {
                 NavigationLink(value: key) { content }
             } else {
@@ -696,5 +701,66 @@ private struct CalendarChart: View {
         .padding(.vertical, 8)
         .accessibilityLabel(Text("Aktivitätskalender"))
         .accessibilityValue(Text("\(summary.activeDays) aktive Tage"))
+    }
+}
+
+/// The days of the longest streak with their totals and workouts; FITgap activities open their details.
+struct StreakView: View {
+    @ObservedObject var model: AppModel
+    let summary: YearSummary
+
+    var body: some View {
+        let days = summary.longestStreakDays
+        let entries = days.flatMap { summary.entries(on: $0) }
+        List {
+            if let first = days.first, let last = days.last {
+                Section {
+                    LabeledContent("Zeitraum",
+                                   value: "\(first.formatted(.dateTime.day().month(.abbreviated))) – \(last.formatted(.dateTime.day().month(.abbreviated).year()))")
+                    LabeledContent("Aktivitäten", value: ActivityFormat.integer(Double(entries.count)))
+                    LabeledContent("Strecke", value: StatsMetric.distance.formatted(entries.reduce(0) { $0 + ($1.distanceMeters ?? 0) }))
+                    LabeledContent("Zeit", value: StatsMetric.duration.formatted(entries.reduce(0) { $0 + $1.duration }))
+                }
+            }
+            ForEach(days, id: \.self) { day in
+                Section(day.formatted(.dateTime.weekday(.wide).day().month(.wide))) {
+                    ForEach(summary.entries(on: day)) { entry in row(entry) }
+                }
+            }
+        }
+        .navigationTitle(String(localized: "Längste Serie"))
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    @ViewBuilder
+    private func row(_ entry: StatsEntry) -> some View {
+        let content = Label {
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(name(entry))
+                    Text("\(entry.date.formatted(date: .omitted, time: .shortened)) · \(StatsMetric.duration.formatted(entry.duration))")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 8)
+                if let meters = entry.distanceMeters {
+                    Text(StatsMetric.distance.formatted(meters)).monospacedDigit().foregroundStyle(.secondary).fixedSize()
+                }
+            }
+        } icon: {
+            Image(systemName: entry.category.symbol).foregroundStyle(entry.category.color)
+        }
+        .accessibilityElement(children: .combine)
+        if case .fitgap(let key) = entry.origin, model.activities.contains(where: { $0.key == key }) {
+            NavigationLink(value: key) { content }
+        } else {
+            content
+        }
+    }
+
+    private func name(_ entry: StatsEntry) -> String {
+        switch entry.origin {
+        case .fitgap(let key): model.activities.first { $0.key == key }?.displayName ?? entry.category.title
+        case .health(_, let source): "\(entry.category.title) · \(source)"
+        }
     }
 }
