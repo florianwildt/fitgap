@@ -303,9 +303,7 @@ struct PhotoSection: View {
             case .limited:
                 Text("Du hast FITgap nur ausgewählte Fotos freigegeben. Weitere Fotos gibst du in den Einstellungen frei.")
             default:
-                if photos.items.contains(where: { $0.coordinate != nil }) {
-                    Text("Fotos ohne eigenen Ort werden nach ihrer Aufnahmezeit auf der Strecke platziert.")
-                }
+                EmptyView()
             }
         }
     }

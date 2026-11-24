@@ -262,7 +262,6 @@
 "Foto" = "Photo";
 "FITgap sucht in deiner Mediathek nach Fotos, die während der Aktivität entstanden sind, und zeigt sie hier und auf der Karte. Die Fotos bleiben auf dem Gerät." = "FITgap looks in your library for photos taken during the activity and shows them here and on the map. The photos stay on your device.";
 "Du hast FITgap nur ausgewählte Fotos freigegeben. Weitere Fotos gibst du in den Einstellungen frei." = "You have shared only selected photos with FITgap. You can share more photos in Settings.";
-"Fotos ohne eigenen Ort werden nach ihrer Aufnahmezeit auf der Strecke platziert." = "Photos without their own location are placed on the route by the time they were taken.";
 "Foto, %@" = "Photo, %@";
 "Öffnet das Foto in groß" = "Opens the photo in full size";
 "Fotos werden geladen …" = "Loading photos…";
