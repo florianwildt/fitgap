@@ -200,9 +200,9 @@ struct StatisticsView: View {
         // Apple's SwiftUI request is shown above the visible view, only after a tap.
         .healthDataAccessRequest(store: HealthAccess.store, shareTypes: HealthAccess.shareTypes, readTypes: HealthAccess.readTypes,
                                  trigger: healthRequest) { _ in
-            Task { await stats.loadHealth(enabled: !model.isDemo) }
+            NotificationCenter.default.post(name: HealthWorkoutsModel.accessChanged, object: nil)
         }
-        // The launch request may be answered while this view waits for access.
+        // Access may be granted here or elsewhere (saving, workout details, "Accounts" › "Access").
         .onReceive(NotificationCenter.default.publisher(for: HealthWorkoutsModel.accessChanged)) { _ in
             Task { await stats.loadHealth(enabled: !model.isDemo) }
         }

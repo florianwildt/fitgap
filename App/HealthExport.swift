@@ -63,7 +63,10 @@ struct HealthExporter: Sendable {
     func requestAuthorization() async throws {
         guard Self.isAvailable else { throw HealthExportError.unavailable }
         // Everything FITgap reads and writes in one request, so iOS never asks again for single values.
+        // Health is only requested when a Health feature is used, never at launch.
+        let asked = await HealthAccess.needsRequest()
         try await store.requestAuthorization(toShare: HealthAccess.shareTypes, read: HealthAccess.readTypes)
+        if asked { NotificationCenter.default.post(name: HealthWorkoutsModel.accessChanged, object: nil) }
     }
 
     /// `includeOverlaps` writes even when another app's workout covers the same time; FITgap's own earlier export is always respected.

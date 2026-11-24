@@ -1,4 +1,3 @@
-import HealthKit
 import SwiftUI
 import UIKit
 
@@ -18,7 +17,6 @@ struct FITgapApp: App {
     @StateObject private var model = AppModel()
     @Environment(\.scenePhase) private var phase
     @State private var tab = AppTab.activities
-    @State private var healthRequest = false
 
     init() {
         StartupLog.beginLaunch()
@@ -39,12 +37,6 @@ struct FITgapApp: App {
             }
                 .onAppear { StartupLog.mark("first view appeared", once: true) }
                 .task { StartupLog.measure("AppModel.start") { model.start() } }
-                // One request at launch for every value FITgap reads and writes; iOS skips it once all are decided.
-                .task { if await HealthAccess.needsRequest() { healthRequest.toggle() } }
-                .healthDataAccessRequest(store: HealthAccess.store, shareTypes: HealthAccess.shareTypes,
-                                         readTypes: HealthAccess.readTypes, trigger: healthRequest) { _ in
-                    NotificationCenter.default.post(name: HealthWorkoutsModel.accessChanged, object: nil)
-                }
                 .onChange(of: phase) { _, value in
                     StartupLog.mark("scene \(value)", once: value == .active)
                     model.phaseChanged(value)
