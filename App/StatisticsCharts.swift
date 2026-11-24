@@ -14,6 +14,8 @@ struct StatisticsDetail: View {
     @Binding var metric: StatsMetric
     @State private var grown = false
     @State private var editing: GoalEditing?
+    /// Activity opened from a record tile; several links in one list row would all open at once.
+    @State private var opened: ActivityKey?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var current: YearSummary { period.summary(stats.entries, categories: scope.categories) }
@@ -155,6 +157,11 @@ struct StatisticsDetail: View {
         .navigationTitle(scopeTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .primaryAction) { filterMenu } }
+        .navigationDestination(item: $opened) { key in
+            if let activity = model.activities.first(where: { $0.key == key }) {
+                ActivityDetailView(model: model, initial: activity)
+            }
+        }
         .sheet(item: $editing) { item in
             GoalEditor(goal: item.goal, isNew: item.isNew, save: stats.save, delete: stats.delete)
         }
@@ -320,7 +327,9 @@ struct StatisticsDetail: View {
                     .lineLimit(1).minimumScaleFactor(0.8)
                 Text(value(best)).font(.title3.weight(.semibold)).monospacedDigit()
                     .lineLimit(1).minimumScaleFactor(0.7)
-                Text(recordSubtitle(best)).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                // Date and activity name in full; long names wrap instead of being cut.
+                Text(recordSubtitle(best)).font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 if let overall {
                     let year = Calendar.current.component(.year, from: overall.date)
                     overallLine("\(value(overall)) (\(String(year)))", isShownYear: overall == best || value(overall) == value(best))
@@ -330,7 +339,14 @@ struct StatisticsDetail: View {
             .contentShape(.rect)
             .accessibilityElement(children: .combine)
             if let key {
-                NavigationLink(value: key) { content }.buttonStyle(.plain)
+                Button { opened = key } label: {
+                    HStack(alignment: .center, spacing: 4) {
+                        content
+                        Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Öffnet die Aktivität")
             } else {
                 content
             }
