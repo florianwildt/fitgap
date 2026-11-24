@@ -15,6 +15,8 @@ struct HealthWorkout: Identifiable, Equatable, Sendable {
     let distanceMeters: Double?
     let ascentMeters: Double?
     let energyKilocalories: Double?
+    /// Set when Health keeps a route recorded during the workout.
+    var hasRoute = false
 
     var date: Date { interval.start }
 
@@ -57,6 +59,8 @@ struct HealthWorkout: Identifiable, Equatable, Sendable {
 /// Reads the workouts of other apps once access to Health was decided; it never asks for access itself.
 @MainActor
 final class HealthWorkoutsModel: ObservableObject {
+    /// Posted after the user answered a Health access request, so the list reads routes it may now see.
+    static let accessChanged = Notification.Name("FITgapHealthAccessChanged")
     @Published private(set) var workouts: [HealthWorkout] = []
     private let store = HKHealthStore()
     private var loading = false
@@ -72,7 +76,18 @@ final class HealthWorkoutsModel: ObservableObject {
         guard let samples = try? await HKSampleQueryDescriptor(predicates: [.workout()],
             sortDescriptors: [SortDescriptor(\.startDate, order: .reverse)], limit: HKObjectQueryNoLimit).result(for: store)
         else { return }
-        workouts = samples.map(HealthWorkout.init).filter { $0.bundleIdentifier != own }
+        var loaded = samples.map(HealthWorkout.init).filter { $0.bundleIdentifier != own }
+        // One query for all routes; each belongs to the workout whose time span holds it.
+        let routes = (try? await HKSampleQueryDescriptor(predicates: [.workoutRoute()], sortDescriptors: [SortDescriptor(\.startDate)])
+            .result(for: store)) ?? []
+        let starts = routes.map(\.startDate)
+        for index in loaded.indices {
+            let interval = loaded[index].interval
+            var low = 0, high = starts.count
+            while low < high { let mid = (low + high) / 2; if starts[mid] < interval.start.addingTimeInterval(-60) { low = mid + 1 } else { high = mid } }
+            loaded[index].hasRoute = low < starts.count && starts[low] <= interval.end
+        }
+        workouts = loaded
     }
 
     /// Workouts no FITgap activity covers, newest first; a FITgap activity holds more data and wins.
@@ -101,6 +116,7 @@ final class HealthWorkoutsModel: ObservableObject {
 /// One Health workout in the list, laid out like an activity row but without file actions.
 struct HealthWorkoutRow: View {
     let workout: HealthWorkout
+    var urgent = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -116,6 +132,14 @@ struct HealthWorkoutRow: View {
             Text(HealthWorkoutFormat.summary(workout))
                 .font(.subheadline).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            if workout.hasRoute {
+                RouteThumbnail(id: "health-\(workout.id.uuidString)", urgent: urgent) {
+                    await RouteThumbnails.shared.route(id: "health-\(workout.id.uuidString)") {
+                        await HealthWorkoutReader().routePreview(workout.id)
+                    }
+                }
+                .padding(.top, 8)
+            }
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
@@ -226,6 +250,13 @@ struct HealthWorkoutReader: Sendable {
         let query = HKStatisticsQueryDescriptor(predicate: .quantitySample(type: type, predicate: predicate), options: .cumulativeSum)
         guard let value = (try? await query.result(for: store))?.sumQuantity()?.doubleValue(for: unit), value > 0 else { return nil }
         return value
+    }
+
+    /// The route thinned for the list preview; empty without route or read access.
+    func routePreview(_ id: UUID) async -> [FITActivity.Coordinate] {
+        let query = HKSampleQueryDescriptor(predicates: [.workout(HKQuery.predicateForObject(with: id))], sortDescriptors: [], limit: 1)
+        guard let workout = try? await query.result(for: store).first else { return [] }
+        return Self.thinned(await route(workout), limit: 400)
     }
 
     /// All recorded positions of the workout's routes, in order.
@@ -408,7 +439,7 @@ struct HealthWorkoutDetailView: View {
     var body: some View {
         List {
             // Health keeps routes for outdoor workouts only; the section appears once one is read.
-            RouteSection(id: workout.id.uuidString, title: workout.name, expected: !(details?.route.isEmpty ?? true),
+            RouteSection(id: workout.id.uuidString, title: workout.name, expected: workout.hasRoute || !(details?.route.isEmpty ?? true),
                          virtual: false, route: details?.route ?? [], read: read, photos: photos)
             PhotoSection(photos: photos) { photosReload += 1 }
             Section {
@@ -491,7 +522,10 @@ struct HealthWorkoutDetailView: View {
             await photos.load(workout.interval, onMap: !workout.indoor && (details?.route.count ?? 0) > 1) { track }
         }
         .healthDataAccessRequest(store: reader.store, shareTypes: [], readTypes: HealthWorkoutReader.readTypes, trigger: request) { _ in
-            Task { @MainActor in reload += 1 }
+            Task { @MainActor in
+                reload += 1
+                NotificationCenter.default.post(name: HealthWorkoutsModel.accessChanged, object: nil)
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in photosReload += 1 }
         .onDisappear { photos.removeFiles() }

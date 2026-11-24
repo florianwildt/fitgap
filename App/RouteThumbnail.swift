@@ -6,8 +6,9 @@ import SwiftUI
 /// red is slow, yellow average, green fast. Only rows whose file has positions show it.
 /// The route is drawn at once from its stored preview; the map underneath fades in once MapKit delivers it.
 struct RouteThumbnail: View {
-    let activity: ActivityRecord
-    let library: ActivityLibrary
+    /// Identity of the route; a changed file gets a new one.
+    let id: String
+    let load: @MainActor () async -> [FITActivity.Coordinate]?
     /// The topmost rows, which an iPhone shows right after the app starts; their maps are made first.
     var urgent = false
     @Environment(\.colorScheme) private var colorScheme
@@ -17,13 +18,23 @@ struct RouteThumbnail: View {
     /// The map with the size key it was made for; a map for another size is never stretched into the frame.
     @State private var map: (key: String, image: UIImage)?
 
+    init(id: String, urgent: Bool = false, load: @escaping @MainActor () async -> [FITActivity.Coordinate]?) {
+        self.id = id; self.urgent = urgent; self.load = load
+    }
+
+    init(activity: ActivityRecord, library: ActivityLibrary, urgent: Bool = false) {
+        self.init(id: RouteThumbnails.routeID(activity), urgent: urgent) {
+            await RouteThumbnails.shared.route(activity, library: library)
+        }
+    }
+
     var body: some View {
         // The always-present clear layer carries the size and the loading task; an empty view would never start it.
         Color.clear
             .aspectRatio(3 / 2, contentMode: .fit)
             .overlay {
                 GeometryReader { proxy in
-                    let points = route ?? RouteThumbnails.shared.cachedRoute(activity)
+                    let points = route ?? RouteThumbnails.shared.cachedRoute(id)
                     let image = map?.key == key(proxy.size) ? map?.image : RouteThumbnails.shared.cachedMap(key(proxy.size))
                     ZStack {
                         if let image {
@@ -38,7 +49,7 @@ struct RouteThumbnail: View {
                     // A map made at another size would be scaled and blur the line, so a new size makes a new map.
                     .task(id: key(proxy.size)) {
                         guard proxy.size.width > 0 else { return }
-                        guard let loaded = await RouteThumbnails.shared.route(activity, library: library) else { return }
+                        guard let loaded = await load() else { return }
                         route = loaded
                         // While the list settles its layout the size changes for a moment; only a size that holds
                         // starts a snapshot, so no request is spent on a size that is gone a frame later.
@@ -64,7 +75,7 @@ struct RouteThumbnail: View {
 
     /// A new file, appearance, map type or size gets its own map.
     private func key(_ size: CGSize) -> String {
-        "\(activity.id)-\(activity.receipt?.sha256 ?? "")-\(colorScheme == .dark ? "dark" : "light")-\(appearance.rawValue)-\(Int(size.width))x\(Int(size.height))"
+        "\(id)-\(colorScheme == .dark ? "dark" : "light")-\(appearance.rawValue)-\(Int(size.width))x\(Int(size.height))"
     }
 
     /// Only files whose cached metrics report positions get a map, so rows without a route keep their layout.
@@ -94,10 +105,20 @@ final class RouteThumbnails {
         Task.detached(priority: .background) { try? FileManager.default.removeItem(at: old) }
     }
 
-    private func routeKey(_ activity: ActivityRecord) -> NSString { "\(activity.id)-\(activity.receipt?.sha256 ?? "")" as NSString }
+    static func routeID(_ activity: ActivityRecord) -> String { "\(activity.id)-\(activity.receipt?.sha256 ?? "")" }
+    private func routeKey(_ activity: ActivityRecord) -> NSString { Self.routeID(activity) as NSString }
 
-    func cachedRoute(_ activity: ActivityRecord) -> [FITActivity.Coordinate]? {
-        routes.object(forKey: routeKey(activity)).flatMap { $0.points.count > 1 ? $0.points : nil }
+    func cachedRoute(_ id: String) -> [FITActivity.Coordinate]? {
+        routes.object(forKey: id as NSString).flatMap { $0.points.count > 1 ? $0.points : nil }
+    }
+
+    /// Any other route, e.g. of an Apple Health workout, read once by `load` and then kept in memory.
+    func route(id: String, load: () async -> [FITActivity.Coordinate]) async -> [FITActivity.Coordinate]? {
+        if let box = routes.object(forKey: id as NSString) { return box.points.count > 1 ? box.points : nil }
+        let points = await load()
+        guard !Task.isCancelled else { return nil }
+        routes.setObject(RouteBox(points), forKey: id as NSString)
+        return points.count > 1 ? points : nil
     }
     func cachedMap(_ key: String) -> UIImage? { maps.object(forKey: key as NSString) }
 

@@ -152,7 +152,7 @@ struct ActivitiesView: View {
                     Section {
                     switch item {
                     case .health(let workout):
-                        HealthWorkoutRow(workout: workout)
+                        HealthWorkoutRow(workout: workout, urgent: index < 3)
                             .tag(ListRow.health(workout.id))
                             .accessibilityIdentifier("health-workout-\(workout.id.uuidString)")
                             .selectionDisabled(selecting)
@@ -215,6 +215,9 @@ struct ActivitiesView: View {
                 await healthWorkouts.load(enabled: !model.isDemo)
             }
             .task(id: model.isDemo) { await healthWorkouts.load(enabled: !model.isDemo) }
+            .onReceive(NotificationCenter.default.publisher(for: HealthWorkoutsModel.accessChanged)) { _ in
+                Task { await healthWorkouts.load(enabled: !model.isDemo) }
+            }
             // Saving to Health from FITgap may decide access for the first time; read the other apps' workouts then.
             .onChange(of: model.busy) { _, busy in if !busy { Task { await healthWorkouts.load(enabled: !model.isDemo) } } }
             .environment(\.editMode, $editMode)
