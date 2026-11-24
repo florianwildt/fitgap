@@ -238,13 +238,16 @@ struct StatisticsView: View {
 
     private var periodMenu: some View {
         Menu {
+            // Submenus keep the menu short; inline, both year lists would show one after the other.
             Picker("Jahr", selection: $year) {
                 ForEach(stats.years, id: \.self) { Text(String($0)).tag($0) }
             }
+            .pickerStyle(.menu)
             Picker("Vergleich", selection: $comparison) {
                 Text("Kein Vergleich").tag(Int?.none)
                 ForEach(stats.years.filter { $0 != year }, id: \.self) { Text(String($0)).tag(Int?.some($0)) }
             }
+            .pickerStyle(.menu)
             if year == currentYear, comparison != nil {
                 Toggle("Bis zum heutigen Datum", isOn: $yearToDate)
             }
