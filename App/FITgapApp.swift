@@ -44,8 +44,11 @@ struct FITgapApp: App {
                 // "Open in FITgap" and sharing a .fit file to FITgap from Files, Mail or another app.
                 .onOpenURL { url in
                     guard url.isFileURL else { return }
-                    tab = .activities
-                    model.importFiles([url])
+                    // The handler may be called off the main thread; the model publishes, so hop explicitly.
+                    Task { @MainActor in
+                        tab = .activities
+                        model.importFiles([url])
+                    }
                 }
         }
     }
