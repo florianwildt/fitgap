@@ -14,8 +14,6 @@ struct StatisticsDetail: View {
     @Binding var metric: StatsMetric
     @State private var grown = false
     @State private var editing: GoalEditing?
-    /// Activity opened from a record tile; several links in one list row would all open at once.
-    @State private var opened: ActivityKey?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var current: YearSummary { period.summary(stats.entries, categories: scope.categories) }
@@ -108,30 +106,25 @@ struct StatisticsDetail: View {
                 }
                 let years = allYears
                 Section {
-                    LazyVGrid(columns: Self.tileColumns, alignment: .leading, spacing: 14) {
-                        record(String(localized: "Längste Strecke"), StatsMetric.distance.symbol, current.best(.distance),
-                               overall(years, { $0.best(.distance) }, by: { $0.distanceMeters ?? 0 })) {
-                            StatsMetric.distance.formatted($0.distanceMeters ?? 0)
-                        }
-                        record(String(localized: "Längste Dauer"), StatsMetric.duration.symbol, current.best(.duration),
-                               overall(years, { $0.best(.duration) }, by: \.duration)) {
-                            StatsMetric.duration.formatted($0.duration)
-                        }
-                        record(String(localized: "Meiste Höhenmeter"), StatsMetric.ascent.symbol, current.best(.ascent),
-                               overall(years, { $0.best(.ascent) }, by: { $0.ascentMeters ?? 0 })) {
-                            StatsMetric.ascent.formatted($0.ascentMeters ?? 0)
-                        }
-                        record(String(localized: "Höchster Schnitt"), "speedometer", current.fastest,
-                               overall(years, \.fastest, by: { ($0.distanceMeters ?? 0) / max($0.duration, 1) })) {
-                            ActivityFormat.speed(($0.distanceMeters ?? 0) / max($0.duration, 1)) ?? ""
-                        }
-                        streak(current.longestStreak, overall: years.map(\.longestStreak).max() ?? 0)
+                    record(String(localized: "Längste Strecke"), StatsMetric.distance.symbol, current.best(.distance),
+                           overall(years, { $0.best(.distance) }, by: { $0.distanceMeters ?? 0 })) {
+                        StatsMetric.distance.formatted($0.distanceMeters ?? 0)
                     }
-                    .padding(.vertical, 6)
+                    record(String(localized: "Längste Dauer"), StatsMetric.duration.symbol, current.best(.duration),
+                           overall(years, { $0.best(.duration) }, by: \.duration)) {
+                        StatsMetric.duration.formatted($0.duration)
+                    }
+                    record(String(localized: "Meiste Höhenmeter"), StatsMetric.ascent.symbol, current.best(.ascent),
+                           overall(years, { $0.best(.ascent) }, by: { $0.ascentMeters ?? 0 })) {
+                        StatsMetric.ascent.formatted($0.ascentMeters ?? 0)
+                    }
+                    record(String(localized: "Höchster Schnitt"), "speedometer", current.fastest,
+                           overall(years, \.fastest, by: { ($0.distanceMeters ?? 0) / max($0.duration, 1) })) {
+                        ActivityFormat.speed(($0.distanceMeters ?? 0) / max($0.duration, 1)) ?? ""
+                    }
+                    streak(current.longestStreak, overall: years.map(\.longestStreak).max() ?? 0)
                 } header: {
                     Text("Bestwerte")
-                } footer: {
-                    Text("Groß der Bestwert \(String(period.year)), darunter der Bestwert aller Jahre.")
                 }
             }
             if scope == .all, let everyday = stats.everyday[period.year] {
@@ -157,11 +150,6 @@ struct StatisticsDetail: View {
         .navigationTitle(scopeTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .primaryAction) { filterMenu } }
-        .navigationDestination(item: $opened) { key in
-            if let activity = model.activities.first(where: { $0.key == key }) {
-                ActivityDetailView(model: model, initial: activity)
-            }
-        }
         .sheet(item: $editing) { item in
             GoalEditor(goal: item.goal, isNew: item.isNew, save: stats.save, delete: stats.delete)
         }
@@ -292,10 +280,8 @@ struct StatisticsDetail: View {
         if isShownYear {
             Label("Bestwert aller Jahre", systemImage: "star.fill")
                 .labelStyle(.titleAndIcon).font(.caption).foregroundStyle(.orange)
-                .lineLimit(1).minimumScaleFactor(0.8)
         } else {
             Text(String(localized: "Gesamt: \(text)")).font(.caption).foregroundStyle(.secondary)
-                .lineLimit(1).minimumScaleFactor(0.8)
         }
     }
 
@@ -304,10 +290,17 @@ struct StatisticsDetail: View {
     }
 
     private func streak(_ days: Int, overall: Int) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Label("Längste Serie", systemImage: "calendar").font(.caption).foregroundStyle(.secondary)
-            Text(Self.days(days)).font(.title3.weight(.semibold)).monospacedDigit()
-            if overall > 0 { overallLine(Self.days(overall), isShownYear: days == overall) }
+        LabeledContent {
+            Text(Self.days(days)).monospacedDigit()
+        } label: {
+            Label {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Längste Serie")
+                    if overall > 0 { overallLine(Self.days(overall), isShownYear: days == overall) }
+                }
+            } icon: {
+                Image(systemName: "calendar")
+            }
         }
         .accessibilityElement(children: .combine)
     }
@@ -322,31 +315,27 @@ struct StatisticsDetail: View {
             } else {
                 nil
             }
-            let content = VStack(alignment: .leading, spacing: 3) {
-                Label(title, systemImage: symbol).font(.caption).foregroundStyle(.secondary)
-                    .lineLimit(1).minimumScaleFactor(0.8)
-                Text(value(best)).font(.title3.weight(.semibold)).monospacedDigit()
-                    .lineLimit(1).minimumScaleFactor(0.7)
-                // Date and activity name in full; long names wrap instead of being cut.
-                Text(recordSubtitle(best)).font(.caption).foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                if let overall {
-                    let year = Calendar.current.component(.year, from: overall.date)
-                    overallLine("\(value(overall)) (\(String(year)))", isShownYear: overall == best || value(overall) == value(best))
+            // One record per row: title, activity and the record of all years on the left, the value on the right.
+            let content = LabeledContent {
+                Text(value(best)).monospacedDigit()
+            } label: {
+                Label {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(title)
+                        Text(recordSubtitle(best)).font(.caption).foregroundStyle(.secondary)
+                        if let overall {
+                            let year = Calendar.current.component(.year, from: overall.date)
+                            overallLine("\(value(overall)) (\(String(year)))",
+                                        isShownYear: overall == best || value(overall) == value(best))
+                        }
+                    }
+                } icon: {
+                    Image(systemName: symbol)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(.rect)
             .accessibilityElement(children: .combine)
             if let key {
-                Button { opened = key } label: {
-                    HStack(alignment: .center, spacing: 4) {
-                        content
-                        Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
-                    }
-                }
-                .buttonStyle(.plain)
-                .accessibilityHint("Öffnet die Aktivität")
+                NavigationLink(value: key) { content }
             } else {
                 content
             }
