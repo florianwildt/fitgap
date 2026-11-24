@@ -171,7 +171,14 @@ struct PhotoSection: View {
     /// Thumbnail size, growing with the text size.
     @ScaledMetric(relativeTo: .body) private var side: CGFloat = 128
 
+    /// With access the section only appears once photos were found, so activities without photos show nothing.
+    private var hidden: Bool { photos.hasAccess && photos.items.isEmpty }
+
     var body: some View {
+        if !hidden { section }
+    }
+
+    private var section: some View {
         Section {
             switch photos.status {
             case .notDetermined:
@@ -186,12 +193,7 @@ struct PhotoSection: View {
                 Text("FITgap hat keinen Zugriff auf deine Fotos.").foregroundStyle(.secondary)
                 settingsButton
             default:
-                if photos.items.isEmpty {
-                    Text(photos.loaded ? "Keine Fotos aus dem Zeitraum dieser Aktivität." : "Fotos werden gesucht …")
-                        .foregroundStyle(.secondary)
-                } else {
-                    strip
-                }
+                strip
                 if photos.status == .limited { settingsButton }
             }
         } header: {

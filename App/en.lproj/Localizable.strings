@@ -266,8 +266,6 @@
 "Tag" = "Day";
 "Fotos dieser Aktivität anzeigen" = "Show photos from this activity";
 "FITgap hat keinen Zugriff auf deine Fotos." = "FITgap has no access to your photos.";
-"Keine Fotos aus dem Zeitraum dieser Aktivität." = "No photos from the time of this activity.";
-"Fotos werden gesucht …" = "Looking for photos…";
 "Fotos" = "Photos";
 "Foto" = "Photo";
 "FITgap sucht in deiner Mediathek nach Fotos, die während der Aktivität entstanden sind, und zeigt sie hier und auf der Karte. Die Fotos bleiben auf dem Gerät." = "FITgap looks in your library for photos taken during the activity and shows them here and on the map. The photos stay on your device.";
