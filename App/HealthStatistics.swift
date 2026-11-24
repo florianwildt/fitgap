@@ -5,7 +5,7 @@ import HealthKit
 /// Reads every workout in Apple Health, from any app, for the year statistics.
 /// Totals missing on a workout are summed from the samples of all sources during its time span.
 struct HealthStatisticsReader: Sendable {
-    private let store = HKHealthStore()
+    let store = HKHealthStore()
 
     static var isAvailable: Bool { HKHealthStore.isHealthDataAvailable() }
 
@@ -16,10 +16,15 @@ struct HealthStatisticsReader: Sendable {
         return types
     }
 
-    /// Asks once; iOS shows no sheet when every type was already decided and never tells whether reading was denied.
-    func requestAuthorization() async throws {
-        let read = Set(Self.quantityTypes.map { HKQuantityType($0) as HKObjectType } + [HKObjectType.workoutType()])
-        try await store.requestAuthorization(toShare: [], read: read)
+    static var readTypes: Set<HKObjectType> {
+        Set(quantityTypes.map { HKQuantityType($0) as HKObjectType } + [HKObjectType.workoutType()])
+    }
+
+    /// Whether iOS still has to ask; the request itself is shown by the view with `healthDataAccessRequest`.
+    /// iOS never tells whether reading was denied, only whether every type was decided.
+    func needsRequest() async -> Bool {
+        let status = try? await store.statusForAuthorizationRequest(toShare: [], read: Self.readTypes)
+        return status != .unnecessary
     }
 
     /// All workouts of every app, oldest first, with the totals they carry themselves.
@@ -106,7 +111,7 @@ struct HealthStatisticsReader: Sendable {
 /// FITgap activities and Health workouts merged for the statistics; Health is read once per visit and completed per year.
 @MainActor
 final class StatisticsModel: ObservableObject {
-    enum HealthState: Equatable { case off, loading, loaded, failed }
+    enum HealthState: Equatable { case off, needsAccess, loading, loaded, failed }
 
     @Published private(set) var entries: [StatsEntry] = []
     @Published private(set) var healthState = HealthState.off
@@ -117,7 +122,7 @@ final class StatisticsModel: ObservableObject {
     private var fitgap: [StatsEntry] = []
     private var health: [StatsEntry] = []
     private var completedYears = Set<Int>()
-    private let reader = HealthStatisticsReader()
+    let reader = HealthStatisticsReader()
 
     var years: [Int] {
         let current = Calendar.current.component(.year, from: .now)
@@ -134,16 +139,20 @@ final class StatisticsModel: ObservableObject {
     }
 
     /// Reads Health unless it is unavailable or the demo is shown; the demo counts its own activities only.
+    /// Without a decision on access nothing is asked here; the user starts the request in the view.
     func loadHealth(enabled: Bool) async {
         guard enabled, HealthStatisticsReader.isAvailable else {
             health = []; completedYears = []; everyday = [:]; healthState = .off
             merge()
             return
         }
-        guard healthState == .off || healthState == .failed else { return }
+        guard healthState != .loading, healthState != .loaded else { return }
+        if await reader.needsRequest() {
+            healthState = .needsAccess
+            return
+        }
         healthState = .loading
         do {
-            try await reader.requestAuthorization()
             health = try await reader.workouts()
             healthState = .loaded
         } catch {

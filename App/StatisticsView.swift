@@ -1,5 +1,6 @@
 import Charts
 import FITgapCore
+import HealthKitUI
 import SwiftUI
 
 /// Everything or one sport group.
@@ -115,6 +116,7 @@ struct StatisticsView: View {
     @State private var comparison: Int? = Calendar.current.component(.year, from: .now) - 1
     @State private var yearToDate = true
     @State private var metric = StatsMetric.distance
+    @State private var healthRequest = false
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     private var currentYear: Int { Calendar.current.component(.year, from: .now) }
@@ -137,6 +139,12 @@ struct StatisticsView: View {
                     }
                 }
                 Section {
+                    if stats.healthState == .needsAccess, !model.isDemo {
+                        Button("Trainings aus Apple Health einbeziehen", systemImage: "heart.text.square") {
+                            healthRequest.toggle()
+                        }
+                        .accessibilityIdentifier("stats-health-request")
+                    }
                 } footer: {
                     StatisticsSourcesNote(stats: stats, isDemo: model.isDemo)
                 }
@@ -158,6 +166,11 @@ struct StatisticsView: View {
         .onAppear { if sizeClass == .regular, selection == nil { selection = .all } }
         .onReceive(model.$duplicates) { groups in stats.update(model.activities, hidden: groups.hidden) }
         .task(id: model.isDemo) { await stats.loadHealth(enabled: !model.isDemo) }
+        // Apple's SwiftUI request is shown above the visible view, only after a tap.
+        .healthDataAccessRequest(store: stats.reader.store, shareTypes: [], readTypes: HealthStatisticsReader.readTypes,
+                                 trigger: healthRequest) { _ in
+            Task { await stats.loadHealth(enabled: !model.isDemo) }
+        }
         .task(id: [year, comparison ?? 0, stats.healthState == .loaded ? 1 : 0]) {
             await stats.complete(years: [year] + (comparison.map { [$0] } ?? []))
         }
@@ -272,6 +285,8 @@ struct StatisticsSourcesNote: View {
                 switch stats.healthState {
                 case .off:
                     Text("Die Statistik zählt die Aktivitäten in FITgap.")
+                case .needsAccess:
+                    Text("Die Statistik zählt die Aktivitäten in FITgap. Mit Apple Health kommen Trainings anderer Apps dazu, etwa von der Apple Watch; doppelte zählen einmal.")
                 case .loading:
                     Text("Trainings aus Apple Health werden gelesen …")
                 case .loaded:

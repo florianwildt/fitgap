@@ -168,6 +168,8 @@ final class PhotoImages {
 struct PhotoSection: View {
     @ObservedObject var photos: ActivityPhotos
     let reload: () -> Void
+    /// Thumbnail size, growing with the text size.
+    @ScaledMetric(relativeTo: .body) private var side: CGFloat = 128
 
     var body: some View {
         Section {
@@ -215,7 +217,7 @@ struct PhotoSection: View {
                     Button {
                         Task { await photos.open(photo, fromMap: false) }
                     } label: {
-                        PhotoThumbnail(id: photo.id, side: 84).clipShape(.rect(cornerRadius: 8))
+                        PhotoThumbnail(id: photo.id, side: side).clipShape(.rect(cornerRadius: 10))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(Text("Foto, \(photo.date.formatted(date: .omitted, time: .shortened))"))

@@ -279,3 +279,6 @@
 "In den Einstellungen ändern" = "In den Einstellungen ändern";
 "%lld Fotos" = "%lld Fotos";
 "Hm" = "Hm";
+
+"Trainings aus Apple Health einbeziehen" = "Trainings aus Apple Health einbeziehen";
+"Die Statistik zählt die Aktivitäten in FITgap. Mit Apple Health kommen Trainings anderer Apps dazu, etwa von der Apple Watch; doppelte zählen einmal." = "Die Statistik zählt die Aktivitäten in FITgap. Mit Apple Health kommen Trainings anderer Apps dazu, etwa von der Apple Watch; doppelte zählen einmal.";
